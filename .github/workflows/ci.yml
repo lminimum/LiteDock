@@ -2,6 +2,14 @@ name: CI
 on: pull_request
 
 jobs:
+  commit-lint:
+    name: runner / commit-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint commit / PR title
+        uses: masahiro331/go-commitlinter@0.1.2
+
   golangci-lint:
     name: runner / golangci-lint
     runs-on: ubuntu-latest
