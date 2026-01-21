@@ -1,1 +1,7 @@
-npx --no -- commitlint --edit $1
+#!/bin/sh
+echo "🔥 commit-msg hook triggered" >&2
+
+npx --prefix web commitlint \
+  --config web/commitlint.config.ts \
+  --require ts-node/register \
+  --edit "$1"
