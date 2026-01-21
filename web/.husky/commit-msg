@@ -1,3 +1,0 @@
-#!/bin/sh
-echo "🔥🔥🔥 COMMIT-MSG HOOK TRIGGERED 🔥🔥🔥" >&2
-exit 1
