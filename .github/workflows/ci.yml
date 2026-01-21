@@ -6,7 +6,7 @@ jobs:
     name: runner / commit-lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Lint commit / PR title
         uses: masahiro331/go-commitlinter@0.1.2
 
