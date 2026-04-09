@@ -1,12 +1,12 @@
 <template>
-  <div class="setup-container">
-    <div class="setup-card">
-      <div class="setup-header">
-        <h1>LiteDock 初始配置</h1>
+  <div v-if="show" class="modal-overlay" @click="closeModal">
+    <div class="setup-modal" @click.stop :class="{ 'dark-theme': isDarkMode }">
+      <div class="setup-modal-header">
+        <h2>LiteDock 初始配置</h2>
         <p>欢迎使用 LiteDock Docker 管理平台</p>
       </div>
       
-      <div class="setup-content">
+      <div class="setup-modal-content">
         <div class="step-indicator">
           <div 
             v-for="(step, index) in steps" 
@@ -47,10 +47,6 @@
                 type="text"
               />
             </div>
-            
-            <button @click="testDockerConnection" class="test-btn" :disabled="testing">
-              {{ testing ? '测试中...' : '测试连接' }}
-            </button>
           </div>
           
           <!-- 步骤 2: 管理员账户设置 -->
@@ -119,7 +115,7 @@
           </div>
         </div>
         
-        <div class="setup-actions">
+        <div class="setup-modal-actions">
           <button 
             v-if="currentStep > 0" 
             @click="previousStep" 
@@ -141,9 +137,8 @@
             v-if="currentStep === steps.length - 1" 
             @click="completeSetup" 
             class="btn-primary"
-            :disabled="completing"
           >
-            {{ completing ? '配置中...' : '开始使用' }}
+            开始使用
           </button>
         </div>
       </div>
@@ -152,10 +147,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-
-const router = useRouter()
 
 interface Config {
   docker: {
@@ -177,6 +170,14 @@ interface Config {
   }
 }
 
+const props = defineProps<{
+  show: boolean
+}>()
+
+const emit = defineEmits(['close', 'complete'])
+
+const router = useRouter()
+
 const steps = [
   { title: 'Docker 配置' },
   { title: '管理员账户' },
@@ -185,8 +186,6 @@ const steps = [
 ]
 
 const currentStep = ref(0)
-const testing = ref(false)
-const completing = ref(false)
 
 const config = ref<Config>({
   docker: {
@@ -207,6 +206,8 @@ const config = ref<Config>({
     enableSwagger: true
   }
 })
+
+const isDarkMode = ref(false)
 
 const canProceed = computed(() => {
   switch (currentStep.value) {
@@ -234,19 +235,6 @@ const onDockerTypeChange = () => {
   }
 }
 
-const testDockerConnection = async () => {
-  testing.value = true
-  try {
-    // 这里应该调用后端API测试Docker连接
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    alert('Docker 连接测试成功！')
-  } catch (error) {
-    alert('Docker 连接测试失败，请检查配置')
-  } finally {
-    testing.value = false
-  }
-}
-
 const nextStep = () => {
   if (canProceed.value) {
     currentStep.value++
@@ -258,70 +246,102 @@ const previousStep = () => {
 }
 
 const completeSetup = async () => {
-  completing.value = true
-  try {
-    // 这里应该调用后端API保存配置
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // 标记为已配置
-    localStorage.setItem('litedock-configured', 'true')
-    localStorage.setItem('litedock-config', JSON.stringify(config.value))
-    
-    // 跳转到登录页面
-    router.push('/login')
-  } catch (error) {
-    alert('配置保存失败，请重试')
-  } finally {
-    completing.value = false
-  }
+  // 模拟配置保存
+  localStorage.setItem('litedock-configured', 'true')
+  localStorage.setItem('litedock-config', JSON.stringify(config.value))
+  
+  // 直接跳转到登录页面
+  router.push('/login')
+  
+  // 发出完成事件
+  emit('complete')
 }
+
+const closeModal = () => {
+  emit('close')
+}
+
+// 恢复主题设置
+onMounted(() => {
+  const savedTheme = localStorage.getItem('litedock-theme')
+  if (savedTheme) {
+    isDarkMode.value = savedTheme === 'dark'
+  }
+})
 </script>
 
 <style scoped>
-.setup-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
   padding: 20px;
 }
 
-.setup-card {
+.setup-modal {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
   width: 100%;
   overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.setup-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 40px;
+.setup-modal.dark-theme {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.setup-modal-header {
+  background: #f8fafc;
+  padding: 24px;
   text-align: center;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.setup-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 2rem;
+.setup-modal.dark-theme .setup-modal-header {
+  background: #334155;
+  border-bottom: 1px solid #475569;
+}
+
+.setup-modal-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
   font-weight: 600;
+  color: #1e293b;
 }
 
-.setup-header p {
+.setup-modal.dark-theme .setup-modal-header h2 {
+  color: #f1f5f9;
+}
+
+.setup-modal-header p {
   margin: 0;
-  opacity: 0.9;
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
-.setup-content {
-  padding: 40px;
+.setup-modal.dark-theme .setup-modal-header p {
+  color: #cbd5e1;
+}
+
+.setup-modal-content {
+  padding: 24px;
 }
 
 .step-indicator {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 
 .step {
@@ -336,20 +356,28 @@ const completeSetup = async () => {
   content: '';
   position: absolute;
   top: 20px;
-  left: 60%;
-  width: 80%;
+  left: 50%;
+  width: 100%;
   height: 2px;
   background: #e2e8f0;
   z-index: 0;
+}
+
+.setup-modal.dark-theme .step:not(:last-child)::after {
+  background: #475569;
 }
 
 .step.completed:not(:last-child)::after {
   background: #667eea;
 }
 
+.setup-modal.dark-theme .step.completed:not(:last-child)::after {
+  background: #60a5fa;
+}
+
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #e2e8f0;
   color: #64748b;
@@ -360,10 +388,21 @@ const completeSetup = async () => {
   margin-bottom: 8px;
   position: relative;
   z-index: 1;
+  transition: all 0.2s;
+}
+
+.setup-modal.dark-theme .step-number {
+  background: #475569;
+  color: #cbd5e1;
 }
 
 .step.active .step-number {
   background: #667eea;
+  color: white;
+}
+
+.setup-modal.dark-theme .step.active .step-number {
+  background: #60a5fa;
   color: white;
 }
 
@@ -372,10 +411,19 @@ const completeSetup = async () => {
   color: white;
 }
 
+.setup-modal.dark-theme .step.completed .step-number {
+  background: #34d399;
+  color: #0f172a;
+}
+
 .step-title {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #64748b;
   text-align: center;
+}
+
+.setup-modal.dark-theme .step-title {
+  color: #94a3b8;
 }
 
 .step.active .step-title {
@@ -383,34 +431,61 @@ const completeSetup = async () => {
   font-weight: 600;
 }
 
+.setup-modal.dark-theme .step.active .step-title {
+  color: #60a5fa;
+}
+
 .step-content {
   min-height: 300px;
 }
 
+.setup-modal.dark-theme .step-content {
+  color: #f1f5f9;
+}
+
 .step-form h3 {
-  margin: 0 0 24px 0;
+  margin: 0 0 20px 0;
   color: #1e293b;
+  font-size: 1.25rem;
+}
+
+.setup-modal.dark-theme .step-form h3 {
+  color: #f1f5f9;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: #374151;
   font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.setup-modal.dark-theme .form-group label {
+  color: #e2e8f0;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
   transition: border-color 0.2s;
+  background: white;
+  color: #111827;
+}
+
+.setup-modal.dark-theme .form-group input,
+.setup-modal.dark-theme .form-group select {
+  background: #475569;
+  border-color: #64748b;
+  color: #f1f5f9;
 }
 
 .form-group input:focus,
@@ -418,6 +493,12 @@ const completeSetup = async () => {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.setup-modal.dark-theme .form-group input:focus,
+.setup-modal.dark-theme .form-group select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 
 .form-group.checkbox {
@@ -431,51 +512,50 @@ const completeSetup = async () => {
   margin: 0;
 }
 
-.test-btn {
-  background: #f59e0b;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  margin-top: 10px;
-}
-
-.test-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .step-complete {
   text-align: center;
-  padding: 40px 0;
+  padding: 24px 0;
 }
 
 .success-icon {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   background: #10b981;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto 24px auto;
+  font-size: 1.5rem;
+  margin: 0 auto 16px auto;
+  font-weight: bold;
+}
+
+.setup-modal.dark-theme .success-icon {
+  background: #34d399;
+  color: #0f172a;
 }
 
 .config-summary {
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 20px;
-  margin-top: 24px;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
   text-align: left;
+}
+
+.setup-modal.dark-theme .config-summary {
+  background: #334155;
 }
 
 .config-summary h4 {
   margin: 0 0 12px 0;
   color: #1e293b;
+  font-size: 1rem;
+}
+
+.setup-modal.dark-theme .config-summary h4 {
+  color: #f1f5f9;
 }
 
 .config-summary ul {
@@ -487,25 +567,35 @@ const completeSetup = async () => {
 .config-summary li {
   padding: 4px 0;
   color: #64748b;
+  font-size: 0.875rem;
 }
 
-.setup-actions {
+.setup-modal.dark-theme .config-summary li {
+  color: #cbd5e1;
+}
+
+.setup-modal-actions {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 40px;
-  padding-top: 24px;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
   border-top: 1px solid #e2e8f0;
+}
+
+.setup-modal.dark-theme .setup-modal-actions {
+  border-top: 1px solid #475569;
 }
 
 .btn-primary,
 .btn-secondary {
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  font-size: 0.875rem;
 }
 
 .btn-primary {
@@ -522,91 +612,82 @@ const completeSetup = async () => {
   cursor: not-allowed;
 }
 
+.btn-primary.dark-theme {
+  background: #60a5fa;
+}
+
+.btn-primary.dark-theme:hover:not(:disabled) {
+  background: #3b82f6;
+}
+
 .btn-secondary {
   background: #f8fafc;
   color: #64748b;
   border: 1px solid #d1d5db;
 }
 
+.setup-modal.dark-theme .btn-secondary {
+  background: #475569;
+  color: #cbd5e1;
+  border: 1px solid #64748b;
+}
+
 .btn-secondary:hover {
   background: #f1f5f9;
 }
 
+.setup-modal.dark-theme .btn-secondary:hover {
+  background: #64748b;
+}
+
+/* Media Queries for Responsive Design */
 @media (max-width: 767px) {
-  .setup-container {
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .setup-modal {
+    margin: 10px;
+    max-height: 95vh;
+  }
+
+  .setup-modal-header {
     padding: 16px;
   }
 
-  .setup-card {
-    max-width: 100%;
+  .setup-modal-header h2 {
+    font-size: 1.25rem;
   }
 
-  .setup-header {
-    padding: 32px 24px;
-  }
-
-  .setup-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .setup-content {
-    padding: 24px;
+  .setup-modal-content {
+    padding: 16px;
   }
 
   .step-indicator {
-    margin-bottom: 24px;
-  }
-
-  .step:not(:last-child)::after {
-    left: 55%;
-    width: 90%;
+    margin-bottom: 16px;
   }
 
   .step-title {
-    font-size: 0.75rem;
-  }
-
-  .step-content {
-    min-height: auto;
+    font-size: 0.65rem;
   }
 
   .step-form h3 {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .form-group input,
   .form-group select {
-    font-size: 0.875rem;
-    padding: 10px 12px;
+    font-size: 0.8rem;
+    padding: 8px 10px;
   }
 
-  .success-icon {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5rem;
-  }
-
-  .setup-actions {
-    flex-direction: column-reverse;
+  .setup-modal-actions {
+    flex-direction: column;
   }
 
   .btn-primary,
   .btn-secondary {
     width: 100%;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-  .setup-card {
-    max-width: 600px;
-  }
-
-  .setup-header {
-    padding: 32px;
-  }
-
-  .setup-content {
-    padding: 32px;
   }
 }
 </style>

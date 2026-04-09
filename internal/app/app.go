@@ -14,6 +14,7 @@ import (
 	"github.com/evrone/go-clean-template/internal/controller/restapi"
 	"github.com/evrone/go-clean-template/internal/repo/persistent"
 	"github.com/evrone/go-clean-template/internal/repo/webapi"
+	"github.com/evrone/go-clean-template/internal/usecase/auth"
 	"github.com/evrone/go-clean-template/internal/usecase/translation"
 	"github.com/evrone/go-clean-template/pkg/grpcserver"
 	"github.com/evrone/go-clean-template/pkg/httpserver"
@@ -34,10 +35,21 @@ func Run(cfg *config.Config) { //nolint: gocyclo,cyclop,funlen,gocritic,nolintli
 	}
 	defer pg.Close()
 
+	// Repository instances
+	persistentRepo := persistent.New(pg)
+	webAPIRepo := webapi.New()
+	userRepo := persistent.NewUserRepo(pg)
+
 	// Use-Case
 	translationUseCase := translation.New(
-		persistent.New(pg),
-		webapi.New(),
+		persistentRepo,
+		webAPIRepo,
+	)
+
+	// Auth UseCase
+	authUseCase := auth.New(
+		userRepo,
+		l,
 	)
 
 	// RabbitMQ RPC Server
@@ -58,11 +70,11 @@ func Run(cfg *config.Config) { //nolint: gocyclo,cyclop,funlen,gocritic,nolintli
 
 	// gRPC Server
 	grpcServer := grpcserver.New(l, grpcserver.Port(cfg.GRPC.Port))
-	grpc.NewRouter(grpcServer.App, translationUseCase, l)
+	grpc.NewRouter(grpcServer.App, translationUseCase, authUseCase, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, translationUseCase, l)
+	restapi.NewRouter(httpServer.App, cfg, translationUseCase, authUseCase, l)
 
 	// Start servers
 	rmqServer.Start()

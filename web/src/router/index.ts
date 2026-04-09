@@ -86,26 +86,20 @@ router.beforeEach(async (to, from, next) => {
     // 检查是否已配置
     const isConfigured = localStorage.getItem('litedock-configured') === 'true'
     
-    if (!isConfigured) {
-      // 如果未配置，跳转到配置页面
-      next('/setup')
-      return
-    }
-    
     // 检查是否已登录
-    if (!authStore.isAuthenticated) {
+    if (!authStore.isAuthenticated && to.name !== 'Setup' && to.name !== 'Login') {
       // 尝试从token恢复登录状态
       await authStore.checkAuth()
       
-      if (!authStore.isAuthenticated) {
+      if (!authStore.isAuthenticated && isConfigured) {
         next('/login')
         return
       }
     }
   }
   
-  // 如果已配置且已登录，访问setup或login页面时重定向到仪表盘
-  if ((to.name === 'Setup' || to.name === 'Login') && authStore.isAuthenticated) {
+  // 如果已配置且已登录，访问setup页面时重定向到仪表盘
+  if (to.name === 'Setup' && authStore.isAuthenticated) {
     next('/')
     return
   }

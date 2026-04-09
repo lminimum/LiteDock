@@ -82,4 +82,36 @@
   color: #10b981;
   font-weight: bold;
 }
+
+@media (max-width: 767px) {
+  .page-placeholder {
+    padding: 16px;
+    min-height: 50vh;
+  }
+
+  .placeholder-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+
+  .placeholder-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .placeholder-content p {
+    font-size: 0.875rem;
+  }
+
+  .placeholder-features {
+    padding: 20px;
+  }
+
+  .placeholder-features h3 {
+    font-size: 1.125rem;
+  }
+
+  .placeholder-features li {
+    font-size: 0.875rem;
+  }
+}
 </style>

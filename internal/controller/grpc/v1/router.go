@@ -16,3 +16,12 @@ func NewTranslationRoutes(app *pbgrpc.Server, t usecase.Translation, l logger.In
 		v1.RegisterTranslationServer(app, r)
 	}
 }
+
+// NewAuthRoutes -.
+func NewAuthRoutes(app *pbgrpc.Server, auth usecase.Auth, l logger.Interface) {
+	r := &V1{auth: auth, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+
+	{
+		v1.RegisterAuthServer(app, r)
+	}
+}

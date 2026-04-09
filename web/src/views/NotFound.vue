@@ -95,4 +95,39 @@ const goBack = () => {
 .btn-secondary:hover {
   background: #f1f5f9;
 }
+
+@media (max-width: 767px) {
+  .not-found {
+    padding: 16px;
+    min-height: 50vh;
+  }
+
+  .not-found-content {
+    max-width: 100%;
+  }
+
+  .error-code {
+    font-size: 4rem;
+    margin-bottom: 16px;
+  }
+
+  .not-found-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .not-found-content p {
+    font-size: 0.875rem;
+    margin-bottom: 24px;
+  }
+
+  .not-found-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>

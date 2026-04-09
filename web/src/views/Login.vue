@@ -10,52 +10,52 @@
         <p>登录到 LiteDock 管理平台</p>
       </div>
       
-      <form @submit.prevent="handleLogin" class="login-form">
-        <div class="form-group" :class="{ error: errors.username }">
-          <label for="username">用户名</label>
-          <input
-            id="username"
-            v-model="credentials.username"
-            type="text"
-            placeholder="请输入用户名"
-            :disabled="loading"
-            required
-          />
-          <span class="error-message" v-if="errors.username">{{ errors.username }}</span>
-        </div>
+       <form @submit.prevent="handleLogin" class="login-form">
+         <div class="form-group" :class="{ error: errors.username }">
+           <label for="username">用户名</label>
+           <input
+             id="username"
+             v-model="credentials.username"
+             type="text"
+             placeholder="请输入用户名 (默认: admin)"
+             :disabled="loading"
+             required
+           />
+           <span class="error-message" v-if="errors.username">{{ errors.username }}</span>
+         </div>
+         
+         <div class="form-group" :class="{ error: errors.password }">
+           <label for="password">密码</label>
+           <div class="password-input">
+             <input
+               id="password"
+               v-model="credentials.password"
+               :type="showPassword ? 'text' : 'password'"
+               placeholder="请输入密码 (默认: admin)"
+               :disabled="loading"
+               required
+             />
+             <button
+               type="button"
+               @click="showPassword = !showPassword"
+               class="password-toggle"
+             >
+               {{ showPassword ? '隐藏' : '显示' }}
+             </button>
+           </div>
+           <span class="error-message" v-if="errors.password">{{ errors.password }}</span>
+         </div>
         
-        <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">密码</label>
-          <div class="password-input">
-            <input
-              id="password"
-              v-model="credentials.password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="请输入密码"
-              :disabled="loading"
-              required
-            />
-            <button
-              type="button"
-              @click="showPassword = !showPassword"
-              class="password-toggle"
-            >
-              {{ showPassword ? '隐藏' : '显示' }}
-            </button>
-          </div>
-          <span class="error-message" v-if="errors.password">{{ errors.password }}</span>
-        </div>
-        
-        <div class="form-options">
-          <label class="checkbox">
-            <input v-model="rememberMe" type="checkbox" />
-            <span>记住我</span>
-          </label>
-          
-          <a href="#" class="forgot-password" @click.prevent="handleForgotPassword">
-            忘记密码？
-          </a>
-        </div>
+         <div class="form-options">
+           <label class="checkbox">
+             <input v-model="rememberMe" type="checkbox" />
+             <span>记住我</span>
+           </label>
+           
+           <a href="#" class="forgot-password" @click.prevent="useDefaultCredentials">
+             使用默认凭证？
+           </a>
+         </div>
         
         <button type="submit" class="login-btn" :disabled="loading">
           <span v-if="!loading">登录</span>
@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -97,7 +97,7 @@ const errors = reactive({
 const loading = ref(false)
 const showPassword = ref(false)
 const rememberMe = ref(false)
-const hasLogo = ref(false) // 检查是否有logo文件
+const hasLogo = ref(true) // Logo file exists
 
 const validateForm = () => {
   errors.username = ''
@@ -149,26 +149,37 @@ const handleForgotPassword = () => {
   alert('请联系系统管理员重置密码')
 }
 
-const handleSetup = () => {
-  // 清除配置状态，重新进入配置流程
-  localStorage.removeItem('litedock-configured')
-  router.push('/setup')
-}
+ const handleSetup = () => {
+   // 清除配置状态，重新进入配置流程
+   localStorage.removeItem('litedock-configured')
+   router.push('/setup')
+ }
+ 
+ const useDefaultCredentials = () => {
+   credentials.username = 'admin'
+   credentials.password = 'admin'
+ }
 
-// 检查是否有记住的用户名
-if (localStorage.getItem('litedock-remember') === 'true') {
-  const savedUsername = localStorage.getItem('litedock-username')
-  if (savedUsername) {
-    credentials.username = savedUsername
-    rememberMe.value = true
-  }
-}
-</script>
+ // 检查是否有记住的用户名
+ if (localStorage.getItem('litedock-configured') === 'true') {
+   if (localStorage.getItem('litedock-remember') === 'true') {
+     const savedUsername = localStorage.getItem('litedock-username')
+     if (savedUsername) {
+       credentials.username = savedUsername
+       rememberMe.value = true
+     }
+   }
+ } else {
+   // If not configured, show default credentials hint
+   credentials.username = ''
+   credentials.password = ''
+ }
+ </script>
 
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #333333 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,7 +212,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 .logo-text {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #333333 100%);
   color: white;
   border-radius: 12px;
   display: flex;
@@ -214,14 +225,14 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 
 .login-header h1 {
   margin: 0 0 8px 0;
-  color: #1e293b;
+  color: #000000;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
 .login-header p {
   margin: 0;
-  color: #64748b;
+  color: #404040;
 }
 
 .login-form {
@@ -235,7 +246,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #374151;
+  color: #000000;
   font-weight: 500;
   font-size: 0.875rem;
 }
@@ -243,7 +254,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d4d4d4;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -251,16 +262,16 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .form-group.error input {
-  border-color: #ef4444;
+  border-color: #000000;
 }
 
 .error-message {
-  color: #ef4444;
+  color: #000000;
   font-size: 0.75rem;
   margin-top: 4px;
   display: block;
@@ -277,14 +288,14 @@ if (localStorage.getItem('litedock-remember') === 'true') {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #64748b;
+  color: #404040;
   cursor: pointer;
   font-size: 0.75rem;
   padding: 4px 8px;
 }
 
 .password-toggle:hover {
-  color: #374151;
+  color: #000000;
 }
 
 .form-options {
@@ -300,7 +311,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
   gap: 8px;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #64748b;
+  color: #404040;
 }
 
 .checkbox input {
@@ -309,7 +320,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 }
 
 .forgot-password {
-  color: #667eea;
+  color: #000000;
   text-decoration: none;
   font-size: 0.875rem;
 }
@@ -320,7 +331,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000000 0%, #333333 100%);
   color: white;
   border: none;
   padding: 14px;
@@ -333,7 +344,7 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .login-btn:disabled {
@@ -366,17 +377,17 @@ if (localStorage.getItem('litedock-remember') === 'true') {
 .login-footer {
   padding: 20px 40px 40px 40px;
   text-align: center;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #e5e5e5;
 }
 
 .login-footer p {
   margin: 0;
-  color: #64748b;
+  color: #404040;
   font-size: 0.875rem;
 }
 
 .login-footer a {
-  color: #667eea;
+  color: #000000;
   text-decoration: none;
   font-weight: 500;
 }

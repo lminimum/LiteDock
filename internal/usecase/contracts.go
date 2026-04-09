@@ -15,4 +15,16 @@ type (
 		Translate(context.Context, entity.Translation) (entity.Translation, error)
 		History(context.Context) (entity.TranslationHistory, error)
 	}
+
+	// Auth -.
+	Auth interface {
+		// Login - authenticates user and returns token
+		Login(context.Context, string, string) (string, *entity.User, error)
+		// Register - creates a new user
+		Register(context.Context, string, string, string, string) (*entity.User, error)
+		// GetCurrentUser - gets user info from token
+		GetCurrentUser(context.Context, string) (*entity.User, error)
+		// RefreshToken - refreshes authentication token
+		RefreshToken(context.Context, string) (string, error)
+	}
 )
