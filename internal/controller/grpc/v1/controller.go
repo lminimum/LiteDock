@@ -9,9 +9,21 @@ import (
 
 // V1 -.
 type V1 struct {
+	v1.UnimplementedAuthServer
 	v1.TranslationServer
 
-	t usecase.Translation
-	l logger.Interface
-	v *validator.Validate
+	t    usecase.Translation
+	auth usecase.Auth
+	l    logger.Interface
+	v    *validator.Validate
+}
+
+// New -.
+func New(t usecase.Translation, auth usecase.Auth, l logger.Interface) *V1 {
+	return &V1{
+		t:    t,
+		auth: auth,
+		l:    l,
+		v:    validator.New(validator.WithRequiredStructEnabled()),
+	}
 }

@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package grpc.v1;
+
+option go_package = "./;v1";
+
+// Auth service for user authentication
+service Auth {
+  // Login user and return authentication token
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+  // Register new user
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Get current authenticated user info
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+
+  // Refresh authentication token
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+
+// Login request message
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// Login response message
+message LoginResponse {
+  bool success = 1;
+  string token = 2;
+  User user = 3;
+  string message = 4; // Additional message (e.g., error message)
+}
+
+// Register request message
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string role = 4; // Optional role (default: user)
+}
+
+// Register response message
+message RegisterResponse {
+  bool success = 1;
+  string message = 2; // Success or error message
+  User user = 3;
+}
+
+// Get current user request
+message GetCurrentUserRequest {
+  string token = 1;
+}
+
+// Get current user response
+message GetCurrentUserResponse {
+  User user = 1;
+  bool authenticated = 2;
+}
+
+// Refresh token request
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+// Refresh token response
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+// User entity message
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
