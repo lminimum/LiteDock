@@ -1,49 +1,137 @@
 # AGENTS.md
 
-This file contains guidelines and commands for agentic coding agents working in the LiteDock repository.
+This file contains guidelines for agentic coding agents and developers working in the LiteDock repository.
 
 ## Project Overview
 
-LiteDock is a lightweight Docker container management platform with a Go backend + Vue3 frontend architecture. The project follows Clean Architecture principles with clear separation between business logic, service layers, and interfaces.
+LiteDock is a lightweight Docker container management platform with a Go backend + Vue3 frontend architecture. The project follows Clean Architecture principles.
 
-### Architecture
+### Tech Stack
 - **Backend**: Go 1.25+ with Clean Architecture
-- **Frontend**: Vue 3 + Vite + TypeScript  
-- **Database**: PostgreSQL with migrations
+- **Frontend**: Vue 3 + Vite + TypeScript
+- **Database**: PostgreSQL, MySQL, SQLite (via abstraction layer)
 - **Message Queues**: RabbitMQ, NATS
 - **APIs**: REST (Fiber), gRPC, RPC over message queues
+
+---
+
+## Git Workflow
+
+### Branch Naming Convention
+
+```
+main                    # Stable release branch (default branch)
+dev                     # Development branch (base for features)
+feature/<description>   # New features (e.g., feature/user-auth)
+fix/<description>      # Bug fixes (e.g., fix/container-crash)
+refactor/<description>  # Code refactoring
+docs/<description>      # Documentation updates
+```
+
+**Rules**:
+- Use kebab-case: `feature/user-authentication`
+- Be descriptive: `feature/add-container-logs` not `feature/new`
+- Prefix with type: `feature/`, `fix/`, `refactor/`, `chore/`, `docs/`
+
+### Commit Message Convention
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types**:
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, missing semicolons, etc. |
+| `refactor` | Code change that neither fixes nor adds |
+| `perf` | Performance improvement |
+| `test` | Adding or updating tests |
+| `chore` | Maintenance tasks (deps, build, CI) |
+
+**Scope** (optional but recommended):
+- `backend`, `frontend`, `api`, `db`, `docker`, `ci`
+
+**Examples**:
+```bash
+feat(backend): add user authentication via JWT
+fix(docker): handle container restart timeout
+docs(api): update API endpoint documentation
+refactor(db): extract query builder into separate package
+chore(deps): upgrade go-fiber to v2.53.0
+```
+
+**Rules**:
+- Use imperative mood: "add" not "added" or "adds"
+- Keep subject line under 72 characters
+- Reference issues: `fix: resolve null pointer (#123)`
+
+### Push & PR Workflow
+
+```
+1. Sync with latest
+   git checkout main
+   git pull origin main
+
+2. Create feature branch
+   git checkout -b feature/my-feature
+
+3. Make changes & commit (follow commit convention)
+   git add .
+   git commit -m "feat(api): add new endpoint"
+
+4. Rebase onto latest before PR (keep history clean)
+   git fetch origin main
+   git rebase origin/main
+
+5. Push and create PR
+   git push -u origin feature/my-feature
+   # Create PR on GitHub
+
+6. After PR merged, delete branch
+   git branch -d feature/my-feature
+   git push origin --delete feature/my-feature
+```
+
+### PR Guidelines
+
+- **Title**: Follow commit convention (e.g., `feat(backend): add container stats API`)
+- **Description**: Explain what and why, link to issue
+- **Size**: Keep PRs focused, < 500 lines changed is ideal
+- **Squash**: Rebase and squash multiple commits before merge if needed
+- **CI**: Ensure all checks pass before requesting review
+
+---
 
 ## Build Commands
 
 ### Go Backend
 ```bash
-# Full development setup
-make run
-
-# Individual commands
-make deps              # Tidy and verify dependencies
-make swag-v1          # Generate Swagger docs
-make proto-v1         # Generate protobuf files
-make format           # Format code with gofumpt and gci
-make linter-golangci  # Run golangci-lint
-make test             # Run unit tests
-make integration-test # Run integration tests
-make mock             # Generate mocks with mockgen
-make pre-commit       # Run all pre-commit checks
+make run                 # Full development (deps + swag + proto + migrations)
+make deps               # Tidy and verify dependencies
+make swag-v1           # Generate Swagger docs
+make proto-v1          # Generate protobuf files
+make format            # Format code (gofumpt + gci)
+make linter-golangci   # Run golangci-lint
+make test              # Run unit tests
+make integration-test  # Run integration tests
+make mock              # Generate mocks with mockgen
+make pre-commit        # Run all checks (swag → proto → mock → format → lint → test)
 ```
 
 ### Running Single Tests
 ```bash
-# Run specific test file
 go test -v ./internal/usecase/translation_test.go
-
-# Run specific test function
 go test -v ./internal/usecase/... -run TestHistory
-
-# Run tests with race detection
 go test -race -v ./internal/...
-
-# Run tests with coverage
 go test -cover -v ./internal/...
 ```
 
@@ -58,15 +146,12 @@ npm run preview     # Preview production build
 
 ### Docker Services
 ```bash
-# Start core services (db, rabbitmq, nats)
-make compose-up
-
-# Start all services including backend
-make compose-up-all
-
-# Stop all services
-make compose-down
+make compose-up        # Start core services (db, rabbitmq, nats)
+make compose-up-all    # Start full stack
+make compose-down      # Stop all containers
 ```
+
+---
 
 ## Code Style Guidelines
 
@@ -78,98 +163,56 @@ make compose-down
 - Generated code is skipped during formatting
 
 #### Naming Conventions
-- **Packages**: lowercase, short, descriptive (e.g., `usecase`, `entity`, `repo`)
-- **Interfaces**: descriptive names ending with the type (e.g., `TranslationRepo`, `TranslationWebAPI`)
-- **Structs**: PascalCase, descriptive (e.g., `UseCase`, `Translation`)
+- **Packages**: lowercase, short, descriptive
+- **Interfaces**: descriptive names ending with type (`TranslationRepo`)
+- **Structs**: PascalCase (`UseCase`, `Translation`)
 - **Methods**: PascalCase for exported, lowercase for unexported
-- **Variables**: camelCase, descriptive names
+- **Variables**: camelCase, descriptive
 - **Constants**: UPPER_SNAKE_CASE for exported, camelCase for unexported
 
 #### Error Handling
-- Always wrap errors with context using `fmt.Errorf("...: %w", err)`
-- Error messages should include the method path for debugging
-- Use structured error types when appropriate
-- Handle errors immediately, don't ignore them
+- Wrap errors: `fmt.Errorf("UseCase - Method - repo.Call: %w", err)`
+- Error messages include method path
+- Handle errors immediately
 
 #### Code Structure
-- Follow Clean Architecture layers: `controller` → `usecase` → `repo` → `entity`
+- Clean Architecture: `controller` → `usecase` → `repo` → `entity`
 - Dependency injection through constructors
 - Interface-based design for testability
-- Context as first parameter for methods that do I/O
+- Context as first parameter for I/O methods
 
 #### Documentation
-- Exported functions and types must have godoc comments
-- Use proper godoc format with period at the end
-- Include examples in godoc when helpful
+- Exported functions/types need godoc comments
 - Swagger annotations for REST endpoints
 
 ### Testing Guidelines
-
-#### Test Structure
-- Use table-driven tests for multiple scenarios
-- Test files should end with `_test.go`
-- Use `require` for assertions, `assert` for non-fatal checks
-- Create test helpers with `t.Helper()`
-
-#### Mock Usage
-- Generate mocks using `make mock`
-- Use `gomock` for mock control
-- Mock interfaces, not concrete types
-- Setup mocks in test helper functions
-
-#### Test Naming
-- Test functions: `Test[FunctionName]`
-- Sub-tests: descriptive names using `t.Run()`
-- Use `t.Parallel()` when safe (avoid data races)
+- Table-driven tests for multiple scenarios
+- Test files: `*_test.go`
+- Use `require` for assertions
+- Test helpers: `t.Helper()`
+- Mocks via `make mock` (gomock)
 
 ### Frontend Code Style
-
-#### Vue3 + TypeScript
-- Use Composition API with `<script setup>`
-- TypeScript for all components
-- Follow Vue 3 style guide
-- Use kebab-case for component names in templates
-
-#### File Organization
+- Vue3 Composition API with `<script setup>`
+- TypeScript everywhere
+- kebab-case for component names
 - Components in `src/components/`
-- Use `.vue` single file components
-- Separate concerns: template, script, style
+
+---
 
 ## Linting and Quality
 
 ### Go Linters (golangci.yml)
-- Enabled linters: `wsl_v5`, `errcheck`, `gosec`, `staticcheck`, etc.
-- Custom settings for complexity, line limits, etc.
-- Formatters: `gci`, `gofumpt`, `goimports`
+- Enabled: `wsl_v5`, `errcheck`, `gosec`, `staticcheck`, etc.
+- Complexity limits: cyclomatic=10, cognitive=15
+- nolint directives require specific explanation
 
 ### Quality Gates
 - All code must pass `make pre-commit` before commit
 - Test coverage should be maintained
-- No new linting violations allowed
-- Dependencies must be security-checked (`make deps-audit`)
+- Dependencies security-checked (`make deps-audit`)
 
-## Development Workflow
-
-### Making Changes
-1. Create feature branch from main
-2. Make changes following code style guidelines
-3. Add/update tests for new functionality
-4. Run `make pre-commit` to verify quality
-5. Test manually with `make run`
-6. Submit pull request
-
-### Adding New Features
-- Follow existing architectural patterns
-- Add appropriate interfaces and implementations
-- Include comprehensive tests
-- Update documentation and Swagger specs
-- Consider both REST and RPC endpoints
-
-### Database Changes
-- Create migration files: `make migrate-create name`
-- Test migrations: `make migrate-up`
-- Update entity structs accordingly
-- Add repository layer tests
+---
 
 ## Environment Setup
 
@@ -180,33 +223,89 @@ make compose-down
 - Make
 
 ### Development Environment
-- Copy `.env.example` to `.env` and configure
-- Use `make compose-up` to start dependencies
-- Backend runs on configured port (default 8080)
-- Frontend runs on port 5173
+```bash
+cp .env.example .env
+make compose-up        # Start dependencies
+make run               # Start backend
+```
+
+Services:
+- REST API: http://127.0.0.1:8080
+- Swagger: http://127.0.0.1:8080/swagger
+- Metrics: http://127.0.0.1:8080/metrics
+- Health: http://127.0.0.1:8080/healthz
+- Frontend: http://localhost:5173
+
+---
 
 ## Key Files and Directories
 
 ```
-cmd/app/           # Application entry point
+cmd/app/main.go           # Application entry point
+config/                   # Environment config
 internal/
-  app/            # Application setup and configuration
-  controller/     # HTTP/RPC controllers
-  usecase/        # Business logic layer
-  repo/           # Data access layer
-  entity/         # Business entities
-pkg/              # Reusable packages
-web/              # Vue3 frontend
-docs/             # Documentation and Swagger
-migrations/       # Database migrations
-config/           # Configuration management
+  app/app.go             # DI & server startup
+  app/migrate.go         # DB migrations (build tag: migrate)
+  controller/
+    restapi/             # Fiber HTTP handlers
+    grpc/                # gRPC handlers
+    amqp_rpc/            # RabbitMQ RPC handlers
+    nats_rpc/            # NATS RPC handlers
+  entity/                # Business models
+  usecase/               # Business logic
+  repo/
+    persistent/          # Database implementation
+    webapi/              # External API (Google Translate)
+pkg/
+  httpserver/            # Fiber server wrapper
+  grpcserver/            # gRPC server wrapper
+  postgres/              # pgx connection
+  rabbitmq/              # RabbitMQ RPC
+  nats/                  # NATS RPC
+  logger/                # zerolog wrapper
+  database/              # DB abstraction (factory pattern)
+migrations/              # SQL migration files
+docs/
+  restapi/               # Swagger generated docs
+  proto/v1/              # gRPC proto + generated Go
+web/                     # Vue3 + Vite frontend
 ```
+
+---
+
+## Database Migrations
+
+```bash
+# Create migration
+make migrate-create name=create_users
+
+# Run migrations
+make migrate-up
+
+# Migration files in migrations/*.sql
+```
+
+Supported: PostgreSQL, MySQL, SQLite
+
+---
+
+## CI Pipeline
+
+GitHub Actions runs on PRs:
+1. Commit lint (go-commitlinter)
+2. golangci-lint (15m timeout)
+3. yamllint, hadolint, dotenv-linter
+4. Dependency check (nancy)
+5. Unit tests + codecov
+6. Integration tests (docker compose)
+
+---
 
 ## Common Patterns
 
 ### Dependency Injection
 ```go
-func NewTranslationUseCase(repo TranslationRepo, webAPI TranslationWebAPI) *UseCase {
+func NewUseCase(repo TranslationRepo, webAPI TranslationWebAPI) *UseCase {
     return &UseCase{repo: repo, webAPI: webAPI}
 }
 ```
@@ -218,29 +317,5 @@ return nil, fmt.Errorf("UseCase - Method - repo.Call: %w", err)
 
 ### Context Usage
 ```go
-func (uc *UseCase) Method(ctx context.Context, req Request) (Response, error) {
-    // Implementation
-}
-```
-
-### Testing Pattern
-```go
-func TestFunction(t *testing.T) {
-    t.Parallel()
-    
-    tests := []struct{
-        name string
-        mock func()
-        want interface{}
-        err  error
-    }{
-        // Test cases
-    }
-    
-    for _, tc := range tests {
-        t.Run(tc.name, func(t *testing.T) {
-            // Test implementation
-        })
-    }
-}
+func (uc *UseCase) Method(ctx context.Context, req Request) (Response, error)
 ```
