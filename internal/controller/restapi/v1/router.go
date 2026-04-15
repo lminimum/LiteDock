@@ -8,15 +8,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// NewTranslationRoutes
-func NewTranslationRoutes(apiV1Group fiber.Router, t usecase.Translation, l logger.Interface) {
-	r := &V1{t: t, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+// NewContainerRoutes
+func NewContainerRoutes(apiV1Group fiber.Router, c usecase.Container, l logger.Interface) {
+	r := &ContainerHandler{c: c, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
-	translationGroup := apiV1Group.Group("/translation")
+	containerGroup := apiV1Group.Group("/containers")
 
 	{
-		translationGroup.Get("/history", r.history)
-		translationGroup.Post("/do-translate", r.doTranslate)
+		containerGroup.Get("/", r.List)
+		containerGroup.Get("/:id", r.Get)
 	}
 }
 

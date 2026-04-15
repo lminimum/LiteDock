@@ -10,15 +10,9 @@ import (
 
 // AuthHandler -.
 type AuthHandler struct {
-	t    usecase.Translation
 	auth usecase.Auth
 	l    logger.Interface
 	cfg  *config.Config
-}
-
-// NewAuthHandler -.
-func NewAuthHandler(t usecase.Translation, auth usecase.Auth, l logger.Interface, cfg *config.Config) *AuthHandler {
-	return &AuthHandler{t: t, auth: auth, l: l, cfg: cfg}
 }
 
 // Login - handles POST /auth/login
@@ -130,20 +124,4 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 		Email:    user.Email,
 		Role:     user.Role,
 	})
-}
-
-// ConvertEntityToUserMap converts entity.User to fiber.Map
-func ConvertEntityToUserMap(user *entity.User) fiber.Map {
-	if user == nil {
-		return nil
-	}
-
-	return fiber.Map{
-		"id":         user.ID,
-		"username":   user.Username,
-		"email":      user.Email,
-		"role":       user.Role,
-		"created_at": user.CreatedAt,
-		"updated_at": user.UpdatedAt,
-	}
 }

@@ -8,24 +8,17 @@ import (
 	"syscall"
 
 	"github.com/evrone/go-clean-template/config"
-	amqprpc "github.com/evrone/go-clean-template/internal/controller/amqp_rpc"
-	"github.com/evrone/go-clean-template/internal/controller/grpc"
-	natsrpc "github.com/evrone/go-clean-template/internal/controller/nats_rpc"
 	"github.com/evrone/go-clean-template/internal/controller/restapi"
 	"github.com/evrone/go-clean-template/internal/repo/persistent"
-	"github.com/evrone/go-clean-template/internal/repo/webapi"
 	"github.com/evrone/go-clean-template/internal/usecase/auth"
-	"github.com/evrone/go-clean-template/internal/usecase/translation"
-	"github.com/evrone/go-clean-template/pkg/grpcserver"
+	"github.com/evrone/go-clean-template/internal/usecase/container"
 	"github.com/evrone/go-clean-template/pkg/httpserver"
 	"github.com/evrone/go-clean-template/pkg/logger"
-	natsRPCServer "github.com/evrone/go-clean-template/pkg/nats/nats_rpc/server"
 	"github.com/evrone/go-clean-template/pkg/postgres"
-	rmqRPCServer "github.com/evrone/go-clean-template/pkg/rabbitmq/rmq_rpc/server"
 )
 
 // Run creates objects via constructors.
-func Run(cfg *config.Config) { //nolint: gocyclo,cyclop,funlen,gocritic,nolintlint
+func Run(cfg *config.Config) {
 	l := logger.New(cfg.Log.Level)
 
 	// Repository
@@ -36,50 +29,20 @@ func Run(cfg *config.Config) { //nolint: gocyclo,cyclop,funlen,gocritic,nolintli
 	defer pg.Close()
 
 	// Repository instances
-	persistentRepo := persistent.New(pg)
-	webAPIRepo := webapi.New()
 	userRepo := persistent.NewUserRepo(pg)
-
-	// Use-Case
-	translationUseCase := translation.New(
-		persistentRepo,
-		webAPIRepo,
-	)
+	containerRepo := persistent.NewContainerRepo(pg)
 
 	// Auth UseCase
-	authUseCase := auth.New(
-		userRepo,
-		l,
-	)
+	authUseCase := auth.New(userRepo, l)
 
-	// RabbitMQ RPC Server
-	rmqRouter := amqprpc.NewRouter(translationUseCase, l)
-
-	rmqServer, err := rmqRPCServer.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, rmqRouter, l)
-	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - rmqServer - server.New: %w", err))
-	}
-
-	// NATS RPC Server
-	natsRouter := natsrpc.NewRouter(translationUseCase, l)
-
-	natsServer, err := natsRPCServer.New(cfg.NATS.URL, cfg.NATS.ServerExchange, natsRouter, l)
-	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - natsServer - server.New: %w", err))
-	}
-
-	// gRPC Server
-	grpcServer := grpcserver.New(l, grpcserver.Port(cfg.GRPC.Port))
-	grpc.NewRouter(grpcServer.App, translationUseCase, authUseCase, l)
+	// Container UseCase (placeholder for Docker management)
+	containerUseCase := container.New(containerRepo, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, translationUseCase, authUseCase, l)
+	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, l)
 
 	// Start servers
-	rmqServer.Start()
-	natsServer.Start()
-	grpcServer.Start()
 	httpServer.Start()
 
 	// Waiting signal
@@ -91,32 +54,11 @@ func Run(cfg *config.Config) { //nolint: gocyclo,cyclop,funlen,gocritic,nolintli
 		l.Info("app - Run - signal: %s", s.String())
 	case err = <-httpServer.Notify():
 		l.Error(fmt.Errorf("app - Run - httpServer.Notify: %w", err))
-	case err = <-grpcServer.Notify():
-		l.Error(fmt.Errorf("app - Run - grpcServer.Notify: %w", err))
-	case err = <-rmqServer.Notify():
-		l.Error(fmt.Errorf("app - Run - rmqServer.Notify: %w", err))
-	case err = <-natsServer.Notify():
-		l.Error(fmt.Errorf("app - Run - natsServer.Notify: %w", err))
 	}
 
 	// Shutdown
 	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
-	}
-
-	err = grpcServer.Shutdown()
-	if err != nil {
-		l.Error(fmt.Errorf("app - Run - grpcServer.Shutdown: %w", err))
-	}
-
-	err = rmqServer.Shutdown()
-	if err != nil {
-		l.Error(fmt.Errorf("app - Run - rmqServer.Shutdown: %w", err))
-	}
-
-	err = natsServer.Shutdown()
-	if err != nil {
-		l.Error(fmt.Errorf("app - Run - natsServer.Shutdown: %w", err))
 	}
 }

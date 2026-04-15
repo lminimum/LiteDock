@@ -17,12 +17,12 @@ import (
 
 // NewRouter
 // Swagger spec:
-// @title       Go Clean Template API
-// @description Using a translation service as an example
+// @title       LiteDock API
+// @description Docker container management platform
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, t usecase.Translation, auth usecase.Auth, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, l logger.Interface) {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -45,7 +45,7 @@ func NewRouter(app *fiber.App, cfg *config.Config, t usecase.Translation, auth u
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewTranslationRoutes(apiV1Group, t, l)
+		v1.NewContainerRoutes(apiV1Group, container, l)
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
 	}
 }

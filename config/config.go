@@ -13,9 +13,6 @@ type (
 		HTTP    HTTP
 		Log     Log
 		DB      DB
-		GRPC    GRPC
-		RMQ     RMQ
-		NATS    NATS
 		Metrics Metrics
 		Swagger Swagger
 	}
@@ -42,24 +39,6 @@ type (
 		Type    string `env:"DB_TYPE" envDefault:"sqlite"` // postgres, mysql, sqlite
 		PoolMax int    `env:"DB_POOL_MAX,required"`
 		URL     string `env:"DB_URL,required"`
-	}
-
-	// GRPC
-	GRPC struct {
-		Port string `env:"GRPC_PORT,required"`
-	}
-
-	// RMQ
-	RMQ struct {
-		ServerExchange string `env:"RMQ_RPC_SERVER,required"`
-		ClientExchange string `env:"RMQ_RPC_CLIENT,required"`
-		URL            string `env:"RMQ_URL,required"`
-	}
-
-	// NATS
-	NATS struct {
-		ServerExchange string `env:"NATS_RPC_SERVER,required"`
-		URL            string `env:"NATS_URL,required"`
 	}
 
 	// Metrics
