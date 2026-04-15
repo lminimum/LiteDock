@@ -8,13 +8,13 @@ import (
 	"github.com/evrone/go-clean-template/internal/repo"
 )
 
-// UseCase -.
+// UseCase
 type UseCase struct {
 	repo   repo.TranslationRepo
 	webAPI repo.TranslationWebAPI
 }
 
-// New -.
+// New
 func New(r repo.TranslationRepo, w repo.TranslationWebAPI) *UseCase {
 	return &UseCase{
 		repo:   r,
@@ -32,7 +32,7 @@ func (uc *UseCase) History(ctx context.Context) (entity.TranslationHistory, erro
 	return entity.TranslationHistory{History: translations}, nil
 }
 
-// Translate -.
+// Translate
 func (uc *UseCase) Translate(ctx context.Context, t entity.Translation) (entity.Translation, error) {
 	translation, err := uc.webAPI.Translate(t)
 	if err != nil {

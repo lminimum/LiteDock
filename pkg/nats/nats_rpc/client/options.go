@@ -2,10 +2,10 @@ package client
 
 import "time"
 
-// Option -.
+// Option
 type Option func(*Client)
 
-// Timeout -.
+// Timeout
 func Timeout(timeout time.Duration) Option {
 	return func(c *Client) {
 		c.timeout = timeout

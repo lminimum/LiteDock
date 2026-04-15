@@ -3,13 +3,13 @@ package rmqrpc
 import "errors"
 
 var (
-	// ErrTimeout -.
+	// ErrTimeout
 	ErrTimeout = errors.New("timeout")
-	// ErrInternalServer -.
+	// ErrInternalServer
 	ErrInternalServer = errors.New("internal server error")
-	// ErrBadHandler -.
+	// ErrBadHandler
 	ErrBadHandler = errors.New("unregistered handler")
 )
 
-// Success -.
+// Success
 const Success = "success"

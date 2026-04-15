@@ -23,9 +23,12 @@ x-backend-app-environment: &x-backend-app-environment
   HTTP_USE_PREFORK_MODE: "false"
   # Logger
   LOG_LEVEL: "debug"
-  # PG
-  PG_POOL_MAX: "2"
-  PG_URL: "postgres://user:myAwEsOm3pa55@w0rd@db:5432/db"
+  # Database
+  DB_TYPE: "postgres"
+  DB_POOL_MAX: "2"
+  DB_URL: "postgres://user:myAwEsOm3pa55@w0rd@db:5432/db"
+  # SQLite (for local development)
+  SQLITE_DSN: "./data.db"
   # gRPC
   GRPC_PORT: "8081"
   # RMQ
@@ -55,6 +58,23 @@ services:
       app_network:
         aliases:
           - db.lvh.me
+
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: myAwEsOm3pa55@w0rd
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      app_network:
+        aliases:
+          - mysql.lvh.me
 
   rabbitmq:
     container_name: rabbitmq
@@ -135,5 +155,6 @@ networks:
 
 volumes:
   db_data:
+  mysql_data:
   rabbitmq_data:
   nats_data:

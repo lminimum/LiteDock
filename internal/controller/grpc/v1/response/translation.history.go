@@ -5,7 +5,7 @@ import (
 	"github.com/evrone/go-clean-template/internal/entity"
 )
 
-// NewTranslationHistory -.
+// NewTranslationHistory
 func NewTranslationHistory(translationHistory entity.TranslationHistory) *v1.GetHistoryResponse {
 	history := make([]*v1.TranslationHistory, len(translationHistory.History))
 

@@ -20,10 +20,10 @@ const (
 	_defaultTimeout  = 2 * time.Second
 )
 
-// CallHandler -.
+// CallHandler
 type CallHandler func(*nats.Msg) (interface{}, error)
 
-// Server -.
+// Server
 type Server struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -40,7 +40,7 @@ type Server struct {
 	logger logger.Interface
 }
 
-// New -.
+// New
 func New(
 	url,
 	serverSubject string,
@@ -81,7 +81,7 @@ func New(
 	return s, nil
 }
 
-// Start -.
+// Start
 func (s *Server) Start() {
 	s.eg.Go(func() error {
 		err := s.subscribe()
@@ -102,12 +102,12 @@ func (s *Server) Start() {
 	s.logger.Info("nats_rpc server - Server - Started")
 }
 
-// Notify -.
+// Notify
 func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-// Shutdown -.
+// Shutdown
 func (s *Server) Shutdown() error {
 	var shutdownErrors []error
 

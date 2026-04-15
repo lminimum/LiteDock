@@ -4,13 +4,15 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	// migrate tools
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
@@ -20,12 +22,37 @@ const (
 )
 
 func init() {
-	databaseURL, ok := os.LookupEnv("PG_URL")
-	if !ok || len(databaseURL) == 0 {
-		log.Fatalf("migrate: environment variable not declared: PG_URL")
+	dbType := os.Getenv("DB_TYPE")
+	if dbType == "" {
+		dbType = "postgres"
 	}
 
-	databaseURL += "?sslmode=disable"
+	var databaseURL string
+	var driverName string
+
+	switch dbType {
+	case "postgres":
+		databaseURL = os.Getenv("PG_URL")
+		if databaseURL == "" {
+			log.Fatal("migrate: environment variable not declared: PG_URL")
+		}
+		databaseURL += "?sslmode=disable"
+		driverName = "postgres"
+	case "mysql":
+		databaseURL = os.Getenv("MYSQL_URL")
+		if databaseURL == "" {
+			log.Fatal("migrate: environment variable not declared: MYSQL_URL")
+		}
+		driverName = "mysql"
+	case "sqlite":
+		databaseURL = os.Getenv("SQLITE_DSN")
+		if databaseURL == "" {
+			databaseURL = "./data.db"
+		}
+		driverName = "sqlite"
+	default:
+		log.Fatalf("migrate: unsupported database type: %s", dbType)
+	}
 
 	var (
 		attempts = _defaultAttempts
@@ -34,18 +61,18 @@ func init() {
 	)
 
 	for attempts > 0 {
-		m, err = migrate.New("file://migrations", databaseURL)
+		m, err = migrate.New("file://migrations", fmt.Sprintf("%s://%s", driverName, databaseURL))
 		if err == nil {
 			break
 		}
 
-		log.Printf("Migrate: postgres is trying to connect, attempts left: %d", attempts)
+		log.Printf("Migrate: %s is trying to connect, attempts left: %d", dbType, attempts)
 		time.Sleep(_defaultTimeout)
 		attempts--
 	}
 
 	if err != nil {
-		log.Fatalf("Migrate: postgres connect error: %s", err)
+		log.Fatalf("Migrate: %s connect error: %s", dbType, err)
 	}
 
 	err = m.Up()

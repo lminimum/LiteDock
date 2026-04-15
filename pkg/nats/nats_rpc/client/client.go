@@ -17,7 +17,7 @@ const (
 	_defaultTimeout  = 2 * time.Second
 )
 
-// Client -.
+// Client
 type Client struct {
 	subject    string
 	connection *nats.Conn
@@ -25,7 +25,7 @@ type Client struct {
 	timeout time.Duration
 }
 
-// New -.
+// New
 func New(
 	url string,
 	serverSubject string,
@@ -57,14 +57,14 @@ func New(
 	return c, nil
 }
 
-// Shutdown -.
+// Shutdown
 func (c *Client) Shutdown() error {
 	c.connection.Close()
 
 	return nil
 }
 
-// RemoteCall -.
+// RemoteCall
 func (c *Client) RemoteCall(handler string, request, response interface{}) error {
 	var (
 		requestBody []byte
