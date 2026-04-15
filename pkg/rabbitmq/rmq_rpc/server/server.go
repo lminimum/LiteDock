@@ -20,10 +20,10 @@ const (
 	_defaultTimeout  = 2 * time.Second
 )
 
-// CallHandler -.
+// CallHandler
 type CallHandler func(*amqp.Delivery) (interface{}, error)
 
-// Server -.
+// Server
 type Server struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -38,7 +38,7 @@ type Server struct {
 	logger logger.Interface
 }
 
-// New -.
+// New
 func New(url, serverExchange string, router map[string]CallHandler, l logger.Interface, opts ...Option) (*Server, error) {
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(1) // Run only one goroutine
@@ -73,7 +73,7 @@ func New(url, serverExchange string, router map[string]CallHandler, l logger.Int
 	return s, nil
 }
 
-// Start -.
+// Start
 func (s *Server) Start() {
 	s.eg.Go(func() error {
 		err := s.handleMessages()
@@ -91,12 +91,12 @@ func (s *Server) Start() {
 	s.logger.Info("rmq_rpc server - Server - Started")
 }
 
-// Notify -.
+// Notify
 func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-// Shutdown -.
+// Shutdown
 func (s *Server) Shutdown() error {
 	var shutdownErrors []error
 

@@ -15,7 +15,7 @@ import (
 	"github.com/gofiber/swagger"
 )
 
-// NewRouter -.
+// NewRouter
 // Swagger spec:
 // @title       Go Clean Template API
 // @description Using a translation service as an example

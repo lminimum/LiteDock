@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// NewTranslationRoutes -.
+// NewTranslationRoutes
 func NewTranslationRoutes(apiV1Group fiber.Router, t usecase.Translation, l logger.Interface) {
 	r := &V1{t: t, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 

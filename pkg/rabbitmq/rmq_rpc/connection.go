@@ -8,14 +8,14 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// Config -.
+// Config
 type Config struct {
 	URL      string
 	WaitTime time.Duration
 	Attempts int
 }
 
-// Connection -.
+// Connection
 type Connection struct {
 	ConsumerExchange string
 	Config
@@ -24,7 +24,7 @@ type Connection struct {
 	Delivery   <-chan amqp.Delivery
 }
 
-// New -.
+// New
 func New(consumerExchange string, cfg Config) *Connection {
 	conn := &Connection{
 		ConsumerExchange: consumerExchange,
@@ -34,7 +34,7 @@ func New(consumerExchange string, cfg Config) *Connection {
 	return conn
 }
 
-// AttemptConnect -.
+// AttemptConnect
 func (c *Connection) AttemptConnect() error {
 	var err error
 	for i := c.Attempts; i > 0; i-- {

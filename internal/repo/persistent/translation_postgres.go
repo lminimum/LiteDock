@@ -10,19 +10,19 @@ import (
 
 const _defaultEntityCap = 64
 
-// TranslationRepo -.
+// TranslationRepo
 type TranslationRepo struct {
 	*postgres.Postgres
 }
 
-// New -.
+// New
 func New(pg *postgres.Postgres) *TranslationRepo {
 	return &TranslationRepo{pg}
 }
 
-// GetHistory -.
+// GetHistory
 func (r *TranslationRepo) GetHistory(ctx context.Context) ([]entity.Translation, error) {
-	sql, _, err := r.Builder.
+	sql, _, err := r.GetBuilder().
 		Select("source, destination, original, translation").
 		From("history").
 		ToSql()
@@ -52,9 +52,9 @@ func (r *TranslationRepo) GetHistory(ctx context.Context) ([]entity.Translation,
 	return entities, nil
 }
 
-// Store -.
+// Store
 func (r *TranslationRepo) Store(ctx context.Context, t entity.Translation) error {
-	sql, args, err := r.Builder.
+	sql, args, err := r.GetBuilder().
 		Insert("history").
 		Columns("source, destination, original, translation").
 		Values(t.Source, t.Destination, t.Original, t.Translation).

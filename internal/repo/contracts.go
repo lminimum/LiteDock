@@ -10,13 +10,13 @@ import (
 //go:generate mockgen -source=contracts.go -destination=../usecase/mocks_repo_test.go -package=usecase_test
 
 type (
-	// TranslationRepo -.
+	// TranslationRepo
 	TranslationRepo interface {
 		Store(context.Context, entity.Translation) error
 		GetHistory(context.Context) ([]entity.Translation, error)
 	}
 
-	// TranslationWebAPI -.
+	// TranslationWebAPI
 	TranslationWebAPI interface {
 		Translate(entity.Translation) (entity.Translation, error)
 	}

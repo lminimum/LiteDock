@@ -7,7 +7,7 @@ import (
 	"github.com/evrone/go-clean-template/pkg/rabbitmq/rmq_rpc/server"
 )
 
-// NewRouter -.
+// NewRouter
 func NewRouter(t usecase.Translation, l logger.Interface) map[string]server.CallHandler {
 	routes := make(map[string]server.CallHandler)
 

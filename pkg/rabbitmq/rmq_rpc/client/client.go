@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ErrConnectionClosed -.
+// ErrConnectionClosed
 var ErrConnectionClosed = errors.New("rmq_rpc client - Client - RemoteCall - Connection closed")
 
 const (
@@ -23,7 +23,7 @@ const (
 	_defaultTimeout  = 2 * time.Second
 )
 
-// Message -.
+// Message
 type Message struct {
 	Queue         string
 	Priority      uint8
@@ -39,7 +39,7 @@ type pendingCall struct {
 	body   []byte
 }
 
-// Client -.
+// Client
 type Client struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -55,7 +55,7 @@ type Client struct {
 	timeout time.Duration
 }
 
-// New -.
+// New
 func New(url, serverExchange, clientExchange string, opts ...Option) (*Client, error) {
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(1) // Run only one goroutine
@@ -92,7 +92,7 @@ func New(url, serverExchange, clientExchange string, opts ...Option) (*Client, e
 	return c, nil
 }
 
-// Shutdown -.
+// Shutdown
 func (c *Client) Shutdown() error {
 	var shutdownErrors []error
 
@@ -114,7 +114,7 @@ func (c *Client) Shutdown() error {
 	return errors.Join(shutdownErrors...)
 }
 
-// RemoteCall -.
+// RemoteCall
 func (c *Client) RemoteCall(handler string, request, response interface{}) error {
 	err := c.preRemoteCallWait()
 	if err != nil {

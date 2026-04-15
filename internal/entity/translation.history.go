@@ -2,7 +2,7 @@
 // HTTP response objects if suitable. Each logic group entities in own file.
 package entity
 
-// TranslationHistory -.
+// TranslationHistory
 type TranslationHistory struct {
 	History []Translation `json:"history"`
 }

@@ -15,7 +15,7 @@ const (
 	_defaultAddr = ":80"
 )
 
-// Server -.
+// Server
 type Server struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -27,7 +27,7 @@ type Server struct {
 	logger logger.Interface
 }
 
-// New -.
+// New
 func New(l logger.Interface, opts ...Option) *Server {
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(1) // Run only one goroutine
@@ -49,7 +49,7 @@ func New(l logger.Interface, opts ...Option) *Server {
 	return s
 }
 
-// Start -.
+// Start
 func (s *Server) Start() {
 	s.eg.Go(func() error {
 		var lc net.ListenConfig
@@ -78,12 +78,12 @@ func (s *Server) Start() {
 	s.logger.Info("grpc server - Server - Started")
 }
 
-// Notify -.
+// Notify
 func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-// Shutdown -.
+// Shutdown
 func (s *Server) Shutdown() error {
 	var shutdownErrors []error
 
