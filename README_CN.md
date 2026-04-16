@@ -2,157 +2,291 @@
 
 [🇺🇸 English](README.md)
 
-轻量级 Docker 容器管理系统
+# LiteDock
 
-## 概述
+轻量级 Docker 容器管理平台，提供可视化界面和 AI 辅助功能，用于个人用户和开发者快速管理容器服务。
 
-LiteDock 是一个基于 Go 和 Clean Architecture 的 Docker 容器管理平台。提供简洁的 REST API 用于管理 Docker 容器、镜像、网络和卷。
+[![Release](https://img.shields.io/github/v/release/lminimum/LiteDock.svg)](https://github.com/lminimum/LiteDock/releases/)
+[![License](https://img.shields.io/badge/License-MIT-success)](https://github.com/lminimum/LiteDock/blob/main/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/lminimum/LiteDock)](https://goreportcard.com/report/github.com/lminimum/LiteDock)
+[![Vue](https://img.shields.io/badge/Vue-3.3-blue)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-4.6-blue)](https://vitejs.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Container%20Management-blue)](https://www.docker.com/)
+
+---
+
+## 项目概述
+
+LiteDock 是一个基于 **Go 后端 + Vue3 前端** 的 Docker 管理平台，核心特点包括：
+
+- **容器管理**：启动、停止、重启容器
+- **镜像管理**：查看、拉取、删除镜像
+- **网络和卷管理**：支持 Docker 网络和卷可视化操作
+- **AI 辅助**：提供简单的命令提示、容器优化建议
+- **轻量部署**：通过 Docker Compose 快速启动整个系统
+
+LiteDock 遵循 **整洁架构** 原则，将业务逻辑、服务层和界面解耦，确保可维护性和可扩展性。
+
+---
 
 ## 技术栈
 
-- **Web 框架**: [Fiber](https://github.com/gofiber/fiber) v2
-- **数据库**: PostgreSQL + pgx v5
-- **查询构建器**: [Squirrel](https://github.com/Masterminds/squirrel)
-- **数据库迁移**: [golang-migrate](https://github.com/golang-migrate/migrate)
-- **日志**: [zerolog](https://github.com/rs/zerolog)
-- **监控**: [Prometheus](https://github.com/ansrivas/fiberprometheus)
-- **数据验证**: [go-playground/validator](https://github.com/go-playground/validator)
-- **测试**: [testify](https://github.com/stretchr/testify)
+- **后端**：Go 1.25+，整洁架构
+- **前端**：Vue 3 + Vite + TypeScript
+- **数据库**：PostgreSQL、MySQL、SQLite（通过抽象层支持）
+- **API**：REST (Fiber)
 
-## 功能
-
-- 容器管理（创建、启动、停止、删除、查看日志）
-- 镜像管理（列表、拉取、删除）
-- 网络管理（创建、删除、连接/断开容器）
-- 卷管理（创建、删除、挂载）
-- 实时容器日志流
-- 容器统计信息监控
-- Swagger API 文档
+---
 
 ## 快速开始
 
-### 前置条件
+### 环境依赖
 
-- Go 1.21+
-- Docker & Docker Compose
-- PostgreSQL 14+
+- Docker >= 24
+- Docker Compose >= 2.18
+- Go >= 1.25
+- Node.js >= 20
 
-### 本地开发
+### 启动后端
 
-```sh
-# 启动 PostgreSQL
-make compose-up
+```bash
+# 启动数据库和其他依赖服务
+docker-compose -f docker-compose.yml up -d
 
-# 运行应用（带数据库迁移）
-make run
+# 运行 Go 服务
+go run ./cmd/app
 ```
 
-### 完整 Docker 部署
+### 启动前端
 
-```sh
-make compose-up-all
+```bash
+cd web
+npm install
+npm run dev
 ```
 
-## 服务地址
+前端默认运行在 `http://localhost:5173`
 
-- REST API: http://127.0.0.1:8080
-- Swagger 文档: http://127.0.0.1:8080/swagger
-- Prometheus 监控: http://127.0.0.1:8080/metrics
-- 健康检查: http://127.0.0.1:8080/healthz
-- PostgreSQL: `postgres://user:myAwEsOm3pa55@w0rd@127.0.0.1:5432/db`
+### 全套 Docker 部署
+
+```bash
+docker-compose -f docker-compose-full.yml up -d
+```
+
+访问界面：
+
+- Web 界面：`http://localhost:5173`
+- API 文档：`http://localhost:8080/swagger`
+
+---
 
 ## 项目结构
 
 ```
-LiteDock
-├── cmd/app/main.go          # 应用入口点
-├── config/                   # 环境配置
+LiteDock/
+├── cmd/app/              # Go 后端入口
+├── config/               # 配置管理（环境变量）
 ├── internal/
-│   ├── app/app.go           # 主应用逻辑 & 依赖注入
-│   ├── controller/           # HTTP 处理器
-│   │   └── restapi/         # REST API (Fiber)
-│   ├── entity/               # 业务模型
-│   ├── usecase/             # 业务逻辑
-│   └── migrate.go           # 数据库迁移
-├── migrations/              # SQL 迁移文件
-├── pkg/                      # 公共包
-├── docs/                     # Swagger 文档
-├── web/                      # 前端（可选）
-└── docker-compose.yml        # Docker 编排
+│   ├── app/             # 核心应用逻辑
+│   ├── controller/       # REST 控制器
+│   │   └── restapi/      # Fiber HTTP handlers
+│   ├── entity/           # 业务实体
+│   ├── repo/             # 数据持久化逻辑
+│   └── usecase/          # 业务用例层
+├── pkg/                  # 辅助库 (httpserver, logger 等)
+├── web/                  # Vue3 + Vite 前端
+├── docs/                 # 文档、Swagger、图片
+├── migrations/           # 数据库迁移文件
+├── docker-compose.yml    # 开发环境 Compose 文件
+└── Makefile             # 常用命令封装
 ```
 
-## 架构设计
+### 核心分层说明
 
-LiteDock 遵循 **Clean Architecture** 原则（Robert Martin）：
+- **内部层 (`internal`)**：包含业务逻辑和核心功能，不直接依赖外部库
+- **控制器层 (`controller`)**：处理 HTTP 请求
+- **实体层 (`entity`)**：定义业务对象和数据结构
+- **用例层 (`usecase`)**：封装业务流程和逻辑
+- **外部工具 (`pkg`)**：HTTP 服务器、日志、数据库连接等
 
-```
-┌─────────────────────────────────────────────────┐
-│  Controller (REST API)  - HTTP 处理器            │
-├─────────────────────────────────────────────────┤
-│  UseCase (业务逻辑) - 领域服务                   │
-├─────────────────────────────────────────────────┤
-│  Repository (数据访问) - 数据库操作              │
-└─────────────────────────────────────────────────┘
-```
+---
 
-**核心原则**：依赖只能向内流转。内层不知道外层的存在。
+## 常用命令
 
-## API 接口
+```bash
+# 后端开发
+make run                 # 完整开发环境（依赖 + swagger + 迁移）
+make deps               # 整理和验证依赖
+make swag-v1           # 生成 Swagger 文档
+make format            # 代码格式化（gofumpt + gci）
+make linter-golangci   # 运行 golangci-lint
+make test              # 运行单元测试
+make integration-test  # 运行集成测试
+make mock              # 生成测试 mock
+make pre-commit        # 完整检查（deps → swag → mock → format → lint → test）
 
-### 容器
-- `GET  /api/v1/containers` - 列出所有容器
-- `GET  /api/v1/containers/:id` - 获取容器详情
-- `POST /api/v1/containers` - 创建容器
-- `POST /api/v1/containers/:id/start` - 启动容器
-- `POST /api/v1/containers/:id/stop` - 停止容器
-- `DELETE /api/v1/containers/:id` - 删除容器
-- `GET  /api/v1/containers/:id/logs` - 获取容器日志
-- `GET  /api/v1/containers/:id/stats` - 获取容器统计
+# Docker
+make compose-up        # 启动核心服务（数据库）
+make compose-up-all    # 启动完整服务
+make compose-down      # 停止所有容器
 
-### 镜像
-- `GET  /api/v1/images` - 列出所有镜像
-- `POST /api/v1/images/pull` - 拉取镜像
-- `DELETE /api/v1/images/:id` - 删除镜像
-
-### 网络
-- `GET  /api/v1/networks` - 列出网络
-- `POST /api/v1/networks` - 创建网络
-- `DELETE /api/v1/networks/:id` - 删除网络
-
-### 卷
-- `GET  /api/v1/volumes` - 列出卷
-- `POST /api/v1/volumes` - 创建卷
-- `DELETE /api/v1/volumes/:id` - 删除卷
-
-## Makefile 命令
-
-```sh
-make compose-up          # 启动 Docker Compose（仅数据库）
-make compose-up-all      # 启动完整栈
-make compose-down        # 停止所有容器
-make run                 # 运行应用
-make swag-v1            # 生成 Swagger 文档
-make test               # 运行测试
-make format             # 格式化代码
-make linter-golangci    # 运行 linter
-make pre-commit         # 预提交检查
+# 数据库迁移
+make migrate-create name=xxx  # 创建迁移文件
+make migrate-up              # 运行迁移
 ```
 
-## 配置
+---
 
-通过环境变量配置（12-factor app）：
+## Git 工作流
 
-| 变量 | 描述 | 默认值 |
-|------|------|--------|
-| `APP_HOST` | API 主机 | `0.0.0.0` |
-| `APP_PORT` | API 端口 | `8080` |
-| `PG_HOST` | PostgreSQL 主机 | `127.0.0.1` |
-| `PG_PORT` | PostgreSQL 端口 | `5432` |
-| `PG_USER` | PostgreSQL 用户 | `user` |
-| `PG_PASSWORD` | PostgreSQL 密码 | `myAwEsOm3pa55` |
-| `PG_DB` | 数据库名 | `db` |
-| `DOCKER_HOST` | Docker socket 路径 | `/var/run/docker.sock` |
+### 分支命名规范
 
-## License
+```
+main                    # 稳定发布分支
+dev                     # 开发分支
+feature/<描述>         # 新功能（如：feature/user-auth）
+fix/<描述>             # Bug 修复（如：fix/container-crash）
+refactor/<描述>        # 代码重构
+docs/<描述>            # 文档更新
+```
 
-MIT
+### 提交信息规范
+
+遵循 [Conventional Commits](https://www.conventionalcommits.org/)：
+
+```
+<类型>(<范围>): <描述>
+
+[可选正文]
+
+[可选脚注]
+```
+
+**类型**：
+| 类型 | 描述 |
+|------|------|
+| `feat` | 新功能 |
+| `fix` | Bug 修复 |
+| `docs` | 仅文档更改 |
+| `style` | 格式、分号等 |
+| `refactor` | 重构（非修 bug 非加功能）|
+| `perf` | 性能改进 |
+| `test` | 添加或更新测试 |
+| `chore` | 维护任务（依赖、构建、CI）|
+
+**示例**：
+```bash
+feat(backend): add user authentication via JWT
+fix(docker): handle container restart timeout
+docs(api): update API endpoint documentation
+```
+
+### 推送 & PR 流程
+
+```
+1. 同步最新代码
+   git checkout main
+   git pull origin main
+
+2. 创建功能分支
+   git checkout -b feature/my-feature
+
+3. 编写代码并提交（遵循提交规范）
+   git add .
+   git commit -m "feat(api): add new endpoint"
+
+4. PR 前 rebase 保持历史整洁
+   git fetch origin main
+   git rebase origin/main
+
+5. 推送并创建 PR
+   git push -u origin feature/my-feature
+
+6. PR 合并后，删除分支
+   git branch -d feature/my-feature
+   git push origin --delete feature/my-feature
+```
+
+---
+
+## 功能示例
+
+### 容器管理 API
+
+- 启动容器
+- 停止容器
+- 重启容器
+- 查看容器状态
+
+### 镜像管理
+
+- 列出本地镜像
+- 拉取镜像
+- 删除镜像
+
+### 网络与卷管理
+
+- 列出网络和卷
+- 创建和删除网络、卷
+
+### 前端功能
+
+- 仪表盘查看 Docker 状态
+- 容器日志实时展示
+- 支持多容器操作批量管理
+- AI 提示与优化建议
+
+---
+
+## 依赖注入
+
+LiteDock 后端使用依赖注入解耦服务，核心逻辑通过构造函数注入依赖，方便测试与 Mock：
+
+```go
+type ContainerUseCase struct {
+    repo ContainerRepository
+}
+
+func NewContainerUseCase(repo ContainerRepository) *ContainerUseCase {
+    return &ContainerUseCase{repo: repo}
+}
+```
+
+---
+
+## Docker 整合
+
+LiteDock 使用 Docker API 与本机 Docker 引擎交互，通过 **Docker Go SDK** 实现容器、镜像、网络和卷操作。
+
+---
+
+## 整洁架构原则
+
+- **依赖倒置**：内层业务逻辑不依赖外层实现
+- **解耦**：业务逻辑独立，易于测试
+- **分层清晰**：controller -> usecase -> repository -> entity
+
+```
+  Frontend / API
+        |
+   Controller Layer
+        |
+     UseCase Layer
+        |
+  Repository / External Services
+```
+
+---
+
+## 相关链接
+
+- [Docker 官方文档](https://docs.docker.com/)
+- [Go 官方网站](https://golang.org/)
+- [Vue3 官网](https://vuejs.org/)
+- [Vite 官网](https://vitejs.dev/)
+
+---
+
+## 开源许可
+
+MIT License © 2026 [lminimum](https://github.com/lminimum)
