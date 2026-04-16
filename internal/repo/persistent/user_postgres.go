@@ -6,26 +6,68 @@ import (
 	"time"
 
 	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/pkg/postgres"
+	"github.com/evrone/go-clean-template/pkg/database"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // UserRepo -.
 type UserRepo struct {
-	*postgres.Postgres
+	db database.DB
 }
 
 // NewUserRepo -.
-func NewUserRepo(pg *postgres.Postgres) *UserRepo {
-	return &UserRepo{pg}
+func NewUserRepo(db database.DB) *UserRepo {
+	return &UserRepo{db: db}
+}
+
+// scanRow is a helper to scan a row from QueryRow
+func scanRow(row interface{}, dest ...interface{}) error {
+	if row == nil {
+		return fmt.Errorf("scanRow: nil row")
+	}
+	scanner, ok := row.(interface{ Scan(...interface{}) error })
+	if !ok {
+		return fmt.Errorf("scanRow: row does not implement Scanner interface")
+	}
+
+	timeIndices := make(map[int]*time.Time)
+	tempDest := make([]interface{}, len(dest))
+	for i, d := range dest {
+		if t, ok := d.(*time.Time); ok {
+			timeIndices[i] = t
+			var bs []byte
+			tempDest[i] = &bs
+		} else {
+			tempDest[i] = d
+		}
+	}
+
+	if err := scanner.Scan(tempDest...); err != nil {
+		return err
+	}
+
+	for i, t := range timeIndices {
+		bs, ok := tempDest[i].(*[]byte)
+		if ok && bs != nil && len(*bs) > 0 {
+			parsed, err := time.Parse("2006-01-02 15:04:05", string(*bs))
+			if err != nil {
+				parsed, err = time.Parse(time.RFC3339, string(*bs))
+			}
+			if err == nil {
+				*t = parsed
+			}
+		}
+	}
+
+	return nil
 }
 
 // CreateUser creates a new user
 func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 	query := `
-		INSERT INTO users(id, username, email, password, role, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		INSERT INTO users(id, username, email, password, role, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -35,7 +77,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 	user.ID = uuid.New().String()
 	now := time.Now()
 
-	_, err = r.Pool.Exec(ctx, query,
+	err = r.db.Exec(ctx, query,
 		user.ID,
 		user.Username,
 		user.Email,
@@ -45,7 +87,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 		now,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - CreateUser - r.Pool.Exec: %w", err)
+		return fmt.Errorf("UserRepo - CreateUser - r.db.Exec: %w", err)
 	}
 
 	return nil
@@ -53,11 +95,12 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 
 // GetUserByID retrieves a user by ID
 func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at 
-	          FROM users WHERE id = $1`
+	query := `SELECT id, username, email, password, role, created_at, updated_at
+	          FROM users WHERE id = ?`
 
 	var user entity.User
-	err := r.Pool.QueryRow(ctx, query, id).Scan(
+	row := r.db.QueryRow(ctx, query, id)
+	err := scanRow(row,
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -67,7 +110,10 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, er
 		&user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("UserRepo - GetUserByID - r.Pool.QueryRow: %w", err)
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("usecase: user not found")
+		}
+		return nil, fmt.Errorf("UserRepo - GetUserByID - r.db.QueryRow: %w", err)
 	}
 
 	return &user, nil
@@ -75,11 +121,12 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, er
 
 // GetUserByUsername retrieves a user by username
 func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at 
-	          FROM users WHERE username = $1`
+	query := `SELECT id, username, email, password, role, created_at, updated_at
+	          FROM users WHERE username = ?`
 
 	var user entity.User
-	err := r.Pool.QueryRow(ctx, query, username).Scan(
+	row := r.db.QueryRow(ctx, query, username)
+	err := scanRow(row,
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -89,7 +136,10 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*ent
 		&user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("UserRepo - GetUserByUsername - r.Pool.QueryRow: %w", err)
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("usecase: user not found")
+		}
+		return nil, fmt.Errorf("UserRepo - GetUserByUsername - r.db.QueryRow: %w", err)
 	}
 
 	return &user, nil
@@ -97,11 +147,12 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*ent
 
 // GetUserByEmail retrieves a user by email
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at 
-	          FROM users WHERE email = $1`
+	query := `SELECT id, username, email, password, role, created_at, updated_at
+	          FROM users WHERE email = ?`
 
 	var user entity.User
-	err := r.Pool.QueryRow(ctx, query, email).Scan(
+	row := r.db.QueryRow(ctx, query, email)
+	err := scanRow(row,
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -111,7 +162,10 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.Us
 		&user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("UserRepo - GetUserByEmail - r.Pool.QueryRow: %w", err)
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("usecase: user not found")
+		}
+		return nil, fmt.Errorf("UserRepo - GetUserByEmail - r.db.QueryRow: %w", err)
 	}
 
 	return &user, nil
@@ -119,9 +173,9 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.Us
 
 // UpdateUser updates a user's information
 func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
-	query := `UPDATE users SET username=$1, email=$2, role=$3, updated_at=$4 WHERE id=$5`
+	query := `UPDATE users SET username=?, email=?, role=?, updated_at=? WHERE id=?`
 
-	_, err := r.Pool.Exec(ctx, query,
+	err := r.db.Exec(ctx, query,
 		user.Username,
 		user.Email,
 		user.Role,
@@ -129,7 +183,7 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
 		user.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - UpdateUser - r.Pool.Exec: %w", err)
+		return fmt.Errorf("UserRepo - UpdateUser - r.db.Exec: %w", err)
 	}
 
 	return nil
@@ -137,11 +191,11 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
 
 // DeleteUser deletes a user
 func (r *UserRepo) DeleteUser(ctx context.Context, id string) error {
-	query := `DELETE FROM users WHERE id = $1`
+	query := `DELETE FROM users WHERE id = ?`
 
-	_, err := r.Pool.Exec(ctx, query, id)
+	err := r.db.Exec(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("UserRepo - DeleteUser - r.Pool.Exec: %w", err)
+		return fmt.Errorf("UserRepo - DeleteUser - r.db.Exec: %w", err)
 	}
 
 	return nil
@@ -164,20 +218,20 @@ func (r *UserRepo) VerifyPassword(ctx context.Context, username, password string
 
 // UpdatePassword updates a user's password
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID, newPassword string) error {
-	query := `UPDATE users SET password=$1, updated_at=$2 WHERE id=$3`
+	query := `UPDATE users SET password=?, updated_at=? WHERE id=?`
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("UserRepo - UpdatePassword - bcrypt.GenerateFromPassword: %w", err)
 	}
 
-	_, err = r.Pool.Exec(ctx, query,
+	err = r.db.Exec(ctx, query,
 		string(hashedPassword),
 		time.Now(),
 		userID,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - UpdatePassword - r.Pool.Exec: %w", err)
+		return fmt.Errorf("UserRepo - UpdatePassword - r.db.Exec: %w", err)
 	}
 
 	return nil

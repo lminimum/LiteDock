@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -9,11 +8,6 @@ import (
 	"github.com/evrone/go-clean-template/pkg/postgres"
 	"github.com/evrone/go-clean-template/pkg/sqlite"
 )
-
-type DBWrapper interface {
-	Close()
-	Ping(ctx context.Context) error
-}
 
 func NewPostgres() (*postgres.Postgres, error) {
 	url := os.Getenv("PG_URL")
@@ -39,7 +33,7 @@ func NewSQLite() (*sqlite.SQLite, error) {
 	return sqlite.New(dsn)
 }
 
-func New() (DBWrapper, error) {
+func New() (DB, error) {
 	dbType := os.Getenv("DB_TYPE")
 	if dbType == "" {
 		dbType = "postgres"

@@ -1,4 +1,3 @@
-// Package postgres implements postgres connection.
 package postgres
 
 import (
@@ -7,8 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,17 +15,13 @@ const (
 	_defaultConnTimeout  = time.Second
 )
 
-// Postgres
 type Postgres struct {
 	maxPoolSize  int
 	connAttempts int
 	connTimeout  time.Duration
-
-	builder squirrel.StatementBuilderType
-	Pool    *pgxpool.Pool
+	Pool         *pgxpool.Pool
 }
 
-// New
 func New(url string, opts ...Option) (*Postgres, error) {
 	pg := &Postgres{
 		maxPoolSize:  _defaultMaxPoolSize,
@@ -36,19 +29,16 @@ func New(url string, opts ...Option) (*Postgres, error) {
 		connTimeout:  _defaultConnTimeout,
 	}
 
-	// Custom options
 	for _, opt := range opts {
 		opt(pg)
 	}
-
-	pg.builder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
 	poolConfig, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
 	}
 
-	poolConfig.MaxConns = int32(pg.maxPoolSize) //nolint:gosec // skip integer overflow conversion int -> int32
+	poolConfig.MaxConns = int32(pg.maxPoolSize)
 
 	for pg.connAttempts > 0 {
 		pg.Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
@@ -70,35 +60,26 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	return pg, nil
 }
 
-// Close
 func (p *Postgres) Close() {
 	if p.Pool != nil {
 		p.Pool.Close()
 	}
 }
 
-// Query executes a query that returns rows.
-func (p *Postgres) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	return p.Pool.Query(ctx, sql, args...)
+func (p *Postgres) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
+	rows, err := p.Pool.Query(ctx, q, args...)
+	return rows, err
 }
 
-// QueryRow executes a query that returns a single row.
-func (p *Postgres) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	return p.Pool.QueryRow(ctx, sql, args...)
+func (p *Postgres) QueryRow(ctx context.Context, q string, args ...any) interface{} {
+	return p.Pool.QueryRow(ctx, q, args...)
 }
 
-// Exec executes a query that doesn't return rows.
-func (p *Postgres) Exec(ctx context.Context, sql string, args ...any) error {
-	_, err := p.Pool.Exec(ctx, sql, args...)
+func (p *Postgres) Exec(ctx context.Context, q string, args ...any) error {
+	_, err := p.Pool.Exec(ctx, q, args...)
 	return err
 }
 
-// Ping checks if the database connection is alive.
 func (p *Postgres) Ping(ctx context.Context) error {
 	return p.Pool.Ping(ctx)
-}
-
-// GetBuilder returns the query builder.
-func (p *Postgres) GetBuilder() squirrel.StatementBuilderType {
-	return p.builder
 }

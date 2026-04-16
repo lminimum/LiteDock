@@ -12,25 +12,29 @@ import (
 	"github.com/evrone/go-clean-template/internal/repo/persistent"
 	"github.com/evrone/go-clean-template/internal/usecase/auth"
 	"github.com/evrone/go-clean-template/internal/usecase/container"
+	"github.com/evrone/go-clean-template/pkg/database"
 	"github.com/evrone/go-clean-template/pkg/httpserver"
 	"github.com/evrone/go-clean-template/pkg/logger"
-	"github.com/evrone/go-clean-template/pkg/postgres"
 )
 
 // Run creates objects via constructors.
 func Run(cfg *config.Config) {
 	l := logger.New(cfg.Log.Level)
 
-	// Repository
-	pg, err := postgres.New(cfg.DB.URL, postgres.MaxPoolSize(cfg.DB.PoolMax))
-	if err != nil {
-		l.Fatal(fmt.Errorf("app - Run - postgres.New: %w", err))
+	if err := AutoMigrate(cfg); err != nil {
+		l.Error(fmt.Errorf("app - Run - AutoMigrate: %w", err))
 	}
-	defer pg.Close()
+
+	// Repository - use database factory for multi-database support
+	db, err := database.New()
+	if err != nil {
+		l.Fatal(fmt.Errorf("app - Run - database.New: %w", err))
+	}
+	defer db.Close()
 
 	// Repository instances
-	userRepo := persistent.NewUserRepo(pg)
-	containerRepo := persistent.NewContainerRepo(pg)
+	userRepo := persistent.NewUserRepo(db)
+	containerRepo := persistent.NewContainerRepo(db)
 
 	// Auth UseCase
 	authUseCase := auth.New(userRepo, l)

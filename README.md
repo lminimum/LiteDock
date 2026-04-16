@@ -1,4 +1,3 @@
-````markdown
 ![LiteDock Logo](docs/img/logo.svg)
 
 # LiteDock

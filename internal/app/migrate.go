@@ -1,14 +1,12 @@
-//go:build migrate
-
 package app
 
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
+	"github.com/evrone/go-clean-template/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -21,8 +19,8 @@ const (
 	_defaultTimeout  = time.Second
 )
 
-func init() {
-	dbType := os.Getenv("DB_TYPE")
+func AutoMigrate(cfg *config.Config) error {
+	dbType := cfg.DB.Type
 	if dbType == "" {
 		dbType = "postgres"
 	}
@@ -32,26 +30,26 @@ func init() {
 
 	switch dbType {
 	case "postgres":
-		databaseURL = os.Getenv("PG_URL")
+		databaseURL = cfg.DB.URL
 		if databaseURL == "" {
-			log.Fatal("migrate: environment variable not declared: PG_URL")
+			return fmt.Errorf("migrate: DB.URL is required for postgres")
 		}
 		databaseURL += "?sslmode=disable"
 		driverName = "postgres"
 	case "mysql":
 		databaseURL = os.Getenv("MYSQL_URL")
 		if databaseURL == "" {
-			log.Fatal("migrate: environment variable not declared: MYSQL_URL")
+			return fmt.Errorf("migrate: MYSQL_URL environment variable is required")
 		}
 		driverName = "mysql"
 	case "sqlite":
-		databaseURL = os.Getenv("SQLITE_DSN")
+		databaseURL = cfg.DB.SQLiteDSN
 		if databaseURL == "" {
 			databaseURL = "./data.db"
 		}
 		driverName = "sqlite"
 	default:
-		log.Fatalf("migrate: unsupported database type: %s", dbType)
+		return fmt.Errorf("migrate: unsupported database type: %s", dbType)
 	}
 
 	var (
@@ -66,25 +64,23 @@ func init() {
 			break
 		}
 
-		log.Printf("Migrate: %s is trying to connect, attempts left: %d", dbType, attempts)
 		time.Sleep(_defaultTimeout)
 		attempts--
 	}
 
 	if err != nil {
-		log.Fatalf("Migrate: %s connect error: %s", dbType, err)
+		return fmt.Errorf("migrate: %s connect error: %w", dbType, err)
 	}
 
 	err = m.Up()
 	defer m.Close()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("Migrate: up error: %s", err)
+		return fmt.Errorf("migrate: up error: %w", err)
 	}
 
 	if errors.Is(err, migrate.ErrNoChange) {
-		log.Printf("Migrate: no change")
-		return
+		return nil
 	}
 
-	log.Printf("Migrate: up success")
+	return nil
 }

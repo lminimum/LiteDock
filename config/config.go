@@ -36,9 +36,10 @@ type (
 
 	// DB
 	DB struct {
-		Type    string `env:"DB_TYPE" envDefault:"sqlite"` // postgres, mysql, sqlite
-		PoolMax int    `env:"DB_POOL_MAX,required"`
-		URL     string `env:"DB_URL,required"`
+		Type      string `env:"DB_TYPE" envDefault:"sqlite"` // postgres, mysql, sqlite
+		PoolMax   int    `env:"DB_POOL_MAX,required"`
+		URL       string `env:"DB_URL,required"`
+		SQLiteDSN string `env:"SQLITE_DSN"`
 	}
 
 	// Metrics

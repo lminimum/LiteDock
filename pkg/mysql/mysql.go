@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -22,9 +21,7 @@ type MySQL struct {
 	connMaxLifetime time.Duration
 	connAttempts    int
 	connTimeout     time.Duration
-
-	builder squirrel.StatementBuilderType
-	db      *sql.DB
+	db              *sql.DB
 }
 
 func New(dsn string, opts ...Option) (*MySQL, error) {
@@ -61,7 +58,6 @@ func New(dsn string, opts ...Option) (*MySQL, error) {
 	}
 
 	m.db = db
-	m.builder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 
 	return m, nil
 }
@@ -70,31 +66,19 @@ func (m *MySQL) Close() {
 	_ = m.db.Close()
 }
 
-func (m *MySQL) Query(ctx context.Context, sql string, args ...any) (interface {
-	Next() bool
-	Scan(dest ...any) error
-	Close() error
-}, error) {
-	rows, err := m.db.QueryContext(ctx, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
+func (m *MySQL) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
+	return m.db.QueryContext(ctx, q, args...)
 }
 
-func (m *MySQL) QueryRow(ctx context.Context, sql string, args ...any) interface{ Scan(dest ...any) error } {
-	return m.db.QueryRowContext(ctx, sql, args...)
+func (m *MySQL) QueryRow(ctx context.Context, q string, args ...any) interface{} {
+	return m.db.QueryRowContext(ctx, q, args...)
 }
 
-func (m *MySQL) Exec(ctx context.Context, sql string, args ...any) error {
-	_, err := m.db.ExecContext(ctx, sql, args...)
+func (m *MySQL) Exec(ctx context.Context, q string, args ...any) error {
+	_, err := m.db.ExecContext(ctx, q, args...)
 	return err
 }
 
 func (m *MySQL) Ping(ctx context.Context) error {
 	return m.db.PingContext(ctx)
-}
-
-func (m *MySQL) Builder() squirrel.StatementBuilderType {
-	return m.builder
 }
