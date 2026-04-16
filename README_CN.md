@@ -1,7 +1,5 @@
 ![LiteDock](docs/img/logo.svg)
 
-# LiteDock
-
 [🇺🇸 English](README.md)
 
 轻量级 Docker 容器管理系统
