@@ -1,4 +1,6 @@
-![LiteDock](docs/img/logo.svg)
+<p align="center">
+  <img src="docs/img/logo.svg" width="75%" alt="LiteDock Logo">
+</p>
 
 [🇺🇸 English](README.md)
 
