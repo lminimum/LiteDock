@@ -5,24 +5,24 @@ import (
 	"net/http"
 
 	"github.com/ansrivas/fiberprometheus/v2"
-	"github.com/evrone/go-clean-template/config"
-	_ "github.com/evrone/go-clean-template/docs" // Swagger docs.
-	"github.com/evrone/go-clean-template/internal/controller/restapi/middleware"
-	v1 "github.com/evrone/go-clean-template/internal/controller/restapi/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/config"
+	_ "github.com/lminimum/LiteDock/docs" // Swagger docs.
+	"github.com/lminimum/LiteDock/internal/controller/restapi/middleware"
+	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
+	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
 )
 
-// NewRouter -.
+// NewRouter
 // Swagger spec:
-// @title       Go Clean Template API
-// @description Using a translation service as an example
+// @title       LiteDock API
+// @description Docker container management platform
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, t usecase.Translation, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, l logger.Interface) {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -45,6 +45,7 @@ func NewRouter(app *fiber.App, cfg *config.Config, t usecase.Translation, l logg
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewTranslationRoutes(apiV1Group, t, l)
+		v1.NewContainerRoutes(apiV1Group, container, l)
+		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
 	}
 }

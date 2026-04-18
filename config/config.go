@@ -7,66 +7,47 @@ import (
 )
 
 type (
-	// Config -.
+	// Config
 	Config struct {
 		App     App
 		HTTP    HTTP
 		Log     Log
-		PG      PG
-		GRPC    GRPC
-		RMQ     RMQ
-		NATS    NATS
+		DB      DB
 		Metrics Metrics
 		Swagger Swagger
 	}
 
-	// App -.
+	// App
 	App struct {
 		Name    string `env:"APP_NAME,required"`
 		Version string `env:"APP_VERSION,required"`
 	}
 
-	// HTTP -.
+	// HTTP
 	HTTP struct {
 		Port           string `env:"HTTP_PORT,required"`
 		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
 	}
 
-	// Log -.
+	// Log
 	Log struct {
 		Level string `env:"LOG_LEVEL,required"`
 	}
 
-	// PG -.
-	PG struct {
-		PoolMax int    `env:"PG_POOL_MAX,required"`
-		URL     string `env:"PG_URL,required"`
+	// DB
+	DB struct {
+		Type      string `env:"DB_TYPE" envDefault:"sqlite"` // postgres, mysql, sqlite
+		PoolMax   int    `env:"DB_POOL_MAX,required"`
+		URL       string `env:"DB_URL,required"`
+		SQLiteDSN string `env:"SQLITE_DSN"`
 	}
 
-	// GRPC -.
-	GRPC struct {
-		Port string `env:"GRPC_PORT,required"`
-	}
-
-	// RMQ -.
-	RMQ struct {
-		ServerExchange string `env:"RMQ_RPC_SERVER,required"`
-		ClientExchange string `env:"RMQ_RPC_CLIENT,required"`
-		URL            string `env:"RMQ_URL,required"`
-	}
-
-	// NATS -.
-	NATS struct {
-		ServerExchange string `env:"NATS_RPC_SERVER,required"`
-		URL            string `env:"NATS_URL,required"`
-	}
-
-	// Metrics -.
+	// Metrics
 	Metrics struct {
 		Enabled bool `env:"METRICS_ENABLED" envDefault:"true"`
 	}
 
-	// Swagger -.
+	// Swagger
 	Swagger struct {
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}

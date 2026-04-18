@@ -1,49 +1,36 @@
 version: "3.9"
 
-
 x-db-environment: &x-db-environment
   POSTGRES_SSL_MODE: "disable"
-  POSTGRES_HOST: "db"
+  POSTGRES_HOST: "pgdb"
   POSTGRES_PORT: "5432"
-  POSTGRES_DB: "db"
-  POSTGRES_PASSWORD: "myAwEsOm3pa55@w0rd"
-  POSTGRES_USER: "user"
-
-x-rabbitmq-variables: &x-rabbitmq-variables
-  RABBITMQ_DEFAULT_USER: "guest"
-  RABBITMQ_DEFAULT_PASS: "guest"
+  POSTGRES_DB: "litedock"
+  POSTGRES_PASSWORD: "litedock"
+  POSTGRES_USER: "litedock"
 
 x-backend-app-environment: &x-backend-app-environment
   GOMAXPROCS: "1"
-  # App
-  APP_NAME: "go-clean-template"
+  APP_NAME: "LiteDock"
   APP_VERSION: "1.0.0"
   # HTTP settings
   HTTP_PORT: "8080"
   HTTP_USE_PREFORK_MODE: "false"
   # Logger
   LOG_LEVEL: "debug"
-  # PG
-  PG_POOL_MAX: "2"
-  PG_URL: "postgres://user:myAwEsOm3pa55@w0rd@db:5432/db"
-  # gRPC
-  GRPC_PORT: "8081"
-  # RMQ
-  RMQ_RPC_SERVER: "rpc_server"
-  RMQ_RPC_CLIENT: "rpc_client"
-  RMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
-  # NATS
-  NATS_RPC_SERVER: "rpc_server"
-  NATS_URL: "nats://guest:guest@nats:4222/"
+  # Database
+  DB_TYPE: "postgres"
+  DB_POOL_MAX: "2"
+  DB_URL: "postgres://litedock:litedock@pgdb:5432/litedock"
+  # SQLite (for local development)
+  SQLITE_DSN: "./data.db"
   # Metrics
   METRICS_ENABLED: "true"
   # Swagger
   SWAGGER_ENABLED: "true"
 
-
 services:
-  db:
-    container_name: db
+  pgdb:
+    container_name: pgdb
     image: postgres:18.3-alpine
     environment:
       <<: *x-db-environment
@@ -56,34 +43,22 @@ services:
         aliases:
           - db.lvh.me
 
-  rabbitmq:
-    container_name: rabbitmq
-    image: rabbitmq:4.2.2-management
+  mysql:
+    container_name: mysql
+    image: mysql:9.6
     environment:
-      <<: *x-rabbitmq-variables
+      MYSQL_ROOT_PASSWORD: litedock
+      MYSQL_DATABASE: litedock
+      MYSQL_USER: litedock
+      MYSQL_PASSWORD: litedock
     ports:
-      - "15672:15672"
-      - "5672:5672"
+      - "3306:3306"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - mysql_data:/var/lib/mysql
     networks:
       app_network:
         aliases:
-          - rabbitmq.lvh.me
-
-  nats:
-    container_name: nats
-    image: nats:2.12-alpine
-    command: [ "-m", "8222", "-sd", "/nats-data", "-user", "guest", "-pass", "guest" ]
-    ports:
-      - "4222:4222"
-      - "8222:8222"
-    volumes:
-      - nats_data:/nats-data
-    networks:
-      app_network:
-        aliases:
-          - nats.lvh.me
+          - mysql.lvh.me
 
   app:
     container_name: app
@@ -95,10 +70,8 @@ services:
       <<: *x-backend-app-environment
     ports:
       - "8080:8080"
-      - "8081:8081"
     depends_on:
-      - db
-      - rabbitmq
+      - pgdb
     deploy:
       resources:
         limits:
@@ -114,26 +87,22 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx:1.29.4-alpine
+    image: nginx:1.29.8-alpine
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "80:80"
     depends_on:
-      - rabbitmq
       - app
     networks:
       app_network:
         aliases:
           - nginx.lvh.me
 
-
 networks:
   app_network:
     external: false
 
-
 volumes:
   db_data:
-  rabbitmq_data:
-  nats_data:
+  mysql_data:
