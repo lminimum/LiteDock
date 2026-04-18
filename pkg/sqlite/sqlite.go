@@ -3,10 +3,10 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "modernc.org/sqlite"
+	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
 const (
@@ -35,7 +35,7 @@ func New(dsn string, opts ...Option) (*SQLite, error) {
 
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("sqlite - New - sql.Open: %w", err)
+		return nil, errors.Wrap(err, "SQLite.New.Open")
 	}
 
 	db.SetConnMaxLifetime(s.connMaxLifetime)
@@ -50,7 +50,7 @@ func New(dsn string, opts ...Option) (*SQLite, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("sqlite - New - connAttempts == 0: %w", err)
+		return nil, errors.Wrap(err, "SQLite.New.Connect")
 	}
 
 	s.db = db

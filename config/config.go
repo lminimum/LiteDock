@@ -1,9 +1,8 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/caarlos0/env/v11"
+	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
 type (
@@ -57,7 +56,7 @@ type (
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("config error: %w", err)
+		return nil, errors.Wrap(err, "Config.New.Parse")
 	}
 
 	return cfg, nil

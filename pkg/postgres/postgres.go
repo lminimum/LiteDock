@@ -2,11 +2,11 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
 const (
@@ -35,7 +35,7 @@ func New(url string, opts ...Option) (*Postgres, error) {
 
 	poolConfig, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
+		return nil, errors.Wrap(err, "Postgres.New.ParseConfig")
 	}
 
 	poolConfig.MaxConns = int32(pg.maxPoolSize)
@@ -54,7 +54,7 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - connAttempts == 0: %w", err)
+		return nil, errors.Wrap(err, "Postgres.New.Connect")
 	}
 
 	return pg, nil

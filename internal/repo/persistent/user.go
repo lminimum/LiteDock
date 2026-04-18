@@ -2,33 +2,30 @@ package persistent
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/pkg/database"
+	"github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserRepo -.
 type UserRepo struct {
 	db database.DB
 }
 
-// NewUserRepo -.
 func NewUserRepo(db database.DB) *UserRepo {
 	return &UserRepo{db: db}
 }
 
-// scanRow is a helper to scan a row from QueryRow
 func scanRow(row interface{}, dest ...interface{}) error {
 	if row == nil {
-		return fmt.Errorf("scanRow: nil row")
+		return errors.ErrScanRowNil
 	}
 	scanner, ok := row.(interface{ Scan(...interface{}) error })
 	if !ok {
-		return fmt.Errorf("scanRow: row does not implement Scanner interface")
+		return errors.ErrScanRowNoScanner
 	}
 
 	timeIndices := make(map[int]*time.Time)
@@ -63,7 +60,6 @@ func scanRow(row interface{}, dest ...interface{}) error {
 	return nil
 }
 
-// CreateUser creates a new user
 func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 	query := `
 		INSERT INTO users(id, username, email, password, role, created_at, updated_at)
@@ -71,7 +67,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("UserRepo - CreateUser - bcrypt.GenerateFromPassword: %w", err)
+		return errors.Wrap(err, "UserRepo.CreateUser.Bcrypt")
 	}
 
 	user.ID = uuid.New().String()
@@ -87,13 +83,12 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 		now,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - CreateUser - r.db.Exec: %w", err)
+		return errors.Wrap(err, "UserRepo.CreateUser.Exec")
 	}
 
 	return nil
 }
 
-// GetUserByID retrieves a user by ID
 func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
 	query := `SELECT id, username, email, password, role, created_at, updated_at
 	          FROM users WHERE id = ?`
@@ -111,15 +106,14 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, er
 	)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			return nil, fmt.Errorf("usecase: user not found")
+			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByID")
 		}
-		return nil, fmt.Errorf("UserRepo - GetUserByID - r.db.QueryRow: %w", err)
+		return nil, errors.Wrap(err, "UserRepo.GetUserByID.QueryRow")
 	}
 
 	return &user, nil
 }
 
-// GetUserByUsername retrieves a user by username
 func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*entity.User, error) {
 	query := `SELECT id, username, email, password, role, created_at, updated_at
 	          FROM users WHERE username = ?`
@@ -137,15 +131,14 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*ent
 	)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			return nil, fmt.Errorf("usecase: user not found")
+			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByUsername")
 		}
-		return nil, fmt.Errorf("UserRepo - GetUserByUsername - r.db.QueryRow: %w", err)
+		return nil, errors.Wrap(err, "UserRepo.GetUserByUsername.QueryRow")
 	}
 
 	return &user, nil
 }
 
-// GetUserByEmail retrieves a user by email
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	query := `SELECT id, username, email, password, role, created_at, updated_at
 	          FROM users WHERE email = ?`
@@ -163,15 +156,14 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.Us
 	)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			return nil, fmt.Errorf("usecase: user not found")
+			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByEmail")
 		}
-		return nil, fmt.Errorf("UserRepo - GetUserByEmail - r.db.QueryRow: %w", err)
+		return nil, errors.Wrap(err, "UserRepo.GetUserByEmail.QueryRow")
 	}
 
 	return &user, nil
 }
 
-// UpdateUser updates a user's information
 func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
 	query := `UPDATE users SET username=?, email=?, role=?, updated_at=? WHERE id=?`
 
@@ -183,46 +175,43 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
 		user.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - UpdateUser - r.db.Exec: %w", err)
+		return errors.Wrap(err, "UserRepo.UpdateUser.Exec")
 	}
 
 	return nil
 }
 
-// DeleteUser deletes a user
 func (r *UserRepo) DeleteUser(ctx context.Context, id string) error {
 	query := `DELETE FROM users WHERE id = ?`
 
 	err := r.db.Exec(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("UserRepo - DeleteUser - r.db.Exec: %w", err)
+		return errors.Wrap(err, "UserRepo.DeleteUser.Exec")
 	}
 
 	return nil
 }
 
-// VerifyPassword verifies if the provided password matches the user's hash
 func (r *UserRepo) VerifyPassword(ctx context.Context, username, password string) (bool, error) {
 	user, err := r.GetUserByUsername(ctx, username)
 	if err != nil {
-		return false, fmt.Errorf("UserRepo - VerifyPassword - r.GetUserByUsername: %w", err)
+		return false, errors.Wrap(err, "UserRepo.VerifyPassword.GetUserByUsername")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return false, nil // Return false, not an error for invalid password
+		return false, errors.Wrap(err, "UserRepo.VerifyPassword.Bcrypt")
 	}
 
 	return true, nil
 }
 
-// UpdatePassword updates a user's password
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID, newPassword string) error {
 	query := `UPDATE users SET password=?, updated_at=? WHERE id=?`
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("UserRepo - UpdatePassword - bcrypt.GenerateFromPassword: %w", err)
+		return errors.Wrap(err, "UserRepo.UpdatePassword.Bcrypt")
 	}
 
 	err = r.db.Exec(ctx, query,
@@ -231,7 +220,7 @@ func (r *UserRepo) UpdatePassword(ctx context.Context, userID, newPassword strin
 		userID,
 	)
 	if err != nil {
-		return fmt.Errorf("UserRepo - UpdatePassword - r.db.Exec: %w", err)
+		return errors.Wrap(err, "UserRepo.UpdatePassword.Exec")
 	}
 
 	return nil

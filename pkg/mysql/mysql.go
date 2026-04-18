@@ -3,10 +3,10 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
 const (
@@ -38,7 +38,7 @@ func New(dsn string, opts ...Option) (*MySQL, error) {
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("mysql - New - sql.Open: %w", err)
+		return nil, errors.Wrap(err, "MySQL.New.Open")
 	}
 
 	db.SetMaxOpenConns(m.maxOpenConns)
@@ -54,7 +54,7 @@ func New(dsn string, opts ...Option) (*MySQL, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("mysql - New - connAttempts == 0: %w", err)
+		return nil, errors.Wrap(err, "MySQL.New.Connect")
 	}
 
 	m.db = db
