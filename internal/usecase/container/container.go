@@ -3,8 +3,8 @@ package container
 import (
 	"context"
 
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/internal/entity"
+	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 // UseCase handles container business logic.

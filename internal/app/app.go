@@ -7,14 +7,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/evrone/go-clean-template/config"
-	"github.com/evrone/go-clean-template/internal/controller/restapi"
-	"github.com/evrone/go-clean-template/internal/repo/persistent"
-	"github.com/evrone/go-clean-template/internal/usecase/auth"
-	"github.com/evrone/go-clean-template/internal/usecase/container"
-	"github.com/evrone/go-clean-template/pkg/database"
-	"github.com/evrone/go-clean-template/pkg/httpserver"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/config"
+	"github.com/lminimum/LiteDock/internal/controller/restapi"
+	"github.com/lminimum/LiteDock/internal/repo/persistent"
+	"github.com/lminimum/LiteDock/internal/usecase/auth"
+	"github.com/lminimum/LiteDock/internal/usecase/container"
+	"github.com/lminimum/LiteDock/pkg/database"
+	"github.com/lminimum/LiteDock/pkg/httpserver"
+	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 // Run creates objects via constructors.

@@ -3,10 +3,10 @@ package app
 import (
 	"errors"
 	"fmt"
-	"os"
+	"strings"
 	"time"
 
-	"github.com/evrone/go-clean-template/config"
+	"github.com/lminimum/LiteDock/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -26,7 +26,6 @@ func AutoMigrate(cfg *config.Config) error {
 	}
 
 	var databaseURL string
-	var driverName string
 
 	switch dbType {
 	case "postgres":
@@ -34,32 +33,37 @@ func AutoMigrate(cfg *config.Config) error {
 		if databaseURL == "" {
 			return fmt.Errorf("migrate: DB.URL is required for postgres")
 		}
-		databaseURL += "?sslmode=disable"
-		driverName = "postgres"
-	case "mysql":
-		databaseURL = os.Getenv("MYSQL_URL")
-		if databaseURL == "" {
-			return fmt.Errorf("migrate: MYSQL_URL environment variable is required")
+		if !strings.Contains(databaseURL, "sslmode=") {
+			databaseURL += "?sslmode=disable"
 		}
-		driverName = "mysql"
+	case "mysql":
+		databaseURL = cfg.DB.URL
+		if databaseURL == "" {
+			return fmt.Errorf("migrate: DB.URL is required for mysql")
+		}
+		if !strings.HasPrefix(databaseURL, "mysql://") {
+			databaseURL = "mysql://" + databaseURL
+		}
 	case "sqlite":
-		databaseURL = cfg.DB.SQLiteDSN
+		databaseURL = cfg.DB.URL
 		if databaseURL == "" {
 			databaseURL = "./data.db"
 		}
-		driverName = "sqlite"
+		if !strings.Contains(databaseURL, "://") {
+			databaseURL = "sqlite://" + databaseURL
+		}
 	default:
 		return fmt.Errorf("migrate: unsupported database type: %s", dbType)
 	}
 
 	var (
 		attempts = _defaultAttempts
-		err      error
-		m        *migrate.Migrate
+		err     error
+		m       *migrate.Migrate
 	)
 
 	for attempts > 0 {
-		m, err = migrate.New("file://migrations", fmt.Sprintf("%s://%s", driverName, databaseURL))
+		m, err = migrate.New("file://migrations", databaseURL)
 		if err == nil {
 			break
 		}

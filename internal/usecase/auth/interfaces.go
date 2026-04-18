@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/lminimum/LiteDock/internal/entity"
 )
 
 // UseCaseInterface -.

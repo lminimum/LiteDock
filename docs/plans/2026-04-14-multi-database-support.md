@@ -605,7 +605,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/evrone/go-clean-template/pkg/database"
+	"github.com/lminimum/LiteDock/pkg/database"
 )
 
 // Adapter wraps a database.DB and provides postgres-compatible methods.

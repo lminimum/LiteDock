@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/evrone/go-clean-template/config"
-	"github.com/evrone/go-clean-template/internal/app"
+	"github.com/lminimum/LiteDock/config"
+	"github.com/lminimum/LiteDock/internal/app"
 	"github.com/joho/godotenv"
 )
 
