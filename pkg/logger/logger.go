@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Interface
+// Interface.
 type Interface interface {
 	Debug(message interface{}, args ...interface{})
 	Info(message string, args ...interface{})
@@ -17,14 +17,14 @@ type Interface interface {
 	Fatal(message interface{}, args ...interface{})
 }
 
-// Logger
+// Logger.
 type Logger struct {
 	logger *zerolog.Logger
 }
 
 var _ Interface = (*Logger)(nil)
 
-// New
+// New.
 func New(level string) *Logger {
 	var l zerolog.Level
 
@@ -51,22 +51,22 @@ func New(level string) *Logger {
 	}
 }
 
-// Debug
+// Debug.
 func (l *Logger) Debug(message interface{}, args ...interface{}) {
 	l.msg(zerolog.DebugLevel, message, args...)
 }
 
-// Info
+// Info.
 func (l *Logger) Info(message string, args ...interface{}) {
 	l.log(zerolog.InfoLevel, message, args...)
 }
 
-// Warn
+// Warn.
 func (l *Logger) Warn(message string, args ...interface{}) {
 	l.log(zerolog.WarnLevel, message, args...)
 }
 
-// Error
+// Error.
 func (l *Logger) Error(message interface{}, args ...interface{}) {
 	if l.logger.GetLevel() == zerolog.DebugLevel {
 		l.Debug(message, args...)
@@ -75,7 +75,7 @@ func (l *Logger) Error(message interface{}, args ...interface{}) {
 	l.msg(zerolog.ErrorLevel, message, args...)
 }
 
-// Fatal
+// Fatal.
 func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	l.msg(zerolog.FatalLevel, message, args...)
 

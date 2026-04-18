@@ -15,6 +15,7 @@ func NewPostgres() (*postgres.Postgres, error) {
 	if url == "" {
 		return nil, errors.ErrDBURLRequired
 	}
+
 	return postgres.New(url)
 }
 
@@ -23,7 +24,9 @@ func NewMySQL() (*mysql.MySQL, error) {
 	if url == "" {
 		return nil, errors.ErrDBURLRequiredMySQL
 	}
+
 	dsn := convertMySQLURLToDSN(url)
+
 	return mysql.New(dsn)
 }
 
@@ -32,6 +35,7 @@ func NewSQLite() (*sqlite.SQLite, error) {
 	if dsn == "" {
 		dsn = "./data.db"
 	}
+
 	return sqlite.New(dsn)
 }
 
@@ -39,14 +43,18 @@ func convertMySQLURLToDSN(url string) string {
 	if !strings.HasPrefix(url, "mysql://") {
 		return url
 	}
+
 	url = strings.TrimPrefix(url, "mysql://")
+
 	return url
 }
+
+const _defaultDBType = "postgres"
 
 func New() (DB, error) {
 	dbType := os.Getenv("DB_TYPE")
 	if dbType == "" {
-		dbType = "postgres"
+		dbType = _defaultDBType
 	}
 
 	switch dbType {

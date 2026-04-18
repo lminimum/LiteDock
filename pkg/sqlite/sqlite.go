@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	_ "modernc.org/sqlite"
 	"github.com/lminimum/LiteDock/pkg/errors"
+	_ "modernc.org/sqlite" // SQLite database driver
 )
 
 const (
@@ -41,11 +41,13 @@ func New(dsn string, opts ...Option) (*SQLite, error) {
 	db.SetConnMaxLifetime(s.connMaxLifetime)
 
 	for s.connAttempts > 0 {
-		err = db.Ping()
+		err = db.PingContext(context.Background())
 		if err == nil {
 			break
 		}
+
 		time.Sleep(s.connTimeout)
+
 		s.connAttempts--
 	}
 
@@ -63,7 +65,17 @@ func (s *SQLite) Close() {
 }
 
 func (s *SQLite) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
-	return s.db.QueryContext(ctx, q, args...)
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 func (s *SQLite) QueryRow(ctx context.Context, q string, args ...any) interface{} {
@@ -72,6 +84,7 @@ func (s *SQLite) QueryRow(ctx context.Context, q string, args ...any) interface{
 
 func (s *SQLite) Exec(ctx context.Context, q string, args ...any) error {
 	_, err := s.db.ExecContext(ctx, q, args...)
+
 	return err
 }
 

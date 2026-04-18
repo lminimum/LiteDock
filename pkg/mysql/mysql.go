@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL database driver
 	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
@@ -45,11 +45,13 @@ func New(dsn string, opts ...Option) (*MySQL, error) {
 	db.SetConnMaxLifetime(m.connMaxLifetime)
 
 	for m.connAttempts > 0 {
-		err = db.Ping()
+		err = db.PingContext(context.Background())
 		if err == nil {
 			break
 		}
+
 		time.Sleep(m.connTimeout)
+
 		m.connAttempts--
 	}
 
@@ -67,7 +69,17 @@ func (m *MySQL) Close() {
 }
 
 func (m *MySQL) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
-	return m.db.QueryContext(ctx, q, args...)
+	rows, err := m.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 func (m *MySQL) QueryRow(ctx context.Context, q string, args ...any) interface{} {
@@ -76,6 +88,7 @@ func (m *MySQL) QueryRow(ctx context.Context, q string, args ...any) interface{}
 
 func (m *MySQL) Exec(ctx context.Context, q string, args ...any) error {
 	_, err := m.db.ExecContext(ctx, q, args...)
+
 	return err
 }
 

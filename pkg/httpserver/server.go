@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/lminimum/LiteDock/pkg/logger"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,7 +19,7 @@ const (
 	_defaultShutdownTimeout = 3 * time.Second
 )
 
-// Server
+// Server.
 type Server struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -36,7 +36,7 @@ type Server struct {
 	logger logger.Interface
 }
 
-// New
+// New.
 func New(l logger.Interface, opts ...Option) *Server {
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(1) // Run only one goroutine
@@ -71,7 +71,7 @@ func New(l logger.Interface, opts ...Option) *Server {
 	return s
 }
 
-// Start
+// Start.
 func (s *Server) Start() {
 	s.eg.Go(func() error {
 		err := s.App.Listen(s.address)
@@ -89,12 +89,12 @@ func (s *Server) Start() {
 	s.logger.Info("restapi server - Server - Started")
 }
 
-// Notify
+// Notify.
 func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-// Shutdown
+// Shutdown.
 func (s *Server) Shutdown() error {
 	var shutdownErrors []error
 

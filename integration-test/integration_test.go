@@ -3,12 +3,13 @@ package integration_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 const (
@@ -48,6 +49,8 @@ func getHealthCheck(url string) (int, error) {
 }
 
 func healthCheck(attempts int) error {
+	log := logger.New("info")
+
 	for attempts > 0 {
 		statusCode, err := getHealthCheck(healthPath)
 		if err != nil {
@@ -58,9 +61,10 @@ func healthCheck(attempts int) error {
 			return nil
 		}
 
-		fmt.Printf("Integration tests: url %s is not available, attempts left: %d\n", healthPath, attempts)
+		log.Warn("Integration tests: url %s is not available, attempts left: %d", healthPath, attempts)
 
 		time.Sleep(time.Second)
+
 		attempts--
 	}
 
@@ -68,13 +72,14 @@ func healthCheck(attempts int) error {
 }
 
 func TestMain(m *testing.M) {
+	log := logger.New("info")
+
 	err := healthCheck(attempts)
 	if err != nil {
-		fmt.Printf("Integration tests: httpURL %s is not available: %s\n", httpURL, err)
-		os.Exit(1)
+		log.Fatal(err, "Integration tests: httpURL %s is not available: %s", httpURL, err)
 	}
 
-	fmt.Printf("Integration tests: httpURL %s is available\n", httpURL)
+	log.Info("Integration tests: httpURL %s is available", httpURL)
 
 	code := m.Run()
 	os.Exit(code)

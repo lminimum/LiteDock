@@ -2,14 +2,15 @@ package auth
 
 import (
 	"context"
+	stderrors "errors"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/logger"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 )
 
 type UseCase struct {
@@ -19,9 +20,11 @@ type UseCase struct {
 
 var _ UseCaseInterface = (*UseCase)(nil)
 
-func New(repo repo.UserRepo, l logger.Interface) *UseCase {
-	return &UseCase{repo: repo, logger: l}
+func New(userRepo repo.UserRepo, l logger.Interface) *UseCase {
+	return &UseCase{repo: userRepo, logger: l}
 }
+
+const _tokenExpiryHours = 24
 
 func (uc *UseCase) Login(ctx context.Context, username, password string) (string, *entity.User, error) {
 	verified, err := uc.repo.VerifyPassword(ctx, username, password)
@@ -41,7 +44,7 @@ func (uc *UseCase) Login(ctx context.Context, username, password string) (string
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+		"exp":      time.Now().Add(time.Hour * _tokenExpiryHours).Unix(),
 		"iat":      time.Now().Unix(),
 	})
 
@@ -68,7 +71,7 @@ func (uc *UseCase) Register(ctx context.Context, username, email, password, role
 		return nil, errors.Wrap(errors.ErrUsernameExists, "Auth.Register.UsernameExists")
 	}
 
-	if err != nil && !errors.Is(err, errors.ErrUserNotFound) {
+	if err != nil && !stderrors.Is(err, errors.ErrUserNotFound) {
 		return nil, errors.Wrap(err, "Auth.Register.GetUserByUsername")
 	}
 
@@ -95,6 +98,7 @@ func (uc *UseCase) GetCurrentUser(ctx context.Context, tokenString string) (*ent
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.Wrap(errors.ErrUnexpectedSignMethod, "Auth.GetCurrentUser.UnexpectedSigningMethod")
 		}
+
 		return []byte("secret-key"), nil
 	})
 	if err != nil {
@@ -123,6 +127,7 @@ func (uc *UseCase) RefreshToken(ctx context.Context, refreshToken string) (strin
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.Wrap(errors.ErrUnexpectedSignMethod, "Auth.RefreshToken.UnexpectedSigningMethod")
 		}
+
 		return []byte("secret-key"), nil
 	})
 	if err != nil {
@@ -143,7 +148,7 @@ func (uc *UseCase) RefreshToken(ctx context.Context, refreshToken string) (strin
 		newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id":  user.ID,
 			"username": user.Username,
-			"exp":      time.Now().Add(time.Hour * 24).Unix(),
+			"exp":      time.Now().Add(time.Hour * _tokenExpiryHours).Unix(),
 			"iat":      time.Now().Unix(),
 		})
 

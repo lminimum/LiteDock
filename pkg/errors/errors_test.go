@@ -8,13 +8,17 @@ import (
 )
 
 func TestWrap_NilReturnsNil(t *testing.T) {
+	t.Parallel()
+
 	if got := errors.Wrap(nil, "msg"); got != nil {
 		t.Errorf("Wrap(nil, msg) = %v, want nil", got)
 	}
 }
 
 func TestWrap_FormatsMessage(t *testing.T) {
-	orig := stderrors.New("fail")
+	t.Parallel()
+
+	orig := errors.ErrTestFail
 	wrapped := errors.Wrap(orig, "Op.Do")
 
 	want := "Op.Do: fail"
@@ -24,30 +28,36 @@ func TestWrap_FormatsMessage(t *testing.T) {
 }
 
 func TestWrap_UnwrapReturnsOriginal(t *testing.T) {
-	orig := stderrors.New("fail")
+	t.Parallel()
+
+	orig := errors.ErrTestFail
 	wrapped := errors.Wrap(orig, "Op.Do")
 
 	unwrapped := stderrors.Unwrap(wrapped)
-	if unwrapped != orig {
+	if !stderrors.Is(unwrapped, orig) {
 		t.Errorf("Unwrap = %v, want %v", unwrapped, orig)
 	}
 }
 
 func TestWrap_IsMatchesThroughUnwrap(t *testing.T) {
-	orig := stderrors.New("fail")
+	t.Parallel()
+
+	orig := errors.ErrTestFail
 	wrapped := errors.Wrap(orig, "Op.Do")
 
-	if !errors.Is(wrapped, orig) {
+	if !stderrors.Is(wrapped, orig) {
 		t.Error("Is(wrapped, orig) = false, want true")
 	}
 }
 
 func TestWrap_AsMatchesThroughUnwrap(t *testing.T) {
+	t.Parallel()
+
 	orig := &testError{code: 42}
 	wrapped := errors.Wrap(orig, "Op.Do")
 
 	var target *testError
-	if !errors.As(wrapped, &target) {
+	if !stderrors.As(wrapped, &target) {
 		t.Fatal("As(wrapped, &target) = false, want true")
 	}
 
@@ -57,7 +67,9 @@ func TestWrap_AsMatchesThroughUnwrap(t *testing.T) {
 }
 
 func TestWrap_DoubleWrapFormatsCorrectly(t *testing.T) {
-	orig := stderrors.New("fail")
+	t.Parallel()
+
+	orig := errors.ErrTestFail
 	inner := errors.Wrap(orig, "inner")
 	outer := errors.Wrap(inner, "outer")
 

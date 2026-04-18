@@ -3,6 +3,8 @@ package postgres
 import "testing"
 
 func TestRewritePlaceholders(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		query    string
@@ -52,6 +54,8 @@ func TestRewritePlaceholders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := rewritePlaceholders(tt.query)
 			if result != tt.expected {
 				t.Errorf("rewritePlaceholders(%q) = %q, want %q", tt.query, result, tt.expected)

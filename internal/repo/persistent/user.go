@@ -2,12 +2,13 @@ package persistent
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/pkg/database"
 	"github.com/lminimum/LiteDock/pkg/errors"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,17 +24,22 @@ func scanRow(row interface{}, dest ...interface{}) error {
 	if row == nil {
 		return errors.ErrScanRowNil
 	}
+
 	scanner, ok := row.(interface{ Scan(...interface{}) error })
 	if !ok {
 		return errors.ErrScanRowNoScanner
 	}
 
 	timeIndices := make(map[int]*time.Time)
+
 	tempDest := make([]interface{}, len(dest))
+
 	for i, d := range dest {
 		if t, ok := d.(*time.Time); ok {
 			timeIndices[i] = t
+
 			var bs []byte
+
 			tempDest[i] = &bs
 		} else {
 			tempDest[i] = d
@@ -45,16 +51,27 @@ func scanRow(row interface{}, dest ...interface{}) error {
 	}
 
 	for i, t := range timeIndices {
-		bs, ok := tempDest[i].(*[]byte)
-		if ok && bs != nil && len(*bs) > 0 {
-			parsed, err := time.Parse("2006-01-02 15:04:05", string(*bs))
-			if err != nil {
-				parsed, err = time.Parse(time.RFC3339, string(*bs))
-			}
-			if err == nil {
-				*t = parsed
-			}
+		if err := parseTimeFromRow(tempDest[i], t); err != nil {
+			return err
 		}
+	}
+
+	return nil
+}
+
+func parseTimeFromRow(src interface{}, dest *time.Time) error {
+	bs, ok := src.(*[]byte)
+	if !ok || bs == nil || len(*bs) == 0 {
+		return nil
+	}
+
+	parsed, err := time.Parse("2006-01-02 15:04:05", string(*bs))
+	if err != nil {
+		parsed, err = time.Parse(time.RFC3339, string(*bs))
+	}
+
+	if err == nil {
+		*dest = parsed
 	}
 
 	return nil
@@ -89,12 +106,14 @@ func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
 	return nil
 }
 
-func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at
-	          FROM users WHERE id = ?`
+func (r *UserRepo) queryUserBy(ctx context.Context, column string, value interface{}) (*entity.User, error) {
+	query := fmt.Sprintf(`SELECT id, username, email, password, role, created_at, updated_at
+		FROM users WHERE %s = ?`, column)
 
 	var user entity.User
-	row := r.db.QueryRow(ctx, query, id)
+
+	row := r.db.QueryRow(ctx, query, value)
+
 	err := scanRow(row,
 		&user.ID,
 		&user.Username,
@@ -106,62 +125,25 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, er
 	)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByID")
+			return nil, errors.Wrap(errors.ErrUserNotFound, fmt.Sprintf("UserRepo.queryUserBy(%s)", column))
 		}
-		return nil, errors.Wrap(err, "UserRepo.GetUserByID.QueryRow")
+
+		return nil, errors.Wrap(err, fmt.Sprintf("UserRepo.queryUserBy(%s).QueryRow", column))
 	}
 
 	return &user, nil
+}
+
+func (r *UserRepo) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
+	return r.queryUserBy(ctx, "id", id)
 }
 
 func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at
-	          FROM users WHERE username = ?`
-
-	var user entity.User
-	row := r.db.QueryRow(ctx, query, username)
-	err := scanRow(row,
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByUsername")
-		}
-		return nil, errors.Wrap(err, "UserRepo.GetUserByUsername.QueryRow")
-	}
-
-	return &user, nil
+	return r.queryUserBy(ctx, "username", username)
 }
 
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
-	query := `SELECT id, username, email, password, role, created_at, updated_at
-	          FROM users WHERE email = ?`
-
-	var user entity.User
-	row := r.db.QueryRow(ctx, query, email)
-	err := scanRow(row,
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			return nil, errors.Wrap(errors.ErrUserNotFound, "UserRepo.GetUserByEmail")
-		}
-		return nil, errors.Wrap(err, "UserRepo.GetUserByEmail.QueryRow")
-	}
-
-	return &user, nil
+	return r.queryUserBy(ctx, "email", email)
 }
 
 func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
