@@ -2,11 +2,11 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/lminimum/LiteDock/config"
+	apperrors "github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -31,7 +31,7 @@ func AutoMigrate(cfg *config.Config) error {
 	case "postgres":
 		databaseURL = cfg.DB.URL
 		if databaseURL == "" {
-			return fmt.Errorf("migrate: DB.URL is required for postgres")
+			return apperrors.ErrDBURLRequired
 		}
 		if !strings.Contains(databaseURL, "sslmode=") {
 			databaseURL += "?sslmode=disable"
@@ -39,7 +39,7 @@ func AutoMigrate(cfg *config.Config) error {
 	case "mysql":
 		databaseURL = cfg.DB.URL
 		if databaseURL == "" {
-			return fmt.Errorf("migrate: DB.URL is required for mysql")
+			return apperrors.ErrDBURLRequiredMySQL
 		}
 		if !strings.HasPrefix(databaseURL, "mysql://") {
 			databaseURL = "mysql://" + databaseURL
@@ -53,7 +53,7 @@ func AutoMigrate(cfg *config.Config) error {
 			databaseURL = "sqlite://" + databaseURL
 		}
 	default:
-		return fmt.Errorf("migrate: unsupported database type: %s", dbType)
+		return apperrors.Wrap(apperrors.ErrDBTypeNotSupported, "AutoMigrate."+dbType)
 	}
 
 	var (
@@ -73,13 +73,13 @@ func AutoMigrate(cfg *config.Config) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("migrate: %s connect error: %w", dbType, err)
+		return apperrors.Wrap(err, "AutoMigrate."+dbType+".connect")
 	}
 
 	err = m.Up()
 	defer m.Close()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("migrate: up error: %w", err)
+		return apperrors.Wrap(err, "AutoMigrate." + dbType + ".Up")
 	}
 
 	if errors.Is(err, migrate.ErrNoChange) {

@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,17 +12,15 @@ import (
 )
 
 const (
-	// Base settings
 	host     = "app"
 	attempts = 20
 
-	// Attempts connection
 	httpURL        = "http://" + host + ":8080"
 	healthPath     = httpURL + "/healthz"
 	requestTimeout = 5 * time.Second
 )
 
-var errHealthCheck = fmt.Errorf("url %s is not available", healthPath)
+var errHealthCheck = errors.New("health check failed")
 
 func doWebRequestWithTimeout(ctx context.Context, method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
