@@ -3,65 +3,67 @@
     <div class="login-card">
       <div class="login-header">
         <div class="logo">
-          <img src="/src/assets/logo.svg" alt="LiteDock" v-if="hasLogo" />
-          <div class="logo-text" v-else>LiteDock</div>
+          <span class="logo-text">LiteDock</span>
         </div>
         <h1>欢迎回来</h1>
         <p>登录到 LiteDock 管理平台</p>
       </div>
 
       <div class="success-message" v-if="showRegisteredSuccess">
-        <span class="success-icon">✓</span>
+        <CheckCircle :size="16" />
         管理员账户创建成功，请登录
       </div>
 
-       <form @submit.prevent="handleLogin" class="login-form">
-         <div class="form-group" :class="{ error: errors.username }">
-           <label for="username">用户名</label>
-           <input
-             id="username"
-             v-model="credentials.username"
-             type="text"
-             placeholder="请输入用户名"
-             :disabled="loading"
-             required
-           />
-           <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
-         </div>
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="form-group" :class="{ error: errors.username }">
+          <label for="username">用户名</label>
+          <input
+            id="username"
+            v-model="credentials.username"
+            type="text"
+            placeholder="请输入用户名"
+            :disabled="loading"
+            required
+            class="input"
+          />
+          <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
+        </div>
 
-         <div class="form-group" :class="{ error: errors.password }">
-           <label for="password">密码</label>
-           <div class="password-input">
-             <input
-               id="password"
-               v-model="credentials.password"
-               :type="showPassword ? 'text' : 'password'"
-               placeholder="请输入密码"
-               :disabled="loading"
-               required
-             />
-             <button
-               type="button"
-               @click="showPassword = !showPassword"
-               class="password-toggle"
-             >
-               {{ showPassword ? '隐藏' : '显示' }}
-             </button>
-           </div>
-           <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
-         </div>
+        <div class="form-group" :class="{ error: errors.password }">
+          <label for="password">密码</label>
+          <div class="password-input">
+            <input
+              id="password"
+              v-model="credentials.password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="请输入密码"
+              :disabled="loading"
+              required
+              class="input"
+            />
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="password-toggle"
+            >
+              <Eye v-if="!showPassword" :size="16" />
+              <EyeOff v-else :size="16" />
+            </button>
+          </div>
+          <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
+        </div>
 
-         <div class="form-options">
-           <label class="checkbox">
-             <input v-model="rememberMe" type="checkbox" />
-             <span>记住我</span>
-           </label>
-         </div>
+        <div class="form-options">
+          <label class="checkbox">
+            <input v-model="rememberMe" type="checkbox" />
+            <span>记住我</span>
+          </label>
+        </div>
 
-        <button type="submit" class="login-btn" :disabled="loading">
+        <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
           <span v-if="!loading">登录</span>
           <span v-else class="loading">
-            <span class="spinner"></span>
+            <Loader2 :size="16" class="spinning" />
             登录中...
           </span>
         </button>
@@ -81,25 +83,17 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const credentials = reactive({
-  username: '',
-  password: ''
-})
-
-const errors = reactive({
-  username: '',
-  password: ''
-})
-
+const credentials = reactive({ username: '', password: '' })
+const errors = reactive({ username: '', password: '' })
 const loading = ref(false)
 const showPassword = ref(false)
 const rememberMe = ref(false)
-const hasLogo = ref(true)
 const setupComplete = ref(false)
 const showRegisteredSuccess = ref(false)
 
@@ -171,217 +165,181 @@ const goToSetup = () => {
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg);
+  padding: var(--space-6);
 }
 
 .login-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  max-width: 400px;
+  max-width: 380px;
   width: 100%;
-  overflow: hidden;
+  padding: var(--space-8);
 }
 
 .login-header {
-  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
   text-align: center;
+  margin-bottom: var(--space-6);
 }
 
 .logo {
-  margin-bottom: var(--spacing-lg);
-}
-
-.logo img {
-  width: 60px;
-  height: 60px;
+  margin-bottom: var(--space-4);
 }
 
 .logo-text {
-  width: 60px;
-  height: 60px;
-  background: var(--primary-gradient);
-  color: white;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin: 0 auto;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  letter-spacing: -0.02em;
 }
 
 .login-header h1 {
-  margin: 0 0 var(--spacing-xs);
-  color: var(--text-primary);
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .login-header p {
   margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .success-message {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin: 0 var(--spacing-xl) var(--spacing-lg);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.success-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: var(--accent-color);
-  color: white;
-  border-radius: 50%;
-  font-size: var(--text-xs);
+  gap: var(--space-2);
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
 }
 
 .login-form {
-  padding: 0 var(--spacing-xl) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .form-group {
-  margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-strong);
 }
 
-.form-group input {
+.input {
   width: 100%;
-  padding: 12px var(--spacing-md);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  color: var(--text-primary);
-  background: var(--bg-primary);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-strong);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.form-group input::placeholder {
-  color: var(--text-muted);
+.input::placeholder {
+  color: var(--color-text-weaker);
 }
 
-.form-group input:focus {
+.input:focus {
   outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-background-strong);
+  box-shadow: 0 0 0 3px var(--color-background-interactive-weaker);
 }
 
-.form-group.error input {
-  border-color: var(--error-color);
+.form-group.error .input {
+  border-color: var(--color-error);
 }
 
 .error-text {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--error-color);
-  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }
 
 .password-input {
   position: relative;
 }
 
+.password-input .input {
+  padding-right: var(--space-10);
+}
+
 .password-toggle {
   position: absolute;
-  right: var(--spacing-md);
+  right: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--color-text-weaker);
   cursor: pointer;
-  font-size: var(--text-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .password-toggle:hover {
-  color: var(--text-primary);
+  color: var(--color-text);
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-2);
   cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
 .checkbox input {
   width: auto;
   margin: 0;
+  accent-color: var(--color-background-strong);
 }
 
-.login-btn {
-  width: 100%;
-  background: var(--primary-gradient);
-  color: white;
-  border: none;
-  padding: 14px var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+.btn-primary {
+  background: var(--color-background-strong);
+  color: var(--color-background);
+  border-color: var(--color-background-strong);
 }
 
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-.login-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-text-weak);
+  border-color: var(--color-text-weak);
 }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-2);
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
+.spinning {
   animation: spin 1s linear infinite;
 }
 
@@ -390,24 +348,24 @@ const goToSetup = () => {
 }
 
 .login-footer {
-  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  margin-top: var(--space-6);
   text-align: center;
-  border-top: 1px solid var(--border-light);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-weak);
 }
 
 .login-footer p {
   margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .login-footer a {
-  color: var(--accent-color);
-  text-decoration: none;
-  font-weight: var(--font-medium);
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-medium);
 }
 
 .login-footer a:hover {
-  text-decoration: underline;
+  color: var(--color-text-weak);
 }
 </style>

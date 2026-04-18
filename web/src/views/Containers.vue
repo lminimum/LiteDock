@@ -3,26 +3,28 @@
     <div class="page-header">
       <h1>容器管理</h1>
       <div class="header-actions">
-        <button @click="refreshContainers" class="action-btn" :disabled="loading">
-          🔄 刷新
+        <button @click="refreshContainers" class="btn btn-secondary" :disabled="loading">
+          <RefreshCw :size="16" :class="{ 'spinning': loading }" />
+          刷新
         </button>
-        <button @click="showCreateModal = true" class="btn-primary">
-          ➕ 创建容器
+        <button @click="showCreateModal = true" class="btn btn-primary">
+          <Plus :size="16" />
+          创建容器
         </button>
       </div>
     </div>
-    
-    <!-- 过滤器和搜索 -->
+
     <div class="filters">
       <div class="search-box">
-        <input 
-          v-model="searchQuery" 
-          placeholder="搜索容器..." 
+        <input
+          v-model="searchQuery"
+          placeholder="搜索容器..."
           type="text"
+          class="input"
         />
       </div>
       <div class="filter-options">
-        <select v-model="statusFilter">
+        <select v-model="statusFilter" class="input">
           <option value="">所有状态</option>
           <option value="running">运行中</option>
           <option value="stopped">已停止</option>
@@ -30,22 +32,21 @@
         </select>
       </div>
     </div>
-    
-    <!-- 容器列表 -->
+
     <div class="containers-grid">
-      <div 
-        v-for="container in filteredContainers" 
+      <div
+        v-for="container in filteredContainers"
         :key="container.id"
         class="container-card"
         :class="{ 'status-running': container.status === 'running' }"
       >
         <div class="container-header">
           <div class="container-name">{{ container.name }}</div>
-          <div class="container-status" :class="`status-${container.status}`">
+          <div class="badge" :class="getStatusClass(container.status)">
             {{ getStatusText(container.status) }}
           </div>
         </div>
-        
+
         <div class="container-info">
           <div class="info-item">
             <span class="label">镜像:</span>
@@ -60,34 +61,39 @@
             <span class="value">{{ formatDate(container.createdAt) }}</span>
           </div>
         </div>
-        
+
         <div class="container-actions">
-          <button 
+          <button
             v-if="container.status === 'stopped'"
             @click="startContainer(container.id)"
-            class="btn-success"
+            class="btn btn-sm btn-secondary"
           >
-            ▶️ 启动
+            <Play :size="14" />
+            启动
           </button>
-          <button 
+          <button
             v-if="container.status === 'running'"
             @click="stopContainer(container.id)"
-            class="btn-warning"
+            class="btn btn-sm btn-secondary"
           >
-            ⏸️ 停止
+            <Square :size="14" />
+            停止
           </button>
-          <button 
+          <button
             v-if="container.status === 'running'"
             @click="restartContainer(container.id)"
-            class="btn-info"
+            class="btn btn-sm btn-secondary"
           >
-            🔄 重启
+            <RotateCcw :size="14" />
+            重启
           </button>
-          <button @click="showLogs(container.id)" class="btn-secondary">
-            📋 日志
+          <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
+            <FileText :size="14" />
+            日志
           </button>
-          <button @click="deleteContainer(container.id)" class="btn-danger">
-            🗑️ 删除
+          <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
+            <Trash2 :size="14" />
+            删除
           </button>
         </div>
       </div>
@@ -97,6 +103,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import {
+  RefreshCw,
+  Plus,
+  Play,
+  Square,
+  RotateCcw,
+  FileText,
+  Trash2
+} from 'lucide-vue-next'
 
 interface Container {
   id: string
@@ -141,28 +156,37 @@ const containers = ref<Container[]>([
 
 const filteredContainers = computed(() => {
   let filtered = containers.value
-  
+
   if (searchQuery.value) {
-    filtered = filtered.filter(container => 
+    filtered = filtered.filter(container =>
       container.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       container.image.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
   }
-  
+
   if (statusFilter.value) {
     filtered = filtered.filter(container => container.status === statusFilter.value)
   }
-  
+
   return filtered
 })
 
 const getStatusText = (status: string) => {
-  const statusMap = {
+  const statusMap: Record<string, string> = {
     running: '运行中',
     stopped: '已停止',
     paused: '已暂停'
   }
   return statusMap[status] || status
+}
+
+const getStatusClass = (status: string) => {
+  const classMap: Record<string, string> = {
+    running: 'badge-success',
+    stopped: 'badge-error',
+    paused: 'badge-warning'
+  }
+  return classMap[status] || ''
 }
 
 const formatDate = (date: Date) => {
@@ -178,64 +202,36 @@ const refreshContainers = async () => {
   loading.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    // 这里应该调用API获取容器列表
   } finally {
     loading.value = false
   }
 }
 
 const startContainer = async (id: string) => {
-  try {
-    // 调用API启动容器
-    const container = containers.value.find(c => c.id === id)
-    if (container) {
-      container.status = 'running'
-    }
-  } catch (error) {
-    console.error('启动容器失败:', error)
-  }
+  const container = containers.value.find(c => c.id === id)
+  if (container) container.status = 'running'
 }
 
 const stopContainer = async (id: string) => {
-  try {
-    // 调用API停止容器
-    const container = containers.value.find(c => c.id === id)
-    if (container) {
-      container.status = 'stopped'
-    }
-  } catch (error) {
-    console.error('停止容器失败:', error)
-  }
+  const container = containers.value.find(c => c.id === id)
+  if (container) container.status = 'stopped'
 }
 
 const restartContainer = async (id: string) => {
-  try {
-    // 调用API重启容器
-    console.log('重启容器:', id)
-  } catch (error) {
-    console.error('重启容器失败:', error)
-  }
+  console.log('重启容器:', id)
 }
 
 const showLogs = (id: string) => {
-  // 显示容器日志
   console.log('显示日志:', id)
 }
 
 const deleteContainer = async (id: string) => {
   if (confirm('确定要删除这个容器吗？')) {
-    try {
-      // 调用API删除容器
-      containers.value = containers.value.filter(c => c.id !== id)
-    } catch (error) {
-      console.error('删除容器失败:', error)
-    }
+    containers.value = containers.value.filter(c => c.id !== id)
   }
 }
 
-onMounted(() => {
-  refreshContainers()
-})
+onMounted(() => refreshContainers())
 </script>
 
 <style scoped>
@@ -248,227 +244,187 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .page-header h1 {
   margin: 0;
-  color: #1e293b;
-  font-size: 1.875rem;
-  font-weight: 600;
+  color: var(--color-text-strong);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .filters {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
 }
 
 .search-box {
   flex: 1;
 }
 
-.search-box input {
-  width: 100%;
-  padding: 10px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-}
-
 .filter-options select {
-  padding: 10px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
+  min-width: 140px;
 }
 
 .containers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--space-4);
 }
 
 .container-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #e2e8f0;
-  transition: all 0.2s;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-border);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .container-card.status-running {
-  border-left-color: #10b981;
+  border-left-color: var(--color-success);
 }
 
 .container-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .container-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .container-name {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.container-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-running {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.status-stopped {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.status-paused {
-  background: #fef3c7;
-  color: #d97706;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .container-info {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
 }
 
 .info-item .label {
-  color: #64748b;
+  color: var(--color-text);
 }
 
 .info-item .value {
-  color: #1e293b;
-  font-weight: 500;
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-medium);
 }
 
 .container-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-weak);
 }
 
-.container-actions button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
+  font-family: var(--font-mono);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
 }
 
 .btn-primary {
-  background: #667eea;
-  color: white;
+  background: var(--color-background-strong);
+  color: var(--color-background);
+  border-color: var(--color-background-strong);
 }
 
-.btn-primary:hover {
-  background: #5a67d8;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-
-.btn-success:hover {
-  background: #059669;
-}
-
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-
-.btn-warning:hover {
-  background: #d97706;
-}
-
-.btn-info {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-info:hover {
-  background: #2563eb;
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-text-weak);
+  border-color: var(--color-text-weak);
 }
 
 .btn-secondary {
-  background: #64748b;
-  color: white;
+  background: transparent;
+  color: var(--color-text-strong);
+  border-color: var(--color-border);
 }
 
-.btn-secondary:hover {
-  background: #475569;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-background-weak);
+  border-color: var(--color-border);
 }
 
-.btn-danger {
-  background: #ef4444;
-  color: white;
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: transparent;
 }
 
-.btn-danger:hover {
-  background: #dc2626;
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-background-weak);
+  color: var(--color-text-strong);
 }
 
-.action-btn {
-  padding: 8px 16px;
-  background: #f8fafc;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
+.btn-danger-text {
+  color: var(--color-error);
 }
 
-.action-btn:hover:not(:disabled) {
-  background: #f1f5f9;
+.btn-danger-text:hover:not(:disabled) {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
   .containers-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .filters {
     flex-direction: column;
   }
-  
+
   .container-actions {
     justify-content: center;
   }

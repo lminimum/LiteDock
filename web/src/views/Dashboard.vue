@@ -1,10 +1,9 @@
 <template>
   <div class="dashboard">
-    <!-- 统计卡片 -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon containers">
-          <span>📦</span>
+          <Box :size="24" />
         </div>
         <div class="stat-content">
           <h3>{{ stats.containers.total }}</h3>
@@ -15,10 +14,10 @@
           </div>
         </div>
       </div>
-      
+
       <div class="stat-card">
         <div class="stat-icon images">
-          <span>🖼️</span>
+          <ImageIcon :size="24" />
         </div>
         <div class="stat-content">
           <h3>{{ stats.images.total }}</h3>
@@ -28,10 +27,10 @@
           </div>
         </div>
       </div>
-      
+
       <div class="stat-card">
         <div class="stat-icon networks">
-          <span>🌐</span>
+          <Network :size="24" />
         </div>
         <div class="stat-content">
           <h3>{{ stats.networks.total }}</h3>
@@ -41,10 +40,10 @@
           </div>
         </div>
       </div>
-      
+
       <div class="stat-card">
         <div class="stat-icon volumes">
-          <span>💾</span>
+          <HardDrive :size="24" />
         </div>
         <div class="stat-content">
           <h3>{{ stats.volumes.total }}</h3>
@@ -55,16 +54,14 @@
         </div>
       </div>
     </div>
-    
-    <!-- 主要内容区域 -->
+
     <div class="dashboard-content">
       <div class="dashboard-left">
-        <!-- 系统资源 -->
         <div class="card">
           <div class="card-header">
             <h3>系统资源</h3>
-            <button @click="refreshResources" class="refresh-btn" :disabled="refreshing">
-              🔄
+            <button @click="refreshResources" class="btn btn-ghost btn-sm" :disabled="refreshing">
+              <RefreshCw :size="16" :class="{ 'spinning': refreshing }" />
             </button>
           </div>
           <div class="card-content">
@@ -73,34 +70,33 @@
                 <span class="resource-label">CPU 使用率</span>
                 <span class="resource-value">{{ resources.cpu }}%</span>
               </div>
-              <div class="progress-bar">
-                <div class="progress-fill cpu" :style="{ width: resources.cpu + '%' }"></div>
+              <div class="progress">
+                <div class="progress-bar" :style="{ width: resources.cpu + '%' }"></div>
               </div>
             </div>
-            
+
             <div class="resource-item">
               <div class="resource-info">
                 <span class="resource-label">内存使用率</span>
                 <span class="resource-value">{{ resources.memory }}%</span>
               </div>
-              <div class="progress-bar">
-                <div class="progress-fill memory" :style="{ width: resources.memory + '%' }"></div>
+              <div class="progress">
+                <div class="progress-bar" :style="{ width: resources.memory + '%' }"></div>
               </div>
             </div>
-            
+
             <div class="resource-item">
               <div class="resource-info">
                 <span class="resource-label">磁盘使用率</span>
                 <span class="resource-value">{{ resources.disk }}%</span>
               </div>
-              <div class="progress-bar">
-                <div class="progress-fill disk" :style="{ width: resources.disk + '%' }"></div>
+              <div class="progress">
+                <div class="progress-bar" :style="{ width: resources.disk + '%' }"></div>
               </div>
             </div>
           </div>
         </div>
-        
-        <!-- 最近活动 -->
+
         <div class="card">
           <div class="card-header">
             <h3>最近活动</h3>
@@ -110,7 +106,7 @@
             <div class="activity-list">
               <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
                 <div class="activity-icon" :class="activity.type">
-                  {{ getActivityIcon(activity.type) }}
+                  <component :is="getActivityIcon(activity.type)" :size="16" />
                 </div>
                 <div class="activity-content">
                   <div class="activity-title">{{ activity.title }}</div>
@@ -121,9 +117,8 @@
           </div>
         </div>
       </div>
-      
+
       <div class="dashboard-right">
-        <!-- 快速操作 -->
         <div class="card">
           <div class="card-header">
             <h3>快速操作</h3>
@@ -131,26 +126,25 @@
           <div class="card-content">
             <div class="quick-actions">
               <button @click="createContainer" class="quick-action-btn">
-                <span class="action-icon">➕</span>
+                <Plus :size="18" />
                 <span>创建容器</span>
               </button>
               <button @click="pullImage" class="quick-action-btn">
-                <span class="action-icon">⬇️</span>
+                <Download :size="18" />
                 <span>拉取镜像</span>
               </button>
               <button @click="createNetwork" class="quick-action-btn">
-                <span class="action-icon">🌐</span>
+                <PlusCircle :size="18" />
                 <span>创建网络</span>
               </button>
               <button @click="createVolume" class="quick-action-btn">
-                <span class="action-icon">💾</span>
+                <PlusCircle :size="18" />
                 <span>创建存储卷</span>
               </button>
             </div>
           </div>
         </div>
-        
-        <!-- 系统状态 -->
+
         <div class="card">
           <div class="card-header">
             <h3>系统状态</h3>
@@ -159,23 +153,23 @@
             <div class="status-list">
               <div class="status-item">
                 <span class="status-label">Docker 服务</span>
-                <span class="status-badge" :class="systemStatus.docker ? 'online' : 'offline'">
+                <span class="badge" :class="systemStatus.docker ? 'badge-success' : 'badge-error'">
                   {{ systemStatus.docker ? '在线' : '离线' }}
                 </span>
               </div>
               <div class="status-item">
                 <span class="status-label">API 服务</span>
-                <span class="status-badge online">在线</span>
+                <span class="badge badge-success">在线</span>
               </div>
               <div class="status-item">
                 <span class="status-label">数据库</span>
-                <span class="status-badge" :class="systemStatus.database ? 'online' : 'offline'">
+                <span class="badge" :class="systemStatus.database ? 'badge-success' : 'badge-error'">
                   {{ systemStatus.database ? '在线' : '离线' }}
                 </span>
               </div>
               <div class="status-item">
                 <span class="status-label">消息队列</span>
-                <span class="status-badge" :class="systemStatus.messageQueue ? 'online' : 'offline'">
+                <span class="badge" :class="systemStatus.messageQueue ? 'badge-success' : 'badge-error'">
                   {{ systemStatus.messageQueue ? '在线' : '离线' }}
                 </span>
               </div>
@@ -188,96 +182,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, markRaw } from 'vue'
+import {
+  Box,
+  Image as ImageIcon,
+  Network,
+  HardDrive,
+  RefreshCw,
+  Plus,
+  Download,
+  PlusCircle,
+  Globe
+} from 'lucide-vue-next'
 
 const refreshing = ref(false)
 
 const stats = reactive({
-  containers: {
-    total: 12,
-    running: 8,
-    stopped: 4
-  },
-  images: {
-    total: 25,
-    size: '2.3 GB'
-  },
-  networks: {
-    total: 6,
-    active: 4
-  },
-  volumes: {
-    total: 8,
-    size: '15.7 GB'
-  }
+  containers: { total: 12, running: 8, stopped: 4 },
+  images: { total: 25, size: '2.3 GB' },
+  networks: { total: 6, active: 4 },
+  volumes: { total: 8, size: '15.7 GB' }
 })
 
-const resources = reactive({
-  cpu: 45,
-  memory: 62,
-  disk: 38
-})
+const resources = reactive({ cpu: 45, memory: 62, disk: 38 })
 
-const systemStatus = reactive({
-  docker: true,
-  database: true,
-  messageQueue: true
-})
+const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
 const recentActivities = ref([
-  {
-    id: 1,
-    type: 'container',
-    title: '容器 web-server 已启动',
-    time: new Date(Date.now() - 5 * 60 * 1000)
-  },
-  {
-    id: 2,
-    type: 'image',
-    title: '镜像 nginx:latest 已拉取',
-    time: new Date(Date.now() - 15 * 60 * 1000)
-  },
-  {
-    id: 3,
-    type: 'container',
-    title: '容器 database 已停止',
-    time: new Date(Date.now() - 30 * 60 * 1000)
-  },
-  {
-    id: 4,
-    type: 'network',
-    title: '网络 frontend-network 已创建',
-    time: new Date(Date.now() - 45 * 60 * 1000)
-  },
-  {
-    id: 5,
-    type: 'volume',
-    title: '存储卷 data-volume 已删除',
-    time: new Date(Date.now() - 60 * 60 * 1000)
-  }
+  { id: 1, type: 'container', title: '容器 web-server 已启动', time: new Date(Date.now() - 5 * 60 * 1000) },
+  { id: 2, type: 'image', title: '镜像 nginx:latest 已拉取', time: new Date(Date.now() - 15 * 60 * 1000) },
+  { id: 3, type: 'container', title: '容器 database 已停止', time: new Date(Date.now() - 30 * 60 * 1000) },
+  { id: 4, type: 'network', title: '网络 frontend-network 已创建', time: new Date(Date.now() - 45 * 60 * 1000) },
+  { id: 5, type: 'volume', title: '存储卷 data-volume 已删除', time: new Date(Date.now() - 60 * 60 * 1000) }
 ])
 
-const getActivityIcon = (type: string) => {
-  const icons = {
-    container: '📦',
-    image: '🖼️',
-    network: '🌐',
-    volume: '💾'
-  }
-  return icons[type] || '📋'
+const iconMap: Record<string, ReturnType<typeof markRaw>> = {
+  container: markRaw(Box),
+  image: markRaw(ImageIcon),
+  network: markRaw(Globe),
+  volume: markRaw(HardDrive)
 }
+
+const getActivityIcon = (type: string) => iconMap[type] || markRaw(Box)
 
 const formatTime = (time: Date) => {
   const now = new Date()
   const diff = now.getTime() - time.getTime()
   const minutes = Math.floor(diff / (1000 * 60))
-  
+
   if (minutes < 1) return '刚刚'
   if (minutes < 60) return `${minutes} 分钟前`
-  
+
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return `${hours} 小时前`
-  
+
   const days = Math.floor(hours / 24)
   return `${days} 天前`
 }
@@ -285,10 +243,7 @@ const formatTime = (time: Date) => {
 const refreshResources = async () => {
   refreshing.value = true
   try {
-    // 模拟刷新资源数据
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 更新资源数据
     resources.cpu = Math.floor(Math.random() * 100)
     resources.memory = Math.floor(Math.random() * 100)
     resources.disk = Math.floor(Math.random() * 100)
@@ -297,30 +252,12 @@ const refreshResources = async () => {
   }
 }
 
-const createContainer = () => {
-  // 导航到容器创建页面
-  console.log('创建容器')
-}
+const createContainer = () => console.log('创建容器')
+const pullImage = () => console.log('拉取镜像')
+const createNetwork = () => console.log('创建网络')
+const createVolume = () => console.log('创建存储卷')
 
-const pullImage = () => {
-  // 打开镜像拉取对话框
-  console.log('拉取镜像')
-}
-
-const createNetwork = () => {
-  // 打开网络创建对话框
-  console.log('创建网络')
-}
-
-const createVolume = () => {
-  // 打开存储卷创建对话框
-  console.log('创建存储卷')
-}
-
-onMounted(() => {
-  // 初始化数据
-  refreshResources()
-})
+onMounted(() => refreshResources())
 </script>
 
 <style scoped>
@@ -332,95 +269,81 @@ onMounted(() => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
   display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  align-items: flex-start;
+  gap: var(--space-4);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border);
 }
 
 .stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  flex-shrink: 0;
+  background: var(--color-background-weak);
+  color: var(--color-text-strong);
 }
 
-.stat-icon.containers {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.stat-icon.images {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-icon.networks {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.stat-icon.volumes {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
+.stat-icon.containers { background: var(--color-background-interactive-weaker); color: var(--color-background-strong); }
+.stat-icon.images { background: var(--color-background-weak); color: var(--color-text); }
+.stat-icon.networks { background: var(--color-background-weak); color: var(--color-text); }
+.stat-icon.volumes { background: var(--color-background-weak); color: var(--color-text); }
 
 .stat-content h3 {
-  margin: 0 0 4px 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1e293b;
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
 }
 
 .stat-content p {
-  margin: 0 0 8px 0;
-  color: #64748b;
-  font-size: 0.875rem;
+  margin: 0 0 var(--space-2) 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .stat-breakdown {
   display: flex;
-  gap: 12px;
-  font-size: 0.75rem;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
 }
 
-.running {
-  color: #10b981;
-}
-
-.stopped {
-  color: #ef4444;
-}
+.running { color: var(--color-success); }
+.stopped { color: var(--color-error); }
 
 .dashboard-content {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
 }
 
 .card-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-weak);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -428,46 +351,27 @@ onMounted(() => {
 
 .card-header h3 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.refresh-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: #f8fafc;
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .view-all {
-  color: #667eea;
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: var(--color-text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .view-all:hover {
-  text-decoration: underline;
+  color: var(--color-text-weak);
 }
 
 .card-content {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .resource-item {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-4);
 }
 
 .resource-item:last-child {
@@ -477,141 +381,100 @@ onMounted(() => {
 .resource-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .resource-label {
-  color: #374151;
-  font-weight: 500;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .resource-value {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #f1f5f9;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.progress-fill.cpu {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-}
-
-.progress-fill.memory {
-  background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
-}
-
-.progress-fill.disk {
-  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: var(--color-text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .activity-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .activity-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
+  flex-shrink: 0;
+  background: var(--color-background-weak);
+  color: var(--color-text);
 }
 
-.activity-icon.container {
-  background: #f0f4ff;
-  color: #667eea;
-}
-
-.activity-icon.image {
-  background: #fef3f2;
-  color: #ef4444;
-}
-
-.activity-icon.network {
-  background: #f0fdf4;
-  color: #10b981;
-}
-
-.activity-icon.volume {
-  background: #fefce8;
-  color: #f59e0b;
-}
+.activity-icon.container { background: var(--color-background-interactive-weaker); color: var(--color-background-strong); }
+.activity-icon.image { background: var(--color-error-bg); color: var(--color-error); }
+.activity-icon.network { background: var(--color-success-bg); color: var(--color-success); }
+.activity-icon.volume { background: var(--color-warning-bg); color: var(--color-warning); }
 
 .activity-content {
   flex: 1;
+  min-width: 0;
 }
 
 .activity-title {
-  color: #1e293b;
-  font-weight: 500;
+  color: var(--color-text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   margin-bottom: 2px;
 }
 
 .activity-time {
-  color: #64748b;
-  font-size: 0.75rem;
+  color: var(--color-text-weaker);
+  font-size: var(--font-size-xs);
 }
 
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .quick-action-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 20px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-background-weak);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
-  text-decoration: none;
-  color: #374151;
+  transition: all var(--transition-fast);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .quick-action-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
-
-.action-icon {
-  font-size: 1.5rem;
-}
-
-.quick-action-btn span:last-child {
-  font-size: 0.875rem;
-  font-weight: 500;
+  background: var(--color-background-interactive);
+  border-color: var(--color-background-interactive);
+  color: var(--color-background-strong);
 }
 
 .status-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .status-item {
@@ -621,25 +484,17 @@ onMounted(() => {
 }
 
 .status-label {
-  color: #374151;
-  font-weight: 500;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
-.status-badge.online {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.status-badge.offline {
-  background: #fef2f2;
-  color: #dc2626;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 1024px) {
@@ -652,7 +507,7 @@ onMounted(() => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .quick-actions {
     grid-template-columns: 1fr;
   }
