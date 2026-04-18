@@ -3,34 +3,50 @@ package database
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/evrone/go-clean-template/pkg/mysql"
-	"github.com/evrone/go-clean-template/pkg/postgres"
-	"github.com/evrone/go-clean-template/pkg/sqlite"
+	"github.com/lminimum/LiteDock/pkg/mysql"
+	"github.com/lminimum/LiteDock/pkg/postgres"
+	"github.com/lminimum/LiteDock/pkg/sqlite"
 )
 
 func NewPostgres() (*postgres.Postgres, error) {
-	url := os.Getenv("PG_URL")
+	url := os.Getenv("DB_URL")
 	if url == "" {
-		return nil, fmt.Errorf("PG_URL environment variable is required")
+		return nil, fmt.Errorf("DB_URL environment variable is required for postgres")
 	}
 	return postgres.New(url)
 }
 
 func NewMySQL() (*mysql.MySQL, error) {
-	url := os.Getenv("MYSQL_URL")
+	url := os.Getenv("DB_URL")
 	if url == "" {
-		return nil, fmt.Errorf("MYSQL_URL environment variable is required")
+		return nil, fmt.Errorf("DB_URL environment variable is required for mysql")
 	}
-	return mysql.New(url)
+	// go-sql-driver uses DSN format: user:pass@tcp(host:port)/db
+	// but migrate expects URL format: mysql://user:pass@tcp(host:port)/db
+	// Convert URL format to DSN format
+	dsn := convertMySQLURLToDSN(url)
+	return mysql.New(dsn)
 }
 
 func NewSQLite() (*sqlite.SQLite, error) {
-	dsn := os.Getenv("SQLITE_DSN")
+	dsn := os.Getenv("DB_URL")
 	if dsn == "" {
 		dsn = "./data.db"
 	}
 	return sqlite.New(dsn)
+}
+
+// convertMySQLURLToDSN converts mysql:// URLs to go-sql-driver DSN format
+func convertMySQLURLToDSN(url string) string {
+	if !strings.HasPrefix(url, "mysql://") {
+		return url // already in DSN format
+	}
+	// url format: mysql://user:pass@tcp(host:port)/db
+	// dsn format: user:pass@tcp(host:port)/db
+	url = strings.TrimPrefix(url, "mysql://")
+	return url
 }
 
 func New() (DB, error) {

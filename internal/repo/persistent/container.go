@@ -3,14 +3,14 @@ package persistent
 import (
 	"context"
 
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/lminimum/LiteDock/internal/entity"
 )
 
 // ContainerRepo implements container repository.
 type ContainerRepo struct{}
 
 // NewContainerRepo creates a new container repository.
-func NewContainerRepo(pg interface{}) *ContainerRepo {
+func NewContainerRepo(db interface{}) *ContainerRepo {
 	return &ContainerRepo{}
 }
 

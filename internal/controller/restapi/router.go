@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/ansrivas/fiberprometheus/v2"
-	"github.com/evrone/go-clean-template/config"
-	_ "github.com/evrone/go-clean-template/docs" // Swagger docs.
-	"github.com/evrone/go-clean-template/internal/controller/restapi/middleware"
-	v1 "github.com/evrone/go-clean-template/internal/controller/restapi/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/config"
+	_ "github.com/lminimum/LiteDock/docs" // Swagger docs.
+	"github.com/lminimum/LiteDock/internal/controller/restapi/middleware"
+	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
+	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
 )

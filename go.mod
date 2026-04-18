@@ -1,4 +1,4 @@
-module github.com/evrone/go-clean-template
+module github.com/lminimum/LiteDock
 
 go 1.25
 

@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"github.com/evrone/go-clean-template/config"
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/config"
+	"github.com/lminimum/LiteDock/internal/entity"
+	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 )
 

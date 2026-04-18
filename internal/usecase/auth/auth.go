@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/internal/repo"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/lminimum/LiteDock/internal/entity"
+	"github.com/lminimum/LiteDock/internal/repo"
+	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )

@@ -67,16 +67,16 @@ func (p *Postgres) Close() {
 }
 
 func (p *Postgres) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
-	rows, err := p.Pool.Query(ctx, q, args...)
+	rows, err := p.Pool.Query(ctx, rewritePlaceholders(q), args...)
 	return rows, err
 }
 
 func (p *Postgres) QueryRow(ctx context.Context, q string, args ...any) interface{} {
-	return p.Pool.QueryRow(ctx, q, args...)
+	return p.Pool.QueryRow(ctx, rewritePlaceholders(q), args...)
 }
 
 func (p *Postgres) Exec(ctx context.Context, q string, args ...any) error {
-	_, err := p.Pool.Exec(ctx, q, args...)
+	_, err := p.Pool.Exec(ctx, rewritePlaceholders(q), args...)
 	return err
 }
 

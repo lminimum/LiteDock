@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/pkg/database"
+	"github.com/lminimum/LiteDock/internal/entity"
+	"github.com/lminimum/LiteDock/pkg/database"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
