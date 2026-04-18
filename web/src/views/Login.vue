@@ -9,7 +9,12 @@
         <h1>欢迎回来</h1>
         <p>登录到 LiteDock 管理平台</p>
       </div>
-      
+
+      <div class="success-message" v-if="showRegisteredSuccess">
+        <span class="success-icon">✓</span>
+        管理员账户创建成功，请登录
+      </div>
+
        <form @submit.prevent="handleLogin" class="login-form">
          <div class="form-group" :class="{ error: errors.username }">
            <label for="username">用户名</label>
@@ -17,13 +22,13 @@
              id="username"
              v-model="credentials.username"
              type="text"
-             placeholder="请输入用户名 (默认: admin)"
+             placeholder="请输入用户名"
              :disabled="loading"
              required
            />
-           <span class="error-message" v-if="errors.username">{{ errors.username }}</span>
+           <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
          </div>
-         
+
          <div class="form-group" :class="{ error: errors.password }">
            <label for="password">密码</label>
            <div class="password-input">
@@ -31,7 +36,7 @@
                id="password"
                v-model="credentials.password"
                :type="showPassword ? 'text' : 'password'"
-               placeholder="请输入密码 (默认: admin)"
+               placeholder="请输入密码"
                :disabled="loading"
                required
              />
@@ -43,33 +48,29 @@
                {{ showPassword ? '隐藏' : '显示' }}
              </button>
            </div>
-           <span class="error-message" v-if="errors.password">{{ errors.password }}</span>
+           <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
          </div>
-        
+
          <div class="form-options">
            <label class="checkbox">
              <input v-model="rememberMe" type="checkbox" />
              <span>记住我</span>
            </label>
-           
-           <a href="#" class="forgot-password" @click.prevent="useDefaultCredentials">
-             使用默认凭证？
-           </a>
          </div>
-        
+
         <button type="submit" class="login-btn" :disabled="loading">
           <span v-if="!loading">登录</span>
-          <span v-else class="loading-spinner">
-            <div class="spinner"></div>
+          <span v-else class="loading">
+            <span class="spinner"></span>
             登录中...
           </span>
         </button>
       </form>
-      
+
       <div class="login-footer">
-        <p>
+        <p v-if="!setupComplete">
           还没有账户？
-          <a href="#" @click.prevent="handleSetup">重新配置</a>
+          <a href="#" @click.prevent="goToSetup">创建管理员</a>
         </p>
       </div>
     </div>
@@ -77,11 +78,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const credentials = reactive({
@@ -97,38 +99,55 @@ const errors = reactive({
 const loading = ref(false)
 const showPassword = ref(false)
 const rememberMe = ref(false)
-const hasLogo = ref(true) // Logo file exists
+const hasLogo = ref(true)
+const setupComplete = ref(false)
+const showRegisteredSuccess = ref(false)
+
+onMounted(async () => {
+  setupComplete.value = await authStore.checkSetupStatus()
+
+  if (route.query.registered === 'true') {
+    showRegisteredSuccess.value = true
+  }
+
+  if (authStore.token) {
+    const isAuth = await authStore.checkAuth()
+    if (isAuth) {
+      router.push('/')
+    }
+  }
+})
 
 const validateForm = () => {
   errors.username = ''
   errors.password = ''
-  
+
   if (!credentials.username.trim()) {
     errors.username = '请输入用户名'
     return false
   }
-  
+
   if (!credentials.password.trim()) {
     errors.password = '请输入密码'
     return false
   }
-  
+
   if (credentials.password.length < 6) {
     errors.password = '密码长度至少6位'
     return false
   }
-  
+
   return true
 }
 
 const handleLogin = async () => {
   if (!validateForm()) return
-  
+
   loading.value = true
-  
+
   try {
     const result = await authStore.login(credentials)
-    
+
     if (result.success) {
       if (rememberMe.value) {
         localStorage.setItem('litedock-remember', 'true')
@@ -144,64 +163,38 @@ const handleLogin = async () => {
   }
 }
 
-const handleForgotPassword = () => {
-  // 这里可以实现忘记密码功能
-  alert('请联系系统管理员重置密码')
+const goToSetup = () => {
+  router.push('/setup')
 }
-
- const handleSetup = () => {
-   // 清除配置状态，重新进入配置流程
-   localStorage.removeItem('litedock-configured')
-   router.push('/setup')
- }
- 
- const useDefaultCredentials = () => {
-   credentials.username = 'admin'
-   credentials.password = 'admin'
- }
-
- // 检查是否有记住的用户名
- if (localStorage.getItem('litedock-configured') === 'true') {
-   if (localStorage.getItem('litedock-remember') === 'true') {
-     const savedUsername = localStorage.getItem('litedock-username')
-     if (savedUsername) {
-       credentials.username = savedUsername
-       rememberMe.value = true
-     }
-   }
- } else {
-   // If not configured, show default credentials hint
-   credentials.username = ''
-   credentials.password = ''
- }
- </script>
+</script>
 
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .login-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   max-width: 400px;
   width: 100%;
   overflow: hidden;
 }
 
 .login-header {
-  padding: 40px 40px 20px 40px;
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
   text-align: center;
 }
 
 .logo {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .logo img {
@@ -212,69 +205,102 @@ const handleForgotPassword = () => {
 .logo-text {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
+  background: var(--primary-gradient);
   color: white;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
   margin: 0 auto;
 }
 
 .login-header h1 {
-  margin: 0 0 8px 0;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 600;
+  margin: 0 0 var(--spacing-xs);
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
 }
 
 .login-header p {
   margin: 0;
-  color: #404040;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin: 0 var(--spacing-xl) var(--spacing-lg);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  color: white;
+  border-radius: 50%;
+  font-size: var(--text-xs);
 }
 
 .login-form {
-  padding: 20px 40px 30px 40px;
+  padding: 0 var(--spacing-xl) var(--spacing-xl);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  color: #000000;
-  font-weight: 500;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #d4d4d4;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  padding: 12px var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #000000;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .form-group.error input {
-  border-color: #000000;
+  border-color: var(--error-color);
 }
 
-.error-message {
-  color: #000000;
-  font-size: 0.75rem;
-  margin-top: 4px;
+.error-text {
   display: block;
+  font-size: var(--text-xs);
+  color: var(--error-color);
+  margin-top: var(--spacing-xs);
 }
 
 .password-input {
@@ -283,35 +309,35 @@ const handleForgotPassword = () => {
 
 .password-toggle {
   position: absolute;
-  right: 12px;
+  right: var(--spacing-md);
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #404040;
+  color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.75rem;
-  padding: 4px 8px;
+  font-size: var(--text-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .password-toggle:hover {
-  color: #000000;
+  color: var(--text-primary);
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   cursor: pointer;
-  font-size: 0.875rem;
-  color: #404040;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .checkbox input {
@@ -319,32 +345,22 @@ const handleForgotPassword = () => {
   margin: 0;
 }
 
-.forgot-password {
-  color: #000000;
-  text-decoration: none;
-  font-size: 0.875rem;
-}
-
-.forgot-password:hover {
-  text-decoration: underline;
-}
-
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
+  background: var(--primary-gradient);
   color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  padding: 14px var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
 }
 
 .login-btn:disabled {
@@ -353,43 +369,42 @@ const handleForgotPassword = () => {
   transform: none;
 }
 
-.loading-spinner {
+.loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .spinner {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 .login-footer {
-  padding: 20px 40px 40px 40px;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
   text-align: center;
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid var(--border-light);
 }
 
 .login-footer p {
   margin: 0;
-  color: #404040;
-  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .login-footer a {
-  color: #000000;
+  color: var(--accent-color);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-medium);
 }
 
 .login-footer a:hover {

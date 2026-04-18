@@ -53,13 +53,22 @@ func (uc *UseCase) Login(ctx context.Context, username, password string) (string
 	return tokenString, user, nil
 }
 
-func (uc *UseCase) Register(ctx context.Context, username, password, email, role string) (*entity.User, error) {
+func (uc *UseCase) IsSetupComplete(ctx context.Context) (bool, error) {
+	count, err := uc.repo.CountUsers(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (uc *UseCase) Register(ctx context.Context, username, email, password, role string) (*entity.User, error) {
 	_, err := uc.repo.GetUserByUsername(ctx, username)
 	if err == nil {
 		return nil, errors.Wrap(errors.ErrUsernameExists, "Auth.Register.UsernameExists")
 	}
 
-	if err != nil && err.Error() != "user: not found" {
+	if err != nil && !errors.Is(err, errors.ErrUserNotFound) {
 		return nil, errors.Wrap(err, "Auth.Register.GetUserByUsername")
 	}
 
@@ -123,7 +132,7 @@ func (uc *UseCase) RefreshToken(ctx context.Context, refreshToken string) (strin
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		username, ok := claims["username"].(string)
 		if !ok {
-			return "", errors.Wrap(errors.errors.ErrInvalidTokenClaims, "Auth.RefreshToken.InvalidClaims")
+			return "", errors.Wrap(errors.ErrInvalidTokenClaims, "Auth.RefreshToken.InvalidClaims")
 		}
 
 		user, err := uc.repo.GetUserByUsername(ctx, username)

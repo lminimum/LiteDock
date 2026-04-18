@@ -206,6 +206,15 @@ func (r *UserRepo) VerifyPassword(ctx context.Context, username, password string
 	return true, nil
 }
 
+func (r *UserRepo) CountUsers(ctx context.Context) (int64, error) {
+	var count int64
+
+	row := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM users")
+	err := scanRow(row, &count)
+
+	return count, err
+}
+
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID, newPassword string) error {
 	query := `UPDATE users SET password=?, updated_at=? WHERE id=?`
 

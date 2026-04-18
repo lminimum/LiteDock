@@ -73,6 +73,7 @@ chore(deps): upgrade go-fiber to v2.53.0
 - Use imperative mood: "add" not "added" or "adds"
 - Keep subject line under 72 characters
 - Reference issues: `fix: resolve null pointer (#123)`
+- **Never add co-author** in commit messages (no `Co-authored-by:`)
 
 ### Push & PR Workflow
 

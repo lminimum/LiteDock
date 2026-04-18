@@ -73,7 +73,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		role = "user"
 	}
 
-	user, err := h.auth.Register(c.Context(), req.Username, req.Password, req.Email, role)
+	user, err := h.auth.Register(c.Context(), req.Username, req.Email, req.Password, role)
 	if err != nil {
 		h.l.Error(err, "Registration failed")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -91,6 +91,23 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 			"email":    user.Email,
 			"role":     user.Role,
 		},
+	})
+}
+
+// SetupStatus - handles GET /auth/setup-status
+func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
+	complete, err := h.auth.IsSetupComplete(c.Context())
+	if err != nil {
+		h.l.Error(err, "SetupStatus failed")
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"setup_complete": complete,
 	})
 }
 

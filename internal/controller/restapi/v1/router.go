@@ -27,6 +27,7 @@ func NewAuthRoutes(apiV1Group fiber.Router, auth usecase.Auth, l logger.Interfac
 	authGroup := apiV1Group.Group("/auth")
 
 	{
+		authGroup.Get("/setup-status", authHandler.SetupStatus)
 		authGroup.Post("/login", authHandler.Login)
 		authGroup.Post("/register", authHandler.Register)
 		authGroup.Get("/me", authHandler.GetMe)

@@ -16,4 +16,6 @@ type UseCaseInterface interface {
 	GetCurrentUser(context.Context, string) (*entity.User, error)
 	// RefreshToken - refreshes authentication token
 	RefreshToken(context.Context, string) (string, error)
+	// IsSetupComplete - checks if initial setup is done
+	IsSetupComplete(context.Context) (bool, error)
 }

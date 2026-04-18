@@ -26,5 +26,6 @@ type (
 		DeleteUser(context.Context, string) error
 		VerifyPassword(context.Context, string, string) (bool, error)
 		UpdatePassword(context.Context, string, string) error
+		CountUsers(context.Context) (int64, error)
 	}
 )
