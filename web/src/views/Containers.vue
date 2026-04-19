@@ -1,15 +1,15 @@
 <template>
   <div class="containers-page">
     <div class="page-header">
-      <h1>容器管理</h1>
+      <h1>{{ t('containers.title') }}</h1>
       <div class="header-actions">
         <button @click="refreshContainers" class="btn btn-secondary" :disabled="loading">
           <RefreshCw :size="16" :class="{ 'spinning': loading }" />
-          刷新
+          {{ t('containers.refresh') }}
         </button>
         <button @click="showCreateModal = true" class="btn btn-primary">
           <Plus :size="16" />
-          创建容器
+          {{ t('containers.create') }}
         </button>
       </div>
     </div>
@@ -18,17 +18,17 @@
       <div class="search-box">
         <input
           v-model="searchQuery"
-          placeholder="搜索容器..."
+          :placeholder="t('containers.searchPlaceholder')"
           type="text"
           class="input"
         />
       </div>
       <div class="filter-options">
         <select v-model="statusFilter" class="input">
-          <option value="">所有状态</option>
-          <option value="running">运行中</option>
-          <option value="stopped">已停止</option>
-          <option value="paused">已暂停</option>
+          <option value="">{{ t('containers.allStatuses') }}</option>
+          <option value="running">{{ t('containers.running') }}</option>
+          <option value="stopped">{{ t('containers.stopped') }}</option>
+          <option value="paused">{{ t('containers.paused') }}</option>
         </select>
       </div>
     </div>
@@ -49,15 +49,15 @@
 
         <div class="container-info">
           <div class="info-item">
-            <span class="label">镜像:</span>
+            <span class="label">{{ t('containers.image') }}</span>
             <span class="value">{{ container.image }}</span>
           </div>
           <div class="info-item">
-            <span class="label">端口:</span>
+            <span class="label">{{ t('containers.ports') }}</span>
             <span class="value">{{ container.ports || '-' }}</span>
           </div>
           <div class="info-item">
-            <span class="label">创建时间:</span>
+            <span class="label">{{ t('containers.createdAt') }}</span>
             <span class="value">{{ formatDate(container.createdAt) }}</span>
           </div>
         </div>
@@ -69,7 +69,7 @@
             class="btn btn-sm btn-secondary"
           >
             <Play :size="14" />
-            启动
+            {{ t('containers.start') }}
           </button>
           <button
             v-if="container.status === 'running'"
@@ -77,7 +77,7 @@
             class="btn btn-sm btn-secondary"
           >
             <Square :size="14" />
-            停止
+            {{ t('containers.stop') }}
           </button>
           <button
             v-if="container.status === 'running'"
@@ -85,15 +85,15 @@
             class="btn btn-sm btn-secondary"
           >
             <RotateCcw :size="14" />
-            重启
+            {{ t('containers.restart') }}
           </button>
           <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
             <FileText :size="14" />
-            日志
+            {{ t('containers.logs') }}
           </button>
           <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
             <Trash2 :size="14" />
-            删除
+            {{ t('containers.delete') }}
           </button>
         </div>
       </div>
@@ -112,6 +112,7 @@ import {
   FileText,
   Trash2
 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 interface Container {
   id: string
@@ -173,9 +174,9 @@ const filteredContainers = computed(() => {
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
-    running: '运行中',
-    stopped: '已停止',
-    paused: '已暂停'
+    running: t('containers.running'),
+    stopped: t('containers.stopped'),
+    paused: t('containers.paused')
   }
   return statusMap[status] || status
 }
@@ -218,15 +219,15 @@ const stopContainer = async (id: string) => {
 }
 
 const restartContainer = async (id: string) => {
-  console.log('重启容器:', id)
+  console.log('restart container:', id)
 }
 
 const showLogs = (id: string) => {
-  console.log('显示日志:', id)
+  console.log('show logs:', id)
 }
 
 const deleteContainer = async (id: string) => {
-  if (confirm('确定要删除这个容器吗？')) {
+  if (confirm(t('containers.confirmDelete'))) {
     containers.value = containers.value.filter(c => c.id !== id)
   }
 }

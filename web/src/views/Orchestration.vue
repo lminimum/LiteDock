@@ -5,10 +5,10 @@
         <div class="placeholder-icon">
           <GitBranch :size="48" :stroke-width="1" />
         </div>
-        <h2>编排管理</h2>
-        <p>Docker Compose 和 Kubernetes 编排管理功能正在开发中...</p>
+        <h2>{{ t('pages.orchestration.title') }}</h2>
+        <p>{{ t('pages.orchestration.description') }}</p>
         <div class="placeholder-features">
-          <h3>即将支持的功能:</h3>
+          <h3>{{ t('pages.orchestration.features') }}</h3>
           <ul>
             <li v-for="feature in features" :key="feature">
               <Check :size="14" :stroke-width="2" class="check-icon" />
@@ -23,13 +23,14 @@
 
 <script setup lang="ts">
 import { GitBranch, Check } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const features = [
-  'Docker Compose 项目管理',
-  '多容器服务编排',
-  'Kubernetes 集群集成',
-  '服务发现和负载均衡',
-  '配置管理和密钥管理'
+  t('pages.orchestration.compose'),
+  t('pages.orchestration.multiContainer'),
+  t('pages.orchestration.kubernetes'),
+  t('pages.orchestration.discovery'),
+  t('pages.orchestration.config'),
 ]
 </script>
 

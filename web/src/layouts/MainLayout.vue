@@ -3,16 +3,16 @@
     <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="logo" v-if="!sidebarCollapsed">
-          <span class="logo-text">LiteDock</span>
+          <img :src="logoUrl" alt="LiteDock" class="logo-img" />
         </div>
         <div class="logo-collapsed" v-else>
-          <span>LD</span>
+          <img :src="logoUrl" alt="LiteDock" class="logo-img-collapsed" />
         </div>
       </div>
 
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div class="nav-section-title" v-if="!sidebarCollapsed">主要功能</div>
+          <div class="nav-section-title" v-if="!sidebarCollapsed">{{ t('nav.main') }}</div>
           <router-link
             v-for="item in mainNavItems"
             :key="item.name"
@@ -27,7 +27,7 @@
         </div>
 
         <div class="nav-section">
-          <div class="nav-section-title" v-if="!sidebarCollapsed">系统</div>
+          <div class="nav-section-title" v-if="!sidebarCollapsed">{{ t('nav.system') }}</div>
           <router-link
             v-for="item in systemNavItems"
             :key="item.name"
@@ -73,15 +73,16 @@
 
         <div class="header-right">
           <div class="header-actions">
-            <button @click="refreshData" class="btn btn-ghost" title="刷新">
+            <button @click="refreshData" class="btn btn-ghost" :title="t('common.refresh')">
               <RefreshCw :size="18" :class="{ 'spinning': refreshing }" />
             </button>
-            <button @click="toggleTheme" class="btn btn-ghost" title="切换主题">
+            <button @click="toggleTheme" class="btn btn-ghost" :title="t('common.switchTheme')">
               <Sun v-if="isDarkMode" :size="18" />
               <Moon v-else :size="18" />
             </button>
+            <LanguageSwitcher />
             <div class="notification-dropdown">
-              <button @click="toggleNotifications" class="btn btn-ghost" title="通知">
+              <button @click="toggleNotifications" class="btn btn-ghost" :title="t('common.notifications')">
                 <Bell :size="18" />
                 <span class="notification-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
               </button>
@@ -100,11 +101,11 @@
             <div v-if="userMenuOpen" class="user-menu-dropdown">
               <a href="#" @click.prevent="goToSettings">
                 <Settings :size="16" />
-                设置
+                {{ t('common.settings') }}
               </a>
               <a href="#" @click.prevent="handleLogout">
                 <LogOut :size="16" />
-                退出登录
+                {{ t('common.logout') }}
               </a>
             </div>
           </div>
@@ -122,6 +123,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { t } from '@/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import logoUrl from '@/assets/logo.svg?url'
 import {
   LayoutDashboard,
   Box,
@@ -150,26 +154,26 @@ const userMenuOpen = ref(false)
 const notificationsOpen = ref(false)
 const unreadCount = ref(3)
 
-const mainNavItems = [
-  { name: 'Dashboard', path: '/', label: '概览', icon: LayoutDashboard },
-  { name: 'Containers', path: '/containers', label: '容器', icon: Box, badge: '12' },
-  { name: 'Orchestration', path: '/orchestration', label: '编排', icon: GitBranch },
-  { name: 'Images', path: '/images', label: '镜像', icon: Image },
-  { name: 'Networks', path: '/networks', label: '网络', icon: Network },
-  { name: 'Volumes', path: '/volumes', label: '存储卷', icon: HardDrive }
-]
+const mainNavItems = computed(() => [
+  { name: 'Dashboard', path: '/', label: t('nav.overview'), icon: LayoutDashboard },
+  { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Box, badge: '12' },
+  { name: 'Orchestration', path: '/orchestration', label: t('nav.orchestration'), icon: GitBranch },
+  { name: 'Images', path: '/images', label: t('nav.images'), icon: Image },
+  { name: 'Networks', path: '/networks', label: t('nav.networks'), icon: Network },
+  { name: 'Volumes', path: '/volumes', label: t('nav.volumes'), icon: HardDrive }
+])
 
-const systemNavItems = [
-  { name: 'Settings', path: '/settings', label: '设置', icon: Settings }
-]
+const systemNavItems = computed(() => [
+  { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings }
+])
 
 const currentPageTitle = computed(() => {
-  const routeItem = [...mainNavItems, ...systemNavItems].find(item => item.name === route.name)
+  const routeItem = [...mainNavItems.value, ...systemNavItems.value].find(item => item.name === route.name)
   return routeItem?.label || 'LiteDock'
 })
 
 const breadcrumbs = computed(() => {
-  const routeItem = [...mainNavItems, ...systemNavItems].find(item => item.name === route.name)
+  const routeItem = [...mainNavItems.value, ...systemNavItems.value].find(item => item.name === route.name)
   return routeItem ? ['LiteDock', routeItem.label] : ['LiteDock']
 })
 
@@ -280,11 +284,9 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.logo-text {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-strong);
-  letter-spacing: -0.02em;
+.logo-img {
+  height: 28px;
+  width: auto;
 }
 
 .logo-collapsed {
@@ -293,11 +295,11 @@ onUnmounted(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--color-background-strong);
-  color: var(--color-background);
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-sm);
+}
+
+.logo-img-collapsed {
+  height: 24px;
+  width: auto;
 }
 
 .sidebar-nav {
@@ -324,63 +326,67 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
-  color: var(--color-text);
+  color: var(--color-text-weak);
   text-decoration: none;
+  font-size: var(--font-size-sm);
   transition: all var(--transition-fast);
-  position: relative;
-  margin: 0 var(--space-2);
-  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  margin: 1px 0;
 }
 
 .nav-item:hover {
-  background: var(--color-background-weak);
   color: var(--color-text-strong);
+  background: var(--color-background-hover);
 }
 
 .nav-item.active {
-  background: var(--color-background-interactive);
-  color: var(--color-background-strong);
+  color: var(--color-text-strong);
+  background: var(--color-background-hover);
+  border-left-color: var(--color-text-strong);
 }
 
 .nav-icon {
-  width: 20px;
-  height: 20px;
   flex-shrink: 0;
 }
 
 .nav-text {
-  flex: 1;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-badge {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-xs);
   background: var(--color-background-strong);
   color: var(--color-background);
-  font-size: var(--font-size-xs);
-  padding: 2px 6px;
   border-radius: var(--radius-full);
-  font-weight: var(--font-weight-semibold);
+  line-height: 1.6;
 }
 
 .sidebar-footer {
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--color-border-weak);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  flex: 1;
+  min-width: 0;
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
   background: var(--color-background-strong);
   color: var(--color-background);
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -396,88 +402,77 @@ onUnmounted(() => {
 }
 
 .user-details {
-  flex: 1;
   min-width: 0;
 }
 
 .user-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-strong);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .user-role {
-  color: var(--color-text-weaker);
   font-size: var(--font-size-xs);
+  color: var(--color-text-weaker);
 }
 
 .sidebar-toggle {
-  width: 100%;
-  padding: var(--space-2);
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  color: var(--color-text-weak);
   cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text);
 }
 
 .sidebar-toggle:hover {
-  background: var(--color-background-interactive);
-  border-color: var(--color-background-interactive);
-  color: var(--color-background-strong);
+  background: var(--color-background-hover);
+  color: var(--color-text-strong);
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
 }
 
 .top-header {
   height: var(--header-height);
-  background: var(--color-background);
   border-bottom: 1px solid var(--color-border-weak);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  background: var(--color-background);
 }
 
 .page-title {
-  margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-strong);
+  margin: 0;
 }
 
 .breadcrumb {
   font-size: var(--font-size-xs);
   color: var(--color-text-weaker);
+  margin-top: 2px;
 }
 
 .breadcrumb-separator {
-  margin: 0 var(--space-2);
-  color: var(--color-text-weaker);
+  margin: 0 var(--space-1);
+  color: var(--color-border);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .header-actions {
@@ -486,36 +481,54 @@ onUnmounted(() => {
   gap: var(--space-1);
 }
 
-.btn-ghost {
-  background: transparent;
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  display: flex;
+.btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
   transition: all var(--transition-fast);
 }
 
+.btn-ghost {
+  background: none;
+  color: var(--color-text-weak);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
 .btn-ghost:hover {
-  background: var(--color-background-weak);
+  background: var(--color-background-hover);
   color: var(--color-text-strong);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.notification-dropdown {
+  position: relative;
 }
 
 .notification-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  background: var(--color-background-strong);
-  color: var(--color-background);
-  font-size: 10px;
-  padding: 1px 4px;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  background: var(--color-error);
+  color: white;
   border-radius: var(--radius-full);
-  font-weight: var(--font-weight-bold);
-  min-width: 16px;
-  text-align: center;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-menu {
@@ -526,18 +539,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   color: var(--color-text);
+  transition: all var(--transition-fast);
 }
 
 .user-menu-button:hover {
-  border-color: var(--color-border);
-  color: var(--color-text-strong);
+  background: var(--color-background-hover);
 }
 
 .user-menu-dropdown {
@@ -550,35 +562,24 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   min-width: 160px;
-  z-index: 1000;
+  z-index: 50;
+  padding: var(--space-1);
 }
 
 .user-menu-dropdown a {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-strong);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
   text-decoration: none;
-  transition: background var(--transition-fast);
   font-size: var(--font-size-sm);
-}
-
-.user-menu-dropdown a:first-child {
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-}
-
-.user-menu-dropdown a:last-child {
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  border-top: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
 .user-menu-dropdown a:hover {
-  background: var(--color-background-weak);
-}
-
-.notification-dropdown {
-  position: relative;
+  background: var(--color-background-hover);
 }
 
 .page-content {
@@ -587,38 +588,13 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 767px) {
   .sidebar {
     display: none;
   }
 
-  .main-content {
-    padding-bottom: 70px;
-  }
-
   .top-header {
     padding: 0 var(--space-4);
-  }
-
-  .page-title {
-    font-size: var(--font-size-base);
-  }
-
-  .header-right {
-    gap: var(--space-2);
-  }
-
-  .user-name {
-    display: none;
   }
 
   .page-content {

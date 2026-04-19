@@ -5,10 +5,10 @@
         <div class="placeholder-icon">
           <ImageIcon :size="48" :stroke-width="1" />
         </div>
-        <h2>镜像管理</h2>
-        <p>Docker 镜像管理功能正在开发中...</p>
+        <h2>{{ t('pages.images.title') }}</h2>
+        <p>{{ t('pages.images.description') }}</p>
         <div class="placeholder-features">
-          <h3>即将支持的功能:</h3>
+          <h3>{{ t('pages.images.features') }}</h3>
           <ul>
             <li v-for="feature in features" :key="feature">
               <Check :size="14" :stroke-width="2" class="check-icon" />
@@ -23,13 +23,14 @@
 
 <script setup lang="ts">
 import { Image as ImageIcon, Check } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const features = [
-  '镜像列表和搜索',
-  '拉取和推送镜像',
-  '镜像构建管理',
-  '镜像仓库配置',
-  '镜像清理和优化'
+  t('pages.images.list'),
+  t('pages.images.pull'),
+  t('pages.images.build'),
+  t('pages.images.config'),
+  t('pages.images.cleanup'),
 ]
 </script>
 

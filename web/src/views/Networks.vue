@@ -5,10 +5,10 @@
         <div class="placeholder-icon">
           <Globe :size="48" :stroke-width="1" />
         </div>
-        <h2>网络管理</h2>
-        <p>Docker 网络管理功能正在开发中...</p>
+        <h2>{{ t('pages.networks.title') }}</h2>
+        <p>{{ t('pages.networks.description') }}</p>
         <div class="placeholder-features">
-          <h3>即将支持的功能:</h3>
+          <h3>{{ t('pages.networks.features') }}</h3>
           <ul>
             <li v-for="feature in features" :key="feature">
               <Check :size="14" :stroke-width="2" class="check-icon" />
@@ -23,13 +23,14 @@
 
 <script setup lang="ts">
 import { Globe, Check } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const features = [
-  '网络列表和创建',
-  '网络配置管理',
-  '容器网络连接',
-  '网络监控和诊断',
-  '网络策略管理'
+  t('pages.networks.list'),
+  t('pages.networks.config'),
+  t('pages.networks.connect'),
+  t('pages.networks.monitor'),
+  t('pages.networks.policy'),
 ]
 </script>
 

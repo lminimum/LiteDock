@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/utils/api";
+import { t } from "@/i18n";
 
 export interface User {
   id: string;
@@ -41,7 +42,7 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || "登录失败",
+        message: error.response?.data?.message || t("errors.loginFailed"),
       };
     }
   };

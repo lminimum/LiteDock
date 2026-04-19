@@ -5,10 +5,10 @@
         <div class="placeholder-icon">
           <HardDrive :size="48" :stroke-width="1" />
         </div>
-        <h2>存储卷管理</h2>
-        <p>Docker 存储卷管理功能正在开发中...</p>
+        <h2>{{ t('pages.volumes.title') }}</h2>
+        <p>{{ t('pages.volumes.description') }}</p>
         <div class="placeholder-features">
-          <h3>即将支持的功能:</h3>
+          <h3>{{ t('pages.volumes.features') }}</h3>
           <ul>
             <li v-for="feature in features" :key="feature">
               <Check :size="14" :stroke-width="2" class="check-icon" />
@@ -23,13 +23,14 @@
 
 <script setup lang="ts">
 import { HardDrive, Check } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const features = [
-  '存储卷列表和创建',
-  '卷挂载管理',
-  '数据备份和恢复',
-  '存储监控',
-  '存储驱动配置'
+  t('pages.volumes.list'),
+  t('pages.volumes.mount'),
+  t('pages.volumes.backup'),
+  t('pages.volumes.monitor'),
+  t('pages.volumes.driver'),
 ]
 </script>
 

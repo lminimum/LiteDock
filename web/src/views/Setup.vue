@@ -3,49 +3,49 @@
     <div class="setup-card">
       <div class="setup-header">
         <div class="logo-text">LD</div>
-        <h1>创建管理员账户</h1>
-        <p>设置 LiteDock 的管理员账户</p>
+        <h1>{{ t('auth.initSetup') }}</h1>
+        <p>{{ t('auth.setupDescription') }}</p>
       </div>
 
       <form @submit.prevent="handleSubmit" class="setup-form">
         <div class="form-group" :class="{ error: errors.username }">
-          <label for="username">用户名</label>
+          <label for="username">{{ t('auth.adminUsername') }}</label>
           <input
             id="username"
             v-model="form.username"
             type="text"
-            placeholder="输入用户名"
+            :placeholder="t('auth.usernamePlaceholder')"
             :disabled="loading"
           />
           <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
         </div>
 
         <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">密码</label>
+          <label for="password">{{ t('auth.adminPassword') }}</label>
           <input
             id="password"
             v-model="form.password"
             type="password"
-            placeholder="输入密码（至少8位）"
+            :placeholder="t('auth.adminPasswordPlaceholder')"
             :disabled="loading"
           />
           <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
         </div>
 
         <div class="form-group" :class="{ error: errors.confirmPassword }">
-          <label for="confirmPassword">确认密码</label>
+          <label for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
           <input
             id="confirmPassword"
             v-model="form.confirmPassword"
             type="password"
-            placeholder="再次输入密码"
+            :placeholder="t('auth.confirmPasswordPlaceholder')"
             :disabled="loading"
           />
           <span class="error-text" v-if="errors.confirmPassword">{{ errors.confirmPassword }}</span>
         </div>
 
         <div class="form-group">
-          <label for="email">邮箱（可选）</label>
+          <label for="email">{{ t('auth.emailOptional') }}</label>
           <input
             id="email"
             v-model="form.email"
@@ -60,10 +60,10 @@
         </div>
 
         <button type="submit" class="submit-btn" :disabled="loading">
-          <span v-if="!loading">创建账户</span>
+          <span v-if="!loading">{{ t('auth.createAccount') }}</span>
           <span v-else class="loading">
             <span class="spinner"></span>
-            创建中...
+            {{ t('auth.creating') }}
           </span>
         </button>
       </form>
@@ -75,6 +75,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/utils/api'
+import { t } from '@/i18n'
 
 const router = useRouter()
 
@@ -101,23 +102,23 @@ const validate = (): boolean => {
   let valid = true
 
   if (!form.username.trim()) {
-    errors.username = '请输入用户名'
+    errors.username = t('auth.usernameRequired')
     valid = false
   } else if (form.username.length < 3) {
-    errors.username = '用户名至少3个字符'
+    errors.username = t('auth.usernameMinLength')
     valid = false
   }
 
   if (!form.password) {
-    errors.password = '请输入密码'
+    errors.password = t('auth.passwordRequired')
     valid = false
   } else if (form.password.length < 8) {
-    errors.password = '密码至少8个字符'
+    errors.password = t('auth.passwordMinLength')
     valid = false
   }
 
   if (form.password !== form.confirmPassword) {
-    errors.confirmPassword = '两次输入的密码不一致'
+    errors.confirmPassword = t('auth.passwordMismatch')
     valid = false
   }
 
@@ -140,7 +141,7 @@ const handleSubmit = async () => {
 
     router.push('/login?registered=true')
   } catch (error: any) {
-    submitError.value = error.response?.data?.error || '创建失败，请重试'
+    submitError.value = error.response?.data?.error || t('auth.createFailed')
   } finally {
     loading.value = false
   }

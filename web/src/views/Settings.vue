@@ -5,8 +5,8 @@
         <Settings :size="24" :stroke-width="1.5" />
       </div>
       <div>
-        <h1>系统设置</h1>
-        <p class="page-description">管理 LiteDock 平台配置</p>
+        <h1>{{ t('settings.title') }}</h1>
+        <p class="page-description">{{ t('settings.description') }}</p>
       </div>
     </div>
 
@@ -27,19 +27,19 @@
       </div>
 
       <div class="settings-main">
-        <!-- 常规设置 -->
+        <!-- General -->
         <div v-if="activeSection === 'general'" class="settings-section">
-          <h2>常规设置</h2>
+          <h2>{{ t('settings.general') }}</h2>
           <div class="setting-group">
-            <label>系统名称</label>
+            <label>{{ t('settings.systemName') }}</label>
             <input v-model="settings.systemName" type="text" class="input" />
           </div>
           <div class="setting-group">
-            <label>系统描述</label>
+            <label>{{ t('settings.systemDesc') }}</label>
             <textarea v-model="settings.systemDescription" rows="3" class="input"></textarea>
           </div>
           <div class="setting-group">
-            <label>默认语言</label>
+            <label>{{ t('settings.defaultLanguage') }}</label>
             <select v-model="settings.language" class="input">
               <option value="zh-CN">简体中文</option>
               <option value="en-US">English</option>
@@ -47,77 +47,77 @@
           </div>
           <div class="setting-group checkbox">
             <input v-model="settings.enableNotifications" type="checkbox" id="notifications" />
-            <label for="notifications">启用系统通知</label>
+            <label for="notifications">{{ t('settings.enableNotifications') }}</label>
           </div>
         </div>
 
-        <!-- Docker 设置 -->
+        <!-- Docker -->
         <div v-if="activeSection === 'docker'" class="settings-section">
-          <h2>Docker 设置</h2>
+          <h2>{{ t('settings.docker') }}</h2>
           <div class="setting-group">
-            <label>Docker 连接类型</label>
+            <label>{{ t('settings.dockerConnectionType') }}</label>
             <select v-model="settings.docker.type" class="input">
-              <option value="local">本地 Docker</option>
-              <option value="remote">远程 Docker</option>
+              <option value="local">{{ t('settings.localDocker') }}</option>
+              <option value="remote">{{ t('settings.remoteDocker') }}</option>
             </select>
           </div>
           <div v-if="settings.docker.type === 'remote'" class="setting-group">
-            <label>远程主机地址</label>
+            <label>{{ t('settings.remoteHost') }}</label>
             <input v-model="settings.docker.host" type="text" placeholder="tcp://remote-host:2375" class="input" />
           </div>
           <div class="setting-group">
-            <label>默认镜像仓库</label>
+            <label>{{ t('settings.defaultRegistry') }}</label>
             <input v-model="settings.docker.defaultRegistry" type="text" placeholder="docker.io" class="input" />
           </div>
           <div class="setting-group checkbox">
             <input v-model="settings.docker.autoPrune" type="checkbox" id="autoPrune" />
-            <label for="autoPrune">自动清理未使用的镜像</label>
+            <label for="autoPrune">{{ t('settings.autoPrune') }}</label>
           </div>
         </div>
 
-        <!-- 安全设置 -->
+        <!-- Security -->
         <div v-if="activeSection === 'security'" class="settings-section">
-          <h2>安全设置</h2>
+          <h2>{{ t('settings.security') }}</h2>
           <div class="setting-group">
-            <label>会话超时 (分钟)</label>
+            <label>{{ t('settings.sessionTimeout') }}</label>
             <input v-model="settings.sessionTimeout" type="number" min="5" max="1440" class="input" />
           </div>
           <div class="setting-group checkbox">
             <input v-model="settings.enableTwoFactor" type="checkbox" id="2fa" />
-            <label for="2fa">启用双因素认证</label>
+            <label for="2fa">{{ t('settings.enableTwoFactor') }}</label>
           </div>
           <div class="setting-group checkbox">
             <input v-model="settings.enableAuditLog" type="checkbox" id="audit" />
-            <label for="audit">启用操作审计日志</label>
+            <label for="audit">{{ t('settings.enableAuditLog') }}</label>
           </div>
         </div>
 
-        <!-- 监控设置 -->
+        <!-- Monitoring -->
         <div v-if="activeSection === 'monitoring'" class="settings-section">
-          <h2>监控设置</h2>
+          <h2>{{ t('settings.monitoring') }}</h2>
           <div class="setting-group checkbox">
             <input v-model="settings.monitoring.enabled" type="checkbox" id="monitoring" />
-            <label for="monitoring">启用系统监控</label>
+            <label for="monitoring">{{ t('settings.enableSystemMonitoring') }}</label>
           </div>
           <div class="setting-group">
-            <label>数据收集间隔 (秒)</label>
+            <label>{{ t('settings.dataCollectionInterval') }}</label>
             <input v-model="settings.monitoring.interval" type="number" min="10" max="300" class="input" />
           </div>
           <div class="setting-group">
-            <label>历史数据保留天数</label>
+            <label>{{ t('settings.dataRetentionDays') }}</label>
             <input v-model="settings.monitoring.retention" type="number" min="1" max="365" class="input" />
           </div>
         </div>
 
-        <!-- 保存按钮 -->
+        <!-- Actions -->
         <div class="settings-actions">
           <button @click="saveSettings" class="btn btn-primary" :disabled="saving">
             <Save :size="14" :stroke-width="1.5" />
-            {{ saving ? '保存中...' : '保存设置' }}
+            {{ saving ? t('settings.saving') : t('settings.saveSettings') }}
           </button>
           <button @click="resetSettings" class="btn btn-secondary">
             <RotateCcw :size="14" :stroke-width="1.5" />
-            重置为默认
+            {{ t('settings.resetDefaults') }}
           </button>
         </div>
       </div>
@@ -126,22 +126,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, markRaw, type Component } from 'vue'
+import { ref, reactive, computed, markRaw, type Component } from 'vue'
 import { Settings, Container, Shield, Activity, Save, RotateCcw } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const activeSection = ref('general')
 const saving = ref(false)
 
-const settingsSections: { id: string; title: string; icon: Component }[] = [
-  { id: 'general', title: '常规', icon: markRaw(Settings) },
-  { id: 'docker', title: 'Docker', icon: markRaw(Container) },
-  { id: 'security', title: '安全', icon: markRaw(Shield) },
-  { id: 'monitoring', title: '监控', icon: markRaw(Activity) }
-]
+const settingsSections = computed<{ id: string; title: string; icon: Component }[]>(() => [
+  { id: 'general', title: t('settings.general'), icon: markRaw(Settings) },
+  { id: 'docker', title: t('settings.docker'), icon: markRaw(Container) },
+  { id: 'security', title: t('settings.security'), icon: markRaw(Shield) },
+  { id: 'monitoring', title: t('settings.monitoring'), icon: markRaw(Activity) }
+])
 
 const defaultSettings = () => ({
   systemName: 'LiteDock',
-  systemDescription: '轻量级 Docker 容器管理平台',
+  systemDescription: '',
   language: 'zh-CN',
   enableNotifications: true,
   docker: {
@@ -166,14 +167,14 @@ const saveSettings = async () => {
   saving.value = true
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    alert('设置已保存')
+    alert(t('settings.saved'))
   } finally {
     saving.value = false
   }
 }
 
 const resetSettings = () => {
-  if (confirm('确定要重置所有设置为默认值吗？')) {
+  if (confirm(t('settings.confirmReset'))) {
     Object.assign(settings, defaultSettings())
   }
 }

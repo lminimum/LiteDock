@@ -5,23 +5,23 @@
         <div class="logo">
           <span class="logo-text">LiteDock</span>
         </div>
-        <h1>欢迎回来</h1>
-        <p>登录到 LiteDock 管理平台</p>
+        <h1>{{ t('auth.welcomeBack') }}</h1>
+        <p>{{ t('auth.loginSubtitle') }}</p>
       </div>
 
       <div class="success-message" v-if="showRegisteredSuccess">
         <CheckCircle :size="16" />
-        管理员账户创建成功，请登录
+        {{ t('auth.adminCreatedSuccess') }}
       </div>
 
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group" :class="{ error: errors.username }">
-          <label for="username">用户名</label>
+          <label for="username">{{ t('auth.username') }}</label>
           <input
             id="username"
             v-model="credentials.username"
             type="text"
-            placeholder="请输入用户名"
+            :placeholder="t('auth.usernamePlaceholder')"
             :disabled="loading"
             required
             class="input"
@@ -30,13 +30,13 @@
         </div>
 
         <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">密码</label>
+          <label for="password">{{ t('auth.password') }}</label>
           <div class="password-input">
             <input
               id="password"
               v-model="credentials.password"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="请输入密码"
+              :placeholder="t('auth.passwordPlaceholder')"
               :disabled="loading"
               required
               class="input"
@@ -56,23 +56,23 @@
         <div class="form-options">
           <label class="checkbox">
             <input v-model="rememberMe" type="checkbox" />
-            <span>记住我</span>
+            <span>{{ t('auth.rememberMe') }}</span>
           </label>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
-          <span v-if="!loading">登录</span>
+          <span v-if="!loading">{{ t('auth.login') }}</span>
           <span v-else class="loading">
             <Loader2 :size="16" class="spinning" />
-            登录中...
+            {{ t('auth.loggingIn') }}
           </span>
         </button>
       </form>
 
       <div class="login-footer">
         <p v-if="!setupComplete">
-          还没有账户？
-          <a href="#" @click.prevent="goToSetup">创建管理员</a>
+          {{ t('auth.noAccount') }}
+          <a href="#" @click.prevent="goToSetup">{{ t('auth.createAdmin') }}</a>
         </p>
       </div>
     </div>
@@ -84,6 +84,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,17 +118,17 @@ const validateForm = () => {
   errors.password = ''
 
   if (!credentials.username.trim()) {
-    errors.username = '请输入用户名'
+    errors.username = t('auth.usernameRequired')
     return false
   }
 
   if (!credentials.password.trim()) {
-    errors.password = '请输入密码'
+    errors.password = t('auth.passwordRequired')
     return false
   }
 
   if (credentials.password.length < 6) {
-    errors.password = '密码长度至少6位'
+    errors.password = t('auth.passwordMinLength6')
     return false
   }
 
@@ -148,10 +149,10 @@ const handleLogin = async () => {
       }
       router.push('/')
     } else {
-      errors.password = result.message || '登录失败'
+      errors.password = result.message || t('auth.loginFailed')
     }
   } catch (error: any) {
-    errors.password = error.response?.data?.message || '登录失败，请重试'
+    errors.password = error.response?.data?.message || t('auth.loginFailedRetry')
   } finally {
     loading.value = false
   }

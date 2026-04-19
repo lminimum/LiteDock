@@ -7,10 +7,10 @@
         </div>
         <div class="stat-content">
           <h3>{{ stats.containers.total }}</h3>
-          <p>容器总数</p>
+          <p>{{ t('dashboard.totalContainers') }}</p>
           <div class="stat-breakdown">
-            <span class="running">{{ stats.containers.running }} 运行中</span>
-            <span class="stopped">{{ stats.containers.stopped }} 已停止</span>
+            <span class="running">{{ stats.containers.running }} {{ t('dashboard.running') }}</span>
+            <span class="stopped">{{ stats.containers.stopped }} {{ t('dashboard.stopped') }}</span>
           </div>
         </div>
       </div>
@@ -21,9 +21,9 @@
         </div>
         <div class="stat-content">
           <h3>{{ stats.images.total }}</h3>
-          <p>镜像总数</p>
+          <p>{{ t('dashboard.totalImages') }}</p>
           <div class="stat-breakdown">
-            <span>{{ stats.images.size }} 总大小</span>
+            <span>{{ stats.images.size }} {{ t('dashboard.totalSize') }}</span>
           </div>
         </div>
       </div>
@@ -34,9 +34,9 @@
         </div>
         <div class="stat-content">
           <h3>{{ stats.networks.total }}</h3>
-          <p>网络总数</p>
+          <p>{{ t('dashboard.totalNetworks') }}</p>
           <div class="stat-breakdown">
-            <span>{{ stats.networks.active }} 活跃</span>
+            <span>{{ stats.networks.active }} {{ t('dashboard.active') }}</span>
           </div>
         </div>
       </div>
@@ -47,9 +47,9 @@
         </div>
         <div class="stat-content">
           <h3>{{ stats.volumes.total }}</h3>
-          <p>存储卷总数</p>
+          <p>{{ t('dashboard.totalVolumes') }}</p>
           <div class="stat-breakdown">
-            <span>{{ stats.volumes.size }} 总大小</span>
+            <span>{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@
       <div class="dashboard-left">
         <div class="card">
           <div class="card-header">
-            <h3>系统资源</h3>
+            <h3>{{ t('dashboard.systemResources') }}</h3>
             <button @click="refreshResources" class="btn btn-ghost btn-sm" :disabled="refreshing">
               <RefreshCw :size="16" :class="{ 'spinning': refreshing }" />
             </button>
@@ -67,7 +67,7 @@
           <div class="card-content">
             <div class="resource-item">
               <div class="resource-info">
-                <span class="resource-label">CPU 使用率</span>
+                <span class="resource-label">{{ t('dashboard.cpu') }}</span>
                 <span class="resource-value">{{ resources.cpu }}%</span>
               </div>
               <div class="progress">
@@ -77,7 +77,7 @@
 
             <div class="resource-item">
               <div class="resource-info">
-                <span class="resource-label">内存使用率</span>
+                <span class="resource-label">{{ t('dashboard.memory') }}</span>
                 <span class="resource-value">{{ resources.memory }}%</span>
               </div>
               <div class="progress">
@@ -87,7 +87,7 @@
 
             <div class="resource-item">
               <div class="resource-info">
-                <span class="resource-label">磁盘使用率</span>
+                <span class="resource-label">{{ t('dashboard.disk') }}</span>
                 <span class="resource-value">{{ resources.disk }}%</span>
               </div>
               <div class="progress">
@@ -99,8 +99,8 @@
 
         <div class="card">
           <div class="card-header">
-            <h3>最近活动</h3>
-            <router-link to="/containers" class="view-all">查看全部</router-link>
+            <h3>{{ t('dashboard.recentActivity') }}</h3>
+            <router-link to="/containers" class="view-all">{{ t('dashboard.viewAll') }}</router-link>
           </div>
           <div class="card-content">
             <div class="activity-list">
@@ -121,25 +121,25 @@
       <div class="dashboard-right">
         <div class="card">
           <div class="card-header">
-            <h3>快速操作</h3>
+            <h3>{{ t('dashboard.quickActions') }}</h3>
           </div>
           <div class="card-content">
             <div class="quick-actions">
               <button @click="createContainer" class="quick-action-btn">
                 <Plus :size="18" />
-                <span>创建容器</span>
+                <span>{{ t('dashboard.createContainer') }}</span>
               </button>
               <button @click="pullImage" class="quick-action-btn">
                 <Download :size="18" />
-                <span>拉取镜像</span>
+                <span>{{ t('dashboard.pullImage') }}</span>
               </button>
               <button @click="createNetwork" class="quick-action-btn">
                 <PlusCircle :size="18" />
-                <span>创建网络</span>
+                <span>{{ t('dashboard.createNetwork') }}</span>
               </button>
               <button @click="createVolume" class="quick-action-btn">
                 <PlusCircle :size="18" />
-                <span>创建存储卷</span>
+                <span>{{ t('dashboard.createVolume') }}</span>
               </button>
             </div>
           </div>
@@ -147,30 +147,30 @@
 
         <div class="card">
           <div class="card-header">
-            <h3>系统状态</h3>
+            <h3>{{ t('dashboard.systemStatus') }}</h3>
           </div>
           <div class="card-content">
             <div class="status-list">
               <div class="status-item">
-                <span class="status-label">Docker 服务</span>
+                <span class="status-label">{{ t('dashboard.dockerService') }}</span>
                 <span class="badge" :class="systemStatus.docker ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.docker ? '在线' : '离线' }}
+                  {{ systemStatus.docker ? t('dashboard.online') : t('dashboard.offline') }}
                 </span>
               </div>
               <div class="status-item">
-                <span class="status-label">API 服务</span>
-                <span class="badge badge-success">在线</span>
+                <span class="status-label">{{ t('dashboard.apiService') }}</span>
+                <span class="badge badge-success">{{ t('dashboard.online') }}</span>
               </div>
               <div class="status-item">
-                <span class="status-label">数据库</span>
+                <span class="status-label">{{ t('dashboard.database') }}</span>
                 <span class="badge" :class="systemStatus.database ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.database ? '在线' : '离线' }}
+                  {{ systemStatus.database ? t('dashboard.online') : t('dashboard.offline') }}
                 </span>
               </div>
               <div class="status-item">
-                <span class="status-label">消息队列</span>
+                <span class="status-label">{{ t('dashboard.messageQueue') }}</span>
                 <span class="badge" :class="systemStatus.messageQueue ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.messageQueue ? '在线' : '离线' }}
+                  {{ systemStatus.messageQueue ? t('dashboard.online') : t('dashboard.offline') }}
                 </span>
               </div>
             </div>
@@ -194,6 +194,7 @@ import {
   PlusCircle,
   Globe
 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const refreshing = ref(false)
 
@@ -209,11 +210,11 @@ const resources = reactive({ cpu: 45, memory: 62, disk: 38 })
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
 const recentActivities = ref([
-  { id: 1, type: 'container', title: '容器 web-server 已启动', time: new Date(Date.now() - 5 * 60 * 1000) },
-  { id: 2, type: 'image', title: '镜像 nginx:latest 已拉取', time: new Date(Date.now() - 15 * 60 * 1000) },
-  { id: 3, type: 'container', title: '容器 database 已停止', time: new Date(Date.now() - 30 * 60 * 1000) },
-  { id: 4, type: 'network', title: '网络 frontend-network 已创建', time: new Date(Date.now() - 45 * 60 * 1000) },
-  { id: 5, type: 'volume', title: '存储卷 data-volume 已删除', time: new Date(Date.now() - 60 * 60 * 1000) }
+  { id: 1, type: 'container', title: t('dashboard.containerStarted', { name: 'web-server' }), time: new Date(Date.now() - 5 * 60 * 1000) },
+  { id: 2, type: 'image', title: t('dashboard.imagePulled', { name: 'nginx:latest' }), time: new Date(Date.now() - 15 * 60 * 1000) },
+  { id: 3, type: 'container', title: t('dashboard.containerStopped', { name: 'database' }), time: new Date(Date.now() - 30 * 60 * 1000) },
+  { id: 4, type: 'network', title: t('dashboard.networkCreated', { name: 'frontend-network' }), time: new Date(Date.now() - 45 * 60 * 1000) },
+  { id: 5, type: 'volume', title: t('dashboard.volumeDeleted', { name: 'data-volume' }), time: new Date(Date.now() - 60 * 60 * 1000) }
 ])
 
 const iconMap: Record<string, ReturnType<typeof markRaw>> = {
@@ -230,14 +231,14 @@ const formatTime = (time: Date) => {
   const diff = now.getTime() - time.getTime()
   const minutes = Math.floor(diff / (1000 * 60))
 
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
+  if (minutes < 1) return t('dashboard.justNow')
+  if (minutes < 60) return t('dashboard.minutesAgo', { n: minutes })
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小时前`
+  if (hours < 24) return t('dashboard.hoursAgo', { n: hours })
 
   const days = Math.floor(hours / 24)
-  return `${days} 天前`
+  return t('dashboard.daysAgo', { n: days })
 }
 
 const refreshResources = async () => {
@@ -252,10 +253,10 @@ const refreshResources = async () => {
   }
 }
 
-const createContainer = () => console.log('创建容器')
-const pullImage = () => console.log('拉取镜像')
-const createNetwork = () => console.log('创建网络')
-const createVolume = () => console.log('创建存储卷')
+const createContainer = () => console.log('createContainer')
+const pullImage = () => console.log('pullImage')
+const createNetwork = () => console.log('createNetwork')
+const createVolume = () => console.log('createVolume')
 
 onMounted(() => refreshResources())
 </script>
@@ -274,100 +275,98 @@ onMounted(() => refreshResources())
 }
 
 .stat-card {
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-  padding: var(--space-6);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-4);
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: all var(--transition-normal);
 }
 
 .stat-card:hover {
+  border-color: var(--color-border-hover);
   box-shadow: var(--shadow-md);
-  border-color: var(--color-border);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--color-background-weak);
-  color: var(--color-text-strong);
 }
 
-.stat-icon.containers { background: var(--color-background-interactive-weaker); color: var(--color-background-strong); }
-.stat-icon.images { background: var(--color-background-weak); color: var(--color-text); }
-.stat-icon.networks { background: var(--color-background-weak); color: var(--color-text); }
-.stat-icon.volumes { background: var(--color-background-weak); color: var(--color-text); }
+.stat-icon.containers { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.stat-icon.images { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.stat-icon.networks { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.stat-icon.volumes { background: rgba(249, 115, 22, 0.1); color: #f97316; }
 
 .stat-content h3 {
-  margin: 0 0 var(--space-1) 0;
-  font-size: var(--font-size-2xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-strong);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .stat-content p {
-  margin: 0 0 var(--space-2) 0;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0;
 }
 
 .stat-breakdown {
   display: flex;
   gap: var(--space-3);
-  font-size: var(--font-size-xs);
+  font-size: var(--text-xs);
 }
 
-.running { color: var(--color-success); }
-.stopped { color: var(--color-error); }
+.stat-breakdown .running { color: #22c55e; }
+.stat-breakdown .stopped { color: var(--color-text-tertiary); }
 
 .dashboard-content {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr 350px;
   gap: var(--space-6);
 }
 
 .card {
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   margin-bottom: var(--space-6);
 }
 
 .card-header {
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--color-border-weak);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .card-header h3 {
-  margin: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-}
-
-.view-all {
-  color: var(--color-text-strong);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.view-all:hover {
-  color: var(--color-text-weak);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .card-content {
-  padding: var(--space-6);
+  padding: var(--space-5);
+}
+
+.view-all {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.view-all:hover {
+  text-decoration: underline;
 }
 
 .resource-item {
@@ -385,21 +384,34 @@ onMounted(() => refreshResources())
 }
 
 .resource-label {
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .resource-value {
-  color: var(--color-text-strong);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.progress {
+  height: 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
 }
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .activity-item {
@@ -411,35 +423,26 @@ onMounted(() => refreshResources())
 .activity-icon {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--color-background-weak);
-  color: var(--color-text);
 }
 
-.activity-icon.container { background: var(--color-background-interactive-weaker); color: var(--color-background-strong); }
-.activity-icon.image { background: var(--color-error-bg); color: var(--color-error); }
-.activity-icon.network { background: var(--color-success-bg); color: var(--color-success); }
-.activity-icon.volume { background: var(--color-warning-bg); color: var(--color-warning); }
-
-.activity-content {
-  flex: 1;
-  min-width: 0;
-}
+.activity-icon.container { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.activity-icon.image { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.activity-icon.network { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.activity-icon.volume { background: rgba(249, 115, 22, 0.1); color: #f97316; }
 
 .activity-title {
-  color: var(--color-text-strong);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: 2px;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
 }
 
 .activity-time {
-  color: var(--color-text-weaker);
-  font-size: var(--font-size-xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
 }
 
 .quick-actions {
@@ -454,21 +457,19 @@ onMounted(() => refreshResources())
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-4);
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
-  color: var(--color-text);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-normal);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 .quick-action-btn:hover {
-  background: var(--color-background-interactive);
-  border-color: var(--color-background-interactive);
-  color: var(--color-background-strong);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .status-list {
@@ -479,13 +480,19 @@ onMounted(() => refreshResources())
 
 .status-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .status-label {
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.badge {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
   font-weight: var(--font-weight-medium);
 }
 
