@@ -10,7 +10,7 @@
 
     <!-- Sidebar - hidden on mobile (overlay mode) -->
     <div v-if="!isMobile || mobileSidebarOpen" class="sidebar-wrapper">
-      <Sidebar @toggle="handleSidebarToggle" />
+      <Sidebar :mobile-open="mobileSidebarOpen" @toggle="handleSidebarToggle" />
     </div>
 
     <!-- Main content -->
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 

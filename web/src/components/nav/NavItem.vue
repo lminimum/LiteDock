@@ -1,8 +1,8 @@
 <template>
-  <router-link :to="to" class="nav-item" :class="{ active, collapsed }">
+  <router-link :to="to" class="nav-item" :class="{ active, collapsed, 'mobile-mode': isMobile }">
     <component :is="icon" :size="20" class="nav-icon" />
     <span class="nav-text">{{ label }}</span>
-    <span class="nav-badge" v-if="badge">{{ badge }}</span>
+    <span class="nav-badge" v-if="badge && !isMobile">{{ badge }}</span>
   </router-link>
 </template>
 
@@ -15,6 +15,7 @@ defineProps<{
   label: string
   active: boolean
   collapsed: boolean
+  isMobile: boolean
   badge?: string
 }>()
 </script>
@@ -84,5 +85,34 @@ defineProps<{
 
 .nav-item.collapsed .nav-badge {
   display: none;
+}
+
+/* Mobile mode - center items */
+@media (max-width: 767px) {
+  .nav-item.mobile-mode {
+    justify-content: center;
+    padding: var(--space-3) var(--space-6);
+    margin: var(--space-1) var(--space-4);
+    border-radius: var(--radius-md);
+    border-left: none;
+  }
+
+  .nav-item.mobile-mode:hover {
+    background: var(--color-background-hover);
+  }
+
+  .nav-item.mobile-mode.active {
+    background: var(--color-background-hover);
+    border-left: none;
+  }
+
+  .nav-item.mobile-mode .nav-text {
+    flex: none;
+    font-size: var(--font-size-base);
+  }
+
+  .nav-item.mobile-mode .nav-badge {
+    display: none;
+  }
 }
 </style>

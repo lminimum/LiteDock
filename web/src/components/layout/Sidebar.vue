@@ -1,36 +1,82 @@
 <!-- web/src/components/layout/Sidebar.vue -->
 <template>
-  <aside class="sidebar" :class="{ collapsed: effectiveCollapsed, 'mobile-open': mobileOpen }">
-    <SidebarLogo :collapsed="effectiveCollapsed" />
-    <SidebarNav :collapsed="effectiveCollapsed" />
-    <SidebarUserInfo :collapsed="effectiveCollapsed" @toggle="$emit('toggle')" />
+  <aside class="sidebar" :class="{ collapsed: effectiveCollapsed, 'mobile-open': mobileOpen, 'mobile-mode': isMobile }">
+    <SidebarLogo :collapsed="effectiveCollapsed" :is-mobile="isMobile" @close="handleClose" />
+    <SidebarNav :collapsed="effectiveCollapsed" :is-mobile="isMobile" />
+    <SidebarUserInfo v-if="!isMobile" :collapsed="effectiveCollapsed" @toggle="handleToggle" />
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSidebar } from '@/composables/useSidebar'
 import SidebarLogo from '@/components/layout/SidebarLogo.vue'
 import SidebarNav from '@/components/nav/SidebarNav.vue'
 import SidebarUserInfo from '@/components/layout/SidebarUserInfo.vue'
 
-defineProps<{
+const props = defineProps<{
   mobileOpen?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggle'): void
 }>()
 
-const { collapsed: userCollapsed } = useSidebar()
+const route = useRoute()
+const { collapsed: userCollapsed, toggle } = useSidebar()
 
-// Tablet breakpoint: force collapsed when viewport is 768-1023px
-const effectiveCollapsed = computed(() => userCollapsed.value)
+// Mobile breakpoint: viewport < 768px
+const isMobile = ref(false)
+// Tablet breakpoint: viewport 768px - 1023px
+const isTablet = ref(false)
+
+const updateViewport = () => {
+  isMobile.value = window.innerWidth < 768
+  isTablet.value = window.innerWidth >= 768 && window.innerWidth <= 1023
+}
+
+onMounted(() => {
+  updateViewport()
+  window.addEventListener('resize', updateViewport)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateViewport)
+})
+
+// On mobile: never collapsed (show full nav)
+// On tablet: always collapsed (icon only)
+// On desktop: follows user preference
+const effectiveCollapsed = computed(() => {
+  if (isMobile.value) return false
+  return userCollapsed.value || isTablet.value
+})
+
+// Toggle sidebar - call useSidebar toggle directly for PC/Tablet
+const handleToggle = () => {
+  if (!isMobile.value) {
+    toggle()
+  }
+}
+
+// Close sidebar on mobile
+const handleClose = () => {
+  emit('toggle')
+}
+
+// Watch route changes to close sidebar on mobile
+watch(() => route.path, () => {
+  if (isMobile.value && props.mobileOpen) {
+    handleClose()
+  }
+})
 </script>
 
 <style scoped>
 .sidebar {
   width: var(--sidebar-width);
+  height: 100%;
   background: var(--color-background);
   border-right: 1px solid var(--color-border-weak);
   display: flex;
@@ -44,24 +90,27 @@ const effectiveCollapsed = computed(() => userCollapsed.value)
   width: var(--sidebar-collapsed-width);
 }
 
-/* Mobile: sidebar becomes overlay drawer */
+/* Mobile: sidebar becomes fullscreen overlay drawer */
 @media (max-width: 767px) {
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
     bottom: 0;
-    width: var(--sidebar-width);
+    width: 100vw;
+    height: 100vh;
     transform: translateX(-100%);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    z-index: 100;
   }
 
   .sidebar.mobile-open {
     transform: translateX(0);
   }
 
+  /* On mobile, always show full width (not collapsed) */
   .sidebar.collapsed {
-    width: var(--sidebar-width);
+    width: 100vw;
   }
 }
 
