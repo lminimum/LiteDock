@@ -24,4 +24,14 @@ type (
 		RefreshToken(ctx context.Context, token string) (string, error)
 		IsSetupComplete(ctx context.Context) (bool, error)
 	}
+
+	// RemoteMachine -.
+	RemoteMachine interface {
+		Create(ctx context.Context, machine *entity.RemoteMachine) (*entity.RemoteMachine, error)
+		GetByID(ctx context.Context, id string) (*entity.RemoteMachine, error)
+		List(ctx context.Context) ([]entity.RemoteMachine, error)
+		Update(ctx context.Context, machine *entity.RemoteMachine) error
+		Delete(ctx context.Context, id string) error
+		GetByHost(ctx context.Context, host string) (*entity.RemoteMachine, error)
+	}
 )

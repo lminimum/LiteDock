@@ -28,4 +28,13 @@ type (
 		UpdatePassword(context.Context, string, string) error
 		CountUsers(context.Context) (int64, error)
 	}
+
+	RemoteMachineRepo interface {
+		Create(context.Context, *entity.RemoteMachine) error
+		GetByID(context.Context, string) (*entity.RemoteMachine, error)
+		List(context.Context) ([]entity.RemoteMachine, error)
+		Update(context.Context, *entity.RemoteMachine) error
+		Delete(context.Context, string) error
+		GetByHost(context.Context, string) (*entity.RemoteMachine, error)
+	}
 )

@@ -69,9 +69,9 @@ func (s *SQLite) Query(ctx context.Context, q string, args ...any) (interface{},
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return nil, err
 	}
 

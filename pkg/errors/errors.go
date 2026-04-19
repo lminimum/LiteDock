@@ -56,3 +56,24 @@ var (
 	ErrAlreadyExists = errors.New("database: record already exists")
 	ErrInvalidInput  = errors.New("database: invalid input")
 )
+
+// Remote machine errors.
+var (
+	ErrRemoteMachineNotFound = errors.New("remote machine: not found")
+	ErrRemoteMachineExists   = errors.New("remote machine: already exists")
+)
+
+// SSH errors.
+var (
+	ErrSSHConnection = errors.New("ssh: connection failed")
+	ErrSSHAuth       = errors.New("ssh: authentication failed")
+	ErrSSHKeyParse   = errors.New("ssh: key parse failed")
+)
+
+// Docker errors.
+var (
+	ErrDockerConnection = errors.New("docker: connection failed")
+	ErrDockerOperation  = errors.New("docker: operation failed")
+	ErrContainerNotFound = errors.New("docker: container not found")
+	ErrContainerExec     = errors.New("docker: container exec failed")
+)

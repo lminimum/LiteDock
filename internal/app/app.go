@@ -12,6 +12,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/repo/persistent"
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
 	"github.com/lminimum/LiteDock/internal/usecase/container"
+	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/pkg/database"
 	"github.com/lminimum/LiteDock/pkg/httpserver"
 	"github.com/lminimum/LiteDock/pkg/logger"
@@ -35,6 +36,7 @@ func Run(cfg *config.Config) {
 	// Repository instances
 	userRepo := persistent.NewUserRepo(db)
 	containerRepo := persistent.NewContainerRepo(db)
+	remoteMachineRepo := persistent.NewRemoteMachineRepo(db)
 
 	// Auth UseCase
 	authUseCase := auth.New(userRepo, l)
@@ -42,9 +44,12 @@ func Run(cfg *config.Config) {
 	// Container UseCase (placeholder for Docker management)
 	containerUseCase := container.New(containerRepo, l)
 
+	// RemoteMachine UseCase
+	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, l)
+
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, l)
+	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, l)
 
 	// Start servers
 	httpServer.Start()

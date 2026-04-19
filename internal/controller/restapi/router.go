@@ -12,6 +12,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/controller/restapi/middleware"
 	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
 	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
@@ -22,7 +23,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, l logger.Interface) {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -47,5 +48,6 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 	{
 		v1.NewContainerRoutes(apiV1Group, container, l)
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
+		v1.NewRemoteMachineRoutes(apiV1Group, remoteMachine, l)
 	}
 }
