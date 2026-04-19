@@ -223,6 +223,7 @@
     }
   },
   "common": {
+    "menu": "菜单",
     "refresh": "刷新",
     "switchTheme": "切换主题",
     "notifications": "通知",

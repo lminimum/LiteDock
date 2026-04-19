@@ -223,6 +223,7 @@
     }
   },
   "common": {
+    "menu": "Menu",
     "refresh": "Refresh",
     "switchTheme": "Switch Theme",
     "notifications": "Notifications",
