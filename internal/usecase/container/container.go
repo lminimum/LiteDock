@@ -17,10 +17,13 @@ type UseCase struct {
 }
 
 // New creates a new container use case.
-func New(repo interface {
-	List(ctx context.Context) ([]entity.Container, error)
-	Get(ctx context.Context, id string) (*entity.Container, error)
-}, l logger.Interface) *UseCase {
+func New(
+	repo interface {
+		List(ctx context.Context) ([]entity.Container, error)
+		Get(ctx context.Context, id string) (*entity.Container, error)
+	},
+	l logger.Interface,
+) *UseCase {
 	return &UseCase{repo: repo, l: l}
 }
 

@@ -73,6 +73,7 @@ chore(deps): upgrade go-fiber to v2.53.0
 - Use imperative mood: "add" not "added" or "adds"
 - Keep subject line under 72 characters
 - Reference issues: `fix: resolve null pointer (#123)`
+- **Never add co-author** in commit messages (no `Co-authored-by:`)
 
 ### Push & PR Workflow
 
@@ -100,6 +101,13 @@ chore(deps): upgrade go-fiber to v2.53.0
    git branch -d feature/my-feature
    git push origin --delete feature/my-feature
 ```
+
+**IMPORTANT - Commit Review Rule**:
+After completing any implementation or change, **DO NOT commit immediately**. Stage the changes with `git add`, but wait for either:
+- The user to review and approve the changes, OR
+- A code review to be completed
+
+Only commit after receiving explicit approval. This ensures changes are reviewed before becoming part of the project history.
 
 ### PR Guidelines
 

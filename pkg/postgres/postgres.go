@@ -2,11 +2,13 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	stderrors "errors"
 	"log"
+	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	apperrors "github.com/lminimum/LiteDock/pkg/errors"
 )
 
 const (
@@ -22,6 +24,8 @@ type Postgres struct {
 	Pool         *pgxpool.Pool
 }
 
+var errMaxPoolSizeOutOfRange = stderrors.New("postgres: maxPoolSize out of range")
+
 func New(url string, opts ...Option) (*Postgres, error) {
 	pg := &Postgres{
 		maxPoolSize:  _defaultMaxPoolSize,
@@ -35,7 +39,11 @@ func New(url string, opts ...Option) (*Postgres, error) {
 
 	poolConfig, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - pgxpool.ParseConfig: %w", err)
+		return nil, apperrors.Wrap(err, "Postgres.New.ParseConfig")
+	}
+
+	if pg.maxPoolSize > math.MaxInt32 || pg.maxPoolSize < 0 {
+		return nil, errMaxPoolSizeOutOfRange
 	}
 
 	poolConfig.MaxConns = int32(pg.maxPoolSize)
@@ -54,7 +62,7 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("postgres - NewPostgres - connAttempts == 0: %w", err)
+		return nil, apperrors.Wrap(err, "Postgres.New.Connect")
 	}
 
 	return pg, nil
@@ -68,6 +76,7 @@ func (p *Postgres) Close() {
 
 func (p *Postgres) Query(ctx context.Context, q string, args ...any) (interface{}, error) {
 	rows, err := p.Pool.Query(ctx, rewritePlaceholders(q), args...)
+
 	return rows, err
 }
 
@@ -77,6 +86,7 @@ func (p *Postgres) QueryRow(ctx context.Context, q string, args ...any) interfac
 
 func (p *Postgres) Exec(ctx context.Context, q string, args ...any) error {
 	_, err := p.Pool.Exec(ctx, rewritePlaceholders(q), args...)
+
 	return err
 }
 

@@ -1,11 +1,11 @@
 package v1
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/config"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/usecase"
 	"github.com/lminimum/LiteDock/pkg/logger"
-	"github.com/gofiber/fiber/v2"
 )
 
 // AuthHandler -.
@@ -33,6 +33,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	token, user, err := h.auth.Login(c.Context(), req.Username, req.Password)
 	if err != nil {
 		h.l.Error(err, "Login failed")
+
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"success": false,
 			"message": err.Error(),
@@ -73,9 +74,10 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		role = "user"
 	}
 
-	user, err := h.auth.Register(c.Context(), req.Username, req.Password, req.Email, role)
+	user, err := h.auth.Register(c.Context(), req.Username, req.Email, req.Password, role)
 	if err != nil {
 		h.l.Error(err, "Registration failed")
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": err.Error(),
@@ -91,6 +93,23 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 			"email":    user.Email,
 			"role":     user.Role,
 		},
+	})
+}
+
+// SetupStatus - handles GET /auth/setup-status
+func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
+	complete, err := h.auth.IsSetupComplete(c.Context())
+	if err != nil {
+		h.l.Error(err, "SetupStatus failed")
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"setup_complete": complete,
 	})
 }
 
@@ -113,6 +132,7 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	user, err := h.auth.GetCurrentUser(c.Context(), token)
 	if err != nil {
 		h.l.Error(err, "GetCurrentUser failed")
+
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"message": "Invalid or expired token",
 		})

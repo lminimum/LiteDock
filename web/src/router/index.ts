@@ -77,34 +77,57 @@ const router = createRouter({
   ]
 })
 
-// 路由守卫
-router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
-  
-  // 检查是否需要认证
+let authChecked = false;
+
+router.beforeEach(async (to, _from, next) => {
+  const authStore = useAuthStore();
+
+  if (!authChecked) {
+    await authStore.checkAuth();
+    authChecked = true;
+  }
+
+  if (to.name === 'Setup') {
+    if (authStore.isAuthenticated) {
+      next('/');
+      return;
+    }
+    const currentSetupStatus = await authStore.checkSetupStatus();
+    if (currentSetupStatus) {
+      next('/login');
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (to.name === 'Login') {
+    if (authStore.isAuthenticated) {
+      next('/');
+      return;
+    }
+    const currentSetupStatus = await authStore.checkSetupStatus();
+    if (!currentSetupStatus) {
+      next('/setup');
+      return;
+    }
+    next();
+    return;
+  }
+
   if (to.meta.requiresAuth !== false) {
-    // 检查是否已配置
-    const isConfigured = localStorage.getItem('litedock-configured') === 'true'
-    
-    // 检查是否已登录
-    if (!authStore.isAuthenticated && to.name !== 'Setup' && to.name !== 'Login') {
-      // 尝试从token恢复登录状态
-      await authStore.checkAuth()
-      
-      if (!authStore.isAuthenticated && isConfigured) {
-        next('/login')
-        return
+    if (!authStore.isAuthenticated) {
+      const currentSetupStatus = await authStore.checkSetupStatus();
+      if (!currentSetupStatus) {
+        next('/setup');
+        return;
       }
+      next('/login');
+      return;
     }
   }
-  
-  // 如果已配置且已登录，访问setup页面时重定向到仪表盘
-  if (to.name === 'Setup' && authStore.isAuthenticated) {
-    next('/')
-    return
-  }
-  
-  next()
-})
+
+  next();
+});
 
 export default router

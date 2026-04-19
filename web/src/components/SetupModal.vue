@@ -2,8 +2,8 @@
   <div v-if="show" class="modal-overlay" @click="closeModal">
     <div class="setup-modal" @click.stop :class="{ 'dark-theme': isDarkMode }">
       <div class="setup-modal-header">
-        <h2>LiteDock 初始配置</h2>
-        <p>欢迎使用 LiteDock Docker 管理平台</p>
+        <h2>{{ t('setup.title') }}</h2>
+        <p>{{ t('setup.welcome') }}</p>
       </div>
       
       <div class="setup-modal-content">
@@ -21,17 +21,17 @@
         <div class="step-content">
           <!-- 步骤 1: Docker 连接配置 -->
           <div v-if="currentStep === 0" class="step-form">
-            <h3>Docker 连接配置</h3>
+            <h3>{{ t('setup.dockerConnectionConfig') }}</h3>
             <div class="form-group">
-              <label>连接类型</label>
+              <label>{{ t('setup.connectionType') }}</label>
               <select v-model="config.docker.type" @change="onDockerTypeChange">
-                <option value="local">本地 Docker</option>
-                <option value="remote">远程 Docker</option>
+                <option value="local">{{ t('setup.localDocker') }}</option>
+                <option value="remote">{{ t('setup.remoteDocker') }}</option>
               </select>
             </div>
             
             <div v-if="config.docker.type === 'remote'" class="form-group">
-              <label>远程主机地址</label>
+              <label>{{ t('setup.remoteHostAddress') }}</label>
               <input 
                 v-model="config.docker.host" 
                 placeholder="tcp://remote-host:2375"
@@ -40,7 +40,7 @@
             </div>
             
             <div class="form-group">
-              <label>TLS 证书路径 (可选)</label>
+              <label>{{ t('setup.tlsCertPath') }}</label>
               <input 
                 v-model="config.docker.tlsPath" 
                 placeholder="/path/to/certs"
@@ -51,65 +51,65 @@
           
           <!-- 步骤 2: 管理员账户设置 -->
           <div v-if="currentStep === 1" class="step-form">
-            <h3>管理员账户设置</h3>
+            <h3>{{ t('setup.adminAccountSetup') }}</h3>
             <div class="form-group">
-              <label>用户名</label>
+              <label>{{ t('setup.username') }}</label>
               <input v-model="config.admin.username" placeholder="admin" type="text" />
             </div>
             
             <div class="form-group">
-              <label>密码</label>
-              <input v-model="config.admin.password" placeholder="请输入密码" type="password" />
+              <label>{{ t('setup.password') }}</label>
+              <input v-model="config.admin.password" :placeholder="t('setup.passwordPlaceholder')" type="password" />
             </div>
             
             <div class="form-group">
-              <label>确认密码</label>
-              <input v-model="config.admin.confirmPassword" placeholder="请再次输入密码" type="password" />
+              <label>{{ t('setup.confirmPassword') }}</label>
+              <input v-model="config.admin.confirmPassword" :placeholder="t('setup.confirmPasswordPlaceholder')" type="password" />
             </div>
             
             <div class="form-group">
-              <label>邮箱 (可选)</label>
+              <label>{{ t('setup.emailOptional') }}</label>
               <input v-model="config.admin.email" placeholder="admin@example.com" type="email" />
             </div>
           </div>
           
           <!-- 步骤 3: 系统设置 -->
           <div v-if="currentStep === 2" class="step-form">
-            <h3>系统设置</h3>
+            <h3>{{ t('setup.systemSettingsTitle') }}</h3>
             <div class="form-group">
-              <label>系统名称</label>
+              <label>{{ t('setup.systemName') }}</label>
               <input v-model="config.system.name" placeholder="LiteDock" type="text" />
             </div>
             
             <div class="form-group">
-              <label>监听端口</label>
+              <label>{{ t('setup.listenPort') }}</label>
               <input v-model="config.system.port" placeholder="8080" type="number" min="1024" max="65535" />
             </div>
             
             <div class="form-group checkbox">
               <input v-model="config.system.enableMetrics" type="checkbox" id="metrics" />
-              <label for="metrics">启用监控指标</label>
+              <label for="metrics">{{ t('setup.enableMetrics') }}</label>
             </div>
             
             <div class="form-group checkbox">
               <input v-model="config.system.enableSwagger" type="checkbox" id="swagger" />
-              <label for="swagger">启用 API 文档</label>
+              <label for="swagger">{{ t('setup.enableApiDocs') }}</label>
             </div>
           </div>
           
           <!-- 步骤 4: 完成配置 -->
           <div v-if="currentStep === 3" class="step-complete">
             <div class="success-icon">✓</div>
-            <h3>配置完成！</h3>
-            <p>LiteDock 已成功配置，现在可以开始使用了。</p>
+            <h3>{{ t('setup.setupComplete') }}</h3>
+            <p>{{ t('setup.setupCompleteDesc') }}</p>
             
             <div class="config-summary">
-              <h4>配置摘要</h4>
+              <h4>{{ t('setup.configSummary') }}</h4>
               <ul>
-                <li>Docker 连接: {{ config.docker.type === 'local' ? '本地' : '远程' }}</li>
-                <li>管理员用户: {{ config.admin.username }}</li>
-                <li>系统端口: {{ config.system.port }}</li>
-                <li>监控指标: {{ config.system.enableMetrics ? '启用' : '禁用' }}</li>
+                <li>{{ t('setup.dockerConnection') }} {{ config.docker.type === 'local' ? t('setup.local') : t('setup.remote') }}</li>
+                <li>{{ t('setup.adminUser') }} {{ config.admin.username }}</li>
+                <li>{{ t('setup.systemPort') }} {{ config.system.port }}</li>
+                <li>{{ t('setup.metricsStatus') }} {{ config.system.enableMetrics ? t('setup.enabled') : t('setup.disabled') }}</li>
               </ul>
             </div>
           </div>
@@ -121,7 +121,7 @@
             @click="previousStep" 
             class="btn-secondary"
           >
-            上一步
+            {{ t('setup.previousStep') }}
           </button>
           
           <button 
@@ -130,7 +130,7 @@
             class="btn-primary"
             :disabled="!canProceed"
           >
-            下一步
+            {{ t('setup.nextStep') }}
           </button>
           
           <button 
@@ -138,7 +138,7 @@
             @click="completeSetup" 
             class="btn-primary"
           >
-            开始使用
+            {{ t('setup.startUsing') }}
           </button>
         </div>
       </div>
@@ -149,6 +149,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { t } from '@/i18n'
 
 interface Config {
   docker: {
@@ -179,10 +180,10 @@ const emit = defineEmits(['close', 'complete'])
 const router = useRouter()
 
 const steps = [
-  { title: 'Docker 配置' },
-  { title: '管理员账户' },
-  { title: '系统设置' },
-  { title: '完成' }
+  { title: t('setup.dockerConfig') },
+  { title: t('setup.adminAccount') },
+  { title: t('setup.systemSettings') },
+  { title: t('setup.complete') }
 ]
 
 const currentStep = ref(0)

@@ -3,73 +3,76 @@
     <div class="login-card">
       <div class="login-header">
         <div class="logo">
-          <img src="/src/assets/logo.svg" alt="LiteDock" v-if="hasLogo" />
-          <div class="logo-text" v-else>LiteDock</div>
+          <span class="logo-text">LiteDock</span>
         </div>
-        <h1>欢迎回来</h1>
-        <p>登录到 LiteDock 管理平台</p>
+        <h1>{{ t('auth.welcomeBack') }}</h1>
+        <p>{{ t('auth.loginSubtitle') }}</p>
       </div>
-      
-       <form @submit.prevent="handleLogin" class="login-form">
-         <div class="form-group" :class="{ error: errors.username }">
-           <label for="username">用户名</label>
-           <input
-             id="username"
-             v-model="credentials.username"
-             type="text"
-             placeholder="请输入用户名 (默认: admin)"
-             :disabled="loading"
-             required
-           />
-           <span class="error-message" v-if="errors.username">{{ errors.username }}</span>
-         </div>
-         
-         <div class="form-group" :class="{ error: errors.password }">
-           <label for="password">密码</label>
-           <div class="password-input">
-             <input
-               id="password"
-               v-model="credentials.password"
-               :type="showPassword ? 'text' : 'password'"
-               placeholder="请输入密码 (默认: admin)"
-               :disabled="loading"
-               required
-             />
-             <button
-               type="button"
-               @click="showPassword = !showPassword"
-               class="password-toggle"
-             >
-               {{ showPassword ? '隐藏' : '显示' }}
-             </button>
-           </div>
-           <span class="error-message" v-if="errors.password">{{ errors.password }}</span>
-         </div>
-        
-         <div class="form-options">
-           <label class="checkbox">
-             <input v-model="rememberMe" type="checkbox" />
-             <span>记住我</span>
-           </label>
-           
-           <a href="#" class="forgot-password" @click.prevent="useDefaultCredentials">
-             使用默认凭证？
-           </a>
-         </div>
-        
-        <button type="submit" class="login-btn" :disabled="loading">
-          <span v-if="!loading">登录</span>
-          <span v-else class="loading-spinner">
-            <div class="spinner"></div>
-            登录中...
+
+      <div class="success-message" v-if="showRegisteredSuccess">
+        <CheckCircle :size="16" />
+        {{ t('auth.adminCreatedSuccess') }}
+      </div>
+
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="form-group" :class="{ error: errors.username }">
+          <label for="username">{{ t('auth.username') }}</label>
+          <input
+            id="username"
+            v-model="credentials.username"
+            type="text"
+            :placeholder="t('auth.usernamePlaceholder')"
+            :disabled="loading"
+            required
+            class="input"
+          />
+          <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
+        </div>
+
+        <div class="form-group" :class="{ error: errors.password }">
+          <label for="password">{{ t('auth.password') }}</label>
+          <div class="password-input">
+            <input
+              id="password"
+              v-model="credentials.password"
+              :type="showPassword ? 'text' : 'password'"
+              :placeholder="t('auth.passwordPlaceholder')"
+              :disabled="loading"
+              required
+              class="input"
+            />
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="password-toggle"
+            >
+              <Eye v-if="!showPassword" :size="16" />
+              <EyeOff v-else :size="16" />
+            </button>
+          </div>
+          <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox">
+            <input v-model="rememberMe" type="checkbox" />
+            <span>{{ t('auth.rememberMe') }}</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
+          <span v-if="!loading">{{ t('auth.login') }}</span>
+          <span v-else class="loading">
+            <Loader2 :size="16" class="spinning" />
+            {{ t('auth.loggingIn') }}
           </span>
         </button>
       </form>
-      
+
       <div class="login-footer">
-        <p>
-          还没有账户？
-          <a href="#" @click.prevent="handleSetup">重新配置</a>
+        <p v-if="!setupComplete">
+          {{ t('auth.noAccount') }}
+          <a href="#" @click.prevent="goToSetup">{{ t('auth.createAdmin') }}</a>
         </p>
       </div>
     </div>
@@ -77,322 +80,293 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
-const credentials = reactive({
-  username: '',
-  password: ''
-})
-
-const errors = reactive({
-  username: '',
-  password: ''
-})
-
+const credentials = reactive({ username: '', password: '' })
+const errors = reactive({ username: '', password: '' })
 const loading = ref(false)
 const showPassword = ref(false)
 const rememberMe = ref(false)
-const hasLogo = ref(true) // Logo file exists
+const setupComplete = ref(false)
+const showRegisteredSuccess = ref(false)
+
+onMounted(async () => {
+  setupComplete.value = await authStore.checkSetupStatus()
+
+  if (route.query.registered === 'true') {
+    showRegisteredSuccess.value = true
+  }
+
+  if (authStore.token) {
+    const isAuth = await authStore.checkAuth()
+    if (isAuth) {
+      router.push('/')
+    }
+  }
+})
 
 const validateForm = () => {
   errors.username = ''
   errors.password = ''
-  
+
   if (!credentials.username.trim()) {
-    errors.username = '请输入用户名'
+    errors.username = t('auth.usernameRequired')
     return false
   }
-  
+
   if (!credentials.password.trim()) {
-    errors.password = '请输入密码'
+    errors.password = t('auth.passwordRequired')
     return false
   }
-  
+
   if (credentials.password.length < 6) {
-    errors.password = '密码长度至少6位'
+    errors.password = t('auth.passwordMinLength6')
     return false
   }
-  
+
   return true
 }
 
 const handleLogin = async () => {
   if (!validateForm()) return
-  
+
   loading.value = true
-  
+
   try {
     const result = await authStore.login(credentials)
-    
+
     if (result.success) {
       if (rememberMe.value) {
         localStorage.setItem('litedock-remember', 'true')
       }
       router.push('/')
     } else {
-      errors.password = result.message || '登录失败'
+      errors.password = result.message || t('auth.loginFailed')
     }
   } catch (error: any) {
-    errors.password = error.response?.data?.message || '登录失败，请重试'
+    errors.password = error.response?.data?.message || t('auth.loginFailedRetry')
   } finally {
     loading.value = false
   }
 }
 
-const handleForgotPassword = () => {
-  // 这里可以实现忘记密码功能
-  alert('请联系系统管理员重置密码')
+const goToSetup = () => {
+  router.push('/setup')
 }
-
- const handleSetup = () => {
-   // 清除配置状态，重新进入配置流程
-   localStorage.removeItem('litedock-configured')
-   router.push('/setup')
- }
- 
- const useDefaultCredentials = () => {
-   credentials.username = 'admin'
-   credentials.password = 'admin'
- }
-
- // 检查是否有记住的用户名
- if (localStorage.getItem('litedock-configured') === 'true') {
-   if (localStorage.getItem('litedock-remember') === 'true') {
-     const savedUsername = localStorage.getItem('litedock-username')
-     if (savedUsername) {
-       credentials.username = savedUsername
-       rememberMe.value = true
-     }
-   }
- } else {
-   // If not configured, show default credentials hint
-   credentials.username = ''
-   credentials.password = ''
- }
- </script>
+</script>
 
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: var(--space-6);
 }
 
 .login-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-width: 380px;
   width: 100%;
-  overflow: hidden;
+  padding: var(--space-8);
 }
 
 .login-header {
-  padding: 40px 40px 20px 40px;
   text-align: center;
+  margin-bottom: var(--space-6);
 }
 
 .logo {
-  margin-bottom: 20px;
-}
-
-.logo img {
-  width: 60px;
-  height: 60px;
+  margin-bottom: var(--space-4);
 }
 
 .logo-text {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
-  color: white;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0 auto;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  letter-spacing: -0.02em;
 }
 
 .login-header h1 {
-  margin: 0 0 8px 0;
-  color: #000000;
-  font-size: 1.5rem;
-  font-weight: 600;
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .login-header p {
   margin: 0;
-  color: #404040;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
 }
 
 .login-form {
-  padding: 20px 40px 30px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #000000;
-  font-weight: 500;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-strong);
 }
 
-.form-group input {
+.input {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #d4d4d4;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-strong);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.form-group input:focus {
+.input::placeholder {
+  color: var(--color-text-weaker);
+}
+
+.input:focus {
   outline: none;
-  border-color: #000000;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-background-strong);
+  box-shadow: 0 0 0 3px var(--color-background-interactive-weaker);
 }
 
-.form-group.error input {
-  border-color: #000000;
+.form-group.error .input {
+  border-color: var(--color-error);
 }
 
-.error-message {
-  color: #000000;
-  font-size: 0.75rem;
-  margin-top: 4px;
-  display: block;
+.error-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }
 
 .password-input {
   position: relative;
 }
 
+.password-input .input {
+  padding-right: var(--space-10);
+}
+
 .password-toggle {
   position: absolute;
-  right: 12px;
+  right: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #404040;
+  color: var(--color-text-weaker);
   cursor: pointer;
-  font-size: 0.75rem;
-  padding: 4px 8px;
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .password-toggle:hover {
-  color: #000000;
+  color: var(--color-text);
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
 }
 
 .checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
-  font-size: 0.875rem;
-  color: #404040;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
 .checkbox input {
   width: auto;
   margin: 0;
+  accent-color: var(--color-background-strong);
 }
 
-.forgot-password {
-  color: #000000;
-  text-decoration: none;
-  font-size: 0.875rem;
+.btn-primary {
+  background: var(--color-background-strong);
+  color: var(--color-background);
+  border-color: var(--color-background-strong);
 }
 
-.forgot-password:hover {
-  text-decoration: underline;
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-text-weak);
+  border-color: var(--color-text-weak);
 }
 
-.login-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-}
-
-.login-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.loading-spinner {
+.loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
+.spinning {
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 .login-footer {
-  padding: 20px 40px 40px 40px;
+  margin-top: var(--space-6);
   text-align: center;
-  border-top: 1px solid #e5e5e5;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-weak);
 }
 
 .login-footer p {
   margin: 0;
-  color: #404040;
-  font-size: 0.875rem;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .login-footer a {
-  color: #000000;
-  text-decoration: none;
-  font-weight: 500;
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-medium);
 }
 
 .login-footer a:hover {
-  text-decoration: underline;
+  color: var(--color-text-weak);
 }
 </style>

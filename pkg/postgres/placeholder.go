@@ -5,9 +5,12 @@ import (
 	"strings"
 )
 
+const _placeholderBuffer = 16
+
 func rewritePlaceholders(query string) string {
 	var b strings.Builder
-	b.Grow(len(query) + 16)
+	b.Grow(len(query) + _placeholderBuffer)
+
 	n := 0
 	inQuote := false
 
@@ -19,13 +22,16 @@ func rewritePlaceholders(query string) string {
 				b.WriteByte(ch)
 				b.WriteByte(query[i+1])
 				i++
+
 				continue
 			}
+
 			inQuote = !inQuote
 		}
 
 		if ch == '?' && !inQuote {
 			n++
+
 			b.WriteByte('$')
 			b.WriteString(strconv.Itoa(n))
 		} else {

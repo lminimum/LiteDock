@@ -5,38 +5,38 @@ import (
 	"time"
 )
 
-// Option
+// Option.
 type Option func(*Server)
 
-// Port
+// Port.
 func Port(port string) Option {
 	return func(s *Server) {
 		s.address = net.JoinHostPort("", port)
 	}
 }
 
-// Prefork
+// Prefork.
 func Prefork(prefork bool) Option {
 	return func(s *Server) {
 		s.prefork = prefork
 	}
 }
 
-// ReadTimeout
+// ReadTimeout.
 func ReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		s.readTimeout = timeout
 	}
 }
 
-// WriteTimeout
+// WriteTimeout.
 func WriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		s.writeTimeout = timeout
 	}
 }
 
-// ShutdownTimeout
+// ShutdownTimeout.
 func ShutdownTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		s.shutdownTimeout = timeout

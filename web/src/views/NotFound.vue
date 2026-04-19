@@ -2,14 +2,16 @@
   <div class="not-found">
     <div class="not-found-content">
       <div class="error-code">404</div>
-      <h1>页面未找到</h1>
-      <p>抱歉，您访问的页面不存在或已被移动。</p>
+      <h1>{{ t('pages.notFound.title') }}</h1>
+      <p>{{ t('pages.notFound.description') }}</p>
       <div class="not-found-actions">
-        <button @click="goBack" class="btn-secondary">
-          ← 返回上页
+        <button @click="goBack" class="btn btn-secondary">
+          <ArrowLeft :size="18" />
+          {{ t('pages.notFound.back') }}
         </button>
-        <router-link to="/" class="btn-primary">
-          🏠 返回首页
+        <router-link to="/" class="btn btn-primary">
+          <Home :size="18" />
+          {{ t('pages.notFound.home') }}
         </router-link>
       </div>
     </div>
@@ -18,6 +20,8 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { ArrowLeft, Home } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const router = useRouter()
 
@@ -40,65 +44,32 @@ const goBack = () => {
 }
 
 .error-code {
-  font-size: 6rem;
-  font-weight: 700;
-  color: #cbd5e1;
-  margin-bottom: 20px;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-weaker);
+  margin-bottom: var(--space-4);
 }
 
 .not-found-content h1 {
-  color: #1e293b;
-  margin-bottom: 12px;
-  font-size: 2rem;
+  color: var(--color-text-strong);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-2xl);
 }
 
 .not-found-content p {
-  color: #64748b;
-  margin-bottom: 32px;
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
 }
 
 .not-found-actions {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
-}
-
-.btn-primary,
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #5a67d8;
-}
-
-.btn-secondary {
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #d1d5db;
-}
-
-.btn-secondary:hover {
-  background: #f1f5f9;
 }
 
 @media (max-width: 767px) {
   .not-found {
-    padding: 16px;
+    padding: var(--space-4);
     min-height: 50vh;
   }
 
@@ -107,27 +78,12 @@ const goBack = () => {
   }
 
   .error-code {
-    font-size: 4rem;
-    margin-bottom: 16px;
-  }
-
-  .not-found-content h1 {
-    font-size: 1.5rem;
-  }
-
-  .not-found-content p {
-    font-size: 0.875rem;
-    margin-bottom: 24px;
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-4);
   }
 
   .not-found-actions {
     flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    justify-content: center;
   }
 }
 </style>

@@ -1,13 +1,12 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/caarlos0/env/v11"
+	"github.com/lminimum/LiteDock/pkg/errors"
 )
 
 type (
-	// Config
+	// Config.
 	Config struct {
 		App     App
 		HTTP    HTTP
@@ -17,24 +16,24 @@ type (
 		Swagger Swagger
 	}
 
-	// App
+	// App.
 	App struct {
 		Name    string `env:"APP_NAME,required"`
 		Version string `env:"APP_VERSION,required"`
 	}
 
-	// HTTP
+	// HTTP.
 	HTTP struct {
 		Port           string `env:"HTTP_PORT,required"`
 		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
 	}
 
-	// Log
+	// Log.
 	Log struct {
 		Level string `env:"LOG_LEVEL,required"`
 	}
 
-	// DB
+	// DB.
 	DB struct {
 		Type      string `env:"DB_TYPE" envDefault:"sqlite"` // postgres, mysql, sqlite
 		PoolMax   int    `env:"DB_POOL_MAX,required"`
@@ -42,12 +41,12 @@ type (
 		SQLiteDSN string `env:"SQLITE_DSN"`
 	}
 
-	// Metrics
+	// Metrics.
 	Metrics struct {
 		Enabled bool `env:"METRICS_ENABLED" envDefault:"true"`
 	}
 
-	// Swagger
+	// Swagger.
 	Swagger struct {
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}
@@ -57,7 +56,7 @@ type (
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("config error: %w", err)
+		return nil, errors.Wrap(err, "Config.New.Parse")
 	}
 
 	return cfg, nil

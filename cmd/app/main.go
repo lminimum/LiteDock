@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/joho/godotenv"
 	"github.com/lminimum/LiteDock/config"
 	"github.com/lminimum/LiteDock/internal/app"
-	"github.com/joho/godotenv"
 )
 
 func main() {

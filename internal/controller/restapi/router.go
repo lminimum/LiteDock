@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"github.com/lminimum/LiteDock/config"
 	_ "github.com/lminimum/LiteDock/docs" // Swagger docs.
 	"github.com/lminimum/LiteDock/internal/controller/restapi/middleware"
 	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
 	"github.com/lminimum/LiteDock/internal/usecase"
 	"github.com/lminimum/LiteDock/pkg/logger"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/swagger"
 )
 
 // NewRouter

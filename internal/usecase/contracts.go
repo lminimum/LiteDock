@@ -22,5 +22,6 @@ type (
 		Register(ctx context.Context, username, email, password, role string) (*entity.User, error)
 		GetCurrentUser(ctx context.Context, token string) (*entity.User, error)
 		RefreshToken(ctx context.Context, token string) (string, error)
+		IsSetupComplete(ctx context.Context) (bool, error)
 	}
 )

@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"github.com/lminimum/LiteDock/internal/usecase"
-	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 // ContainerHandler handles container requests.
@@ -22,5 +22,6 @@ func (h *ContainerHandler) List(c *fiber.Ctx) error {
 // Get handles GET /v1/containers/:id
 func (h *ContainerHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
+
 	return c.JSON(fiber.Map{"id": id, "name": "placeholder"})
 }

@@ -2,7 +2,7 @@ package database
 
 import "context"
 
-// DB is the common database interface
+// DB is the common database interface.
 type DB interface {
 	Query(ctx context.Context, q string, args ...any) (interface{}, error)
 	QueryRow(ctx context.Context, q string, args ...any) interface{}
@@ -11,7 +11,7 @@ type DB interface {
 	Close()
 }
 
-// Row is a single row result that can be scanned (for type assertions)
+// Row is a single row result that can be scanned (for type assertions).
 type Row interface {
 	Scan(dest ...any) error
 }
