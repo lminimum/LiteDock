@@ -102,6 +102,13 @@ chore(deps): upgrade go-fiber to v2.53.0
    git push origin --delete feature/my-feature
 ```
 
+**IMPORTANT - Commit Review Rule**:
+After completing any implementation or change, **DO NOT commit immediately**. Stage the changes with `git add`, but wait for either:
+- The user to review and approve the changes, OR
+- A code review to be completed
+
+Only commit after receiving explicit approval. This ensures changes are reviewed before becoming part of the project history.
+
 ### PR Guidelines
 
 - **Title**: Follow commit convention (e.g., `feat(backend): add container stats API`)
