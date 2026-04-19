@@ -3,10 +3,10 @@
     <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="logo" v-if="!sidebarCollapsed">
-          <img :src="logoUrl" alt="LiteDock" class="logo-img" />
+          <span class="logo-text">LD</span>
         </div>
         <div class="logo-collapsed" v-else>
-          <img :src="logoUrl" alt="LiteDock" class="logo-img-collapsed" />
+          <span class="logo-text">LD</span>
         </div>
       </div>
 
@@ -125,7 +125,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { t } from '@/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
-import logoUrl from '@/assets/logo.svg?url'
 import {
   LayoutDashboard,
   Box,
@@ -284,17 +283,25 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.logo-img {
-  height: 28px;
-  width: auto;
+.logo-text {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  letter-spacing: -0.02em;
 }
 
 .logo-collapsed {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+}
+
+.logo-collapsed .logo-text {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
 }
 
 .logo-img-collapsed {
