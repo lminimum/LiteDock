@@ -77,7 +77,7 @@ func parseTimeFromRow(src interface{}, dest *time.Time) error {
 	return nil
 }
 
-func (r *UserRepo) CreateUser(ctx context.Context, user entity.User) error {
+func (r *UserRepo) CreateUser(ctx context.Context, user *entity.User) error {
 	query := `
 		INSERT INTO users(id, username, email, password, role, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -146,7 +146,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.Us
 	return r.queryUserBy(ctx, "email", email)
 }
 
-func (r *UserRepo) UpdateUser(ctx context.Context, user entity.User) error {
+func (r *UserRepo) UpdateUser(ctx context.Context, user *entity.User) error {
 	query := `UPDATE users SET username=?, email=?, role=?, updated_at=? WHERE id=?`
 
 	err := r.db.Exec(ctx, query,

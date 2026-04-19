@@ -85,7 +85,7 @@ func (uc *UseCase) Register(ctx context.Context, username, email, password, role
 		UpdatedAt: time.Now(),
 	}
 
-	err = uc.repo.CreateUser(ctx, newUser)
+	err = uc.repo.CreateUser(ctx, &newUser)
 	if err != nil {
 		return nil, errors.Wrap(err, "Auth.Register.CreateUser")
 	}

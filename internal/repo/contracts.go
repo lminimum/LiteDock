@@ -18,11 +18,11 @@ type (
 
 	// UserRepo - manages user accounts
 	UserRepo interface {
-		CreateUser(context.Context, entity.User) error
+		CreateUser(context.Context, *entity.User) error
 		GetUserByID(context.Context, string) (*entity.User, error)
 		GetUserByUsername(context.Context, string) (*entity.User, error)
 		GetUserByEmail(context.Context, string) (*entity.User, error)
-		UpdateUser(context.Context, entity.User) error
+		UpdateUser(context.Context, *entity.User) error
 		DeleteUser(context.Context, string) error
 		VerifyPassword(context.Context, string, string) (bool, error)
 		UpdatePassword(context.Context, string, string) error

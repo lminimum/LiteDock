@@ -2,24 +2,24 @@ package postgres
 
 import "time"
 
-// Option.
+// Option configures the PostgreSQL connection with custom settings.
 type Option func(*Postgres)
 
-// MaxPoolSize.
+// MaxPoolSize sets the maximum number of connections in the connection pool.
 func MaxPoolSize(size int) Option {
 	return func(c *Postgres) {
 		c.maxPoolSize = size
 	}
 }
 
-// ConnAttempts.
+// ConnAttempts sets the number of connection retry attempts.
 func ConnAttempts(attempts int) Option {
 	return func(c *Postgres) {
 		c.connAttempts = attempts
 	}
 }
 
-// ConnTimeout.
+// ConnTimeout sets the connection timeout duration.
 func ConnTimeout(timeout time.Duration) Option {
 	return func(c *Postgres) {
 		c.connTimeout = timeout

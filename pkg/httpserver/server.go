@@ -19,7 +19,7 @@ const (
 	_defaultShutdownTimeout = 3 * time.Second
 )
 
-// Server.
+// Server is the HTTP server that handles incoming requests using Fiber.
 type Server struct {
 	ctx context.Context
 	eg  *errgroup.Group
@@ -36,7 +36,7 @@ type Server struct {
 	logger logger.Interface
 }
 
-// New.
+// New creates a new HTTP server instance with the provided logger and configuration options.
 func New(l logger.Interface, opts ...Option) *Server {
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(1) // Run only one goroutine
@@ -71,7 +71,7 @@ func New(l logger.Interface, opts ...Option) *Server {
 	return s
 }
 
-// Start.
+// Start launches the HTTP server and begins listening for incoming requests.
 func (s *Server) Start() {
 	s.eg.Go(func() error {
 		err := s.App.Listen(s.address)
@@ -89,12 +89,12 @@ func (s *Server) Start() {
 	s.logger.Info("restapi server - Server - Started")
 }
 
-// Notify.
+// Notify returns a channel that receives errors when the server stops.
 func (s *Server) Notify() <-chan error {
 	return s.notify
 }
 
-// Shutdown.
+// Shutdown gracefully shuts down the HTTP server.
 func (s *Server) Shutdown() error {
 	var shutdownErrors []error
 
