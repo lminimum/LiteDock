@@ -1,19 +1,20 @@
 <!-- web/src/components/layout/AppHeader.vue -->
 <template>
   <header class="top-header">
+    <!-- Mobile menu button - only visible on mobile -->
+    <button @click="$emit('toggle-sidebar')" class="menu-toggle" :title="t('common.menu')">
+      <Menu :size="20" />
+    </button>
+
     <div class="header-left">
       <h1 class="page-title">{{ currentPageTitle }}</h1>
-      <AppBreadcrumb :crumbs="breadcrumbs" />
+      <AppBreadcrumb class="header-breadcrumb" :crumbs="breadcrumbs" />
     </div>
 
     <div class="header-right">
       <div class="header-actions">
         <button @click="refreshData" class="btn btn-ghost" :title="t('common.refresh')">
           <RefreshCw :size="18" :class="{ spinning: refreshing }" />
-        </button>
-        <button @click="theme.toggle()" class="btn btn-ghost" :title="t('common.switchTheme')">
-          <Sun v-if="theme.isDarkMode.value" :size="18" />
-          <Moon v-else :size="18" />
         </button>
         <LanguageSwitcher />
         <div class="notification-dropdown" ref="notifRef">
@@ -33,14 +34,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { t } from '@/i18n'
-import { useTheme } from '@/composables/useTheme'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import UserMenu from '@/components/layout/UserMenu.vue'
-import { RefreshCw, Bell, Sun, Moon } from 'lucide-vue-next'
+import { RefreshCw, Bell, Menu } from 'lucide-vue-next'
+
+defineEmits<{
+  (e: 'toggle-sidebar'): void
+}>()
 
 const route = useRoute()
-const theme = useTheme()
 
 const refreshing = ref(false)
 const notificationsOpen = ref(false)
@@ -100,6 +103,24 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   justify-content: space-between;
   padding: 0 var(--space-6);
   background: var(--color-background);
+}
+
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-weak);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.menu-toggle:hover {
+  background: var(--color-background-hover);
+  color: var(--color-text-strong);
 }
 
 .page-title {
@@ -174,6 +195,22 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 @media (max-width: 767px) {
   .top-header {
     padding: 0 var(--space-4);
+  }
+
+  .menu-toggle {
+    display: flex;
+  }
+
+  .page-title {
+    font-size: var(--font-size-sm);
+  }
+
+  .header-breadcrumb {
+    display: none;
+  }
+
+  .header-actions .notification-dropdown {
+    display: none;
   }
 }
 

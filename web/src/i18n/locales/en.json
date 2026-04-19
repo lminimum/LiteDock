@@ -223,6 +223,8 @@
     }
   },
   "common": {
+    "menu": "Menu",
+    "close": "Close",
     "refresh": "Refresh",
     "switchTheme": "Switch Theme",
     "notifications": "Notifications",

@@ -1,8 +1,8 @@
 <!-- web/src/components/nav/SidebarNav.vue -->
 <template>
-  <nav class="sidebar-nav" :class="{ collapsed }">
+  <nav class="sidebar-nav" :class="{ collapsed, 'mobile-mode': isMobile }">
     <div class="nav-section">
-      <div class="nav-section-header">
+      <div class="nav-section-header" v-if="!isMobile">
         <div class="nav-section-title">{{ t('nav.main') }}</div>
         <div class="nav-section-spacer"></div>
       </div>
@@ -15,11 +15,12 @@
         :active="currentRouteName === item.name"
         :collapsed="collapsed"
         :badge="item.badge"
+        :is-mobile="isMobile"
       />
     </div>
 
     <div class="nav-section">
-      <div class="nav-section-header">
+      <div class="nav-section-header" v-if="!isMobile">
         <div class="nav-section-title">{{ t('nav.system') }}</div>
         <div class="nav-section-spacer"></div>
       </div>
@@ -31,6 +32,7 @@
         :label="item.label"
         :active="currentRouteName === item.name"
         :collapsed="collapsed"
+        :is-mobile="isMobile"
       />
     </div>
   </nav>
@@ -53,6 +55,11 @@ import {
 
 defineProps<{
   collapsed: boolean
+  isMobile: boolean
+}>()
+
+defineEmits<{
+  (e: 'navigate'): void
 }>()
 
 const route = useRoute()
@@ -113,5 +120,20 @@ const systemNavItems = computed(() => [
 /* Collapsed state - title fades out but space remains */
 .sidebar-nav.collapsed .nav-section-title {
   opacity: 0;
+}
+
+/* Mobile mode - center items */
+@media (max-width: 767px) {
+  .sidebar-nav.mobile-mode {
+    padding: var(--space-4) 0;
+  }
+
+  .sidebar-nav.mobile-mode .nav-section {
+    margin-bottom: var(--space-6);
+  }
+
+  .sidebar-nav.mobile-mode .nav-section:first-child {
+    margin-top: var(--space-4);
+  }
 }
 </style>

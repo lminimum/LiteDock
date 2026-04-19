@@ -4,7 +4,7 @@
     <button @click="toggleMenu" class="user-menu-button">
       <UserAvatar :username="authStore.user?.username" size="sm" />
       <span class="user-name">{{ authStore.user?.username }}</span>
-      <ChevronDown :size="16" />
+      <ChevronDown :size="16" class="chevron-icon" />
     </button>
 
     <div v-if="menuOpen" class="user-menu-dropdown">
@@ -115,5 +115,15 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 .user-menu-dropdown a:hover {
   background: var(--color-background-hover);
+}
+
+@media (max-width: 767px) {
+  .user-menu-button .user-name {
+    display: none;
+  }
+
+  .user-menu-button .chevron-icon {
+    display: none;
+  }
 }
 </style>
