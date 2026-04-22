@@ -1,5 +1,8 @@
 <template>
   <div class="dashboard">
+    <div class="page-header">
+      <h1>{{ t('dashboard.title') }}</h1>
+    </div>
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon containers">

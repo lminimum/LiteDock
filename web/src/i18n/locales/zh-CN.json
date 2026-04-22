@@ -12,6 +12,7 @@
     "system": "系统"
   },
   "dashboard": {
+    "title": "概览",
     "totalContainers": "容器总数",
     "running": "运行中",
     "stopped": "已停止",
@@ -66,6 +67,7 @@
     "create": "创建容器",
     "image": "镜像:",
     "ports": "端口:",
+    "machine": "所属机器:",
     "createdAt": "创建时间:",
     "confirmDelete": "确定要删除这个容器吗？"
   },

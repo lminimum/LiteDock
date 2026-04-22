@@ -56,6 +56,10 @@
             <span class="label">{{ t('containers.ports') }}</span>
             <span class="value">{{ container.ports || '-' }}</span>
           </div>
+          <div v-if="container.machine" class="info-item">
+            <span class="label">{{ t('containers.machine') }}</span>
+            <span class="value">{{ container.machine }}</span>
+          </div>
           <div class="info-item">
             <span class="label">{{ t('containers.createdAt') }}</span>
             <span class="value">{{ formatDate(container.createdAt) }}</span>
@@ -121,6 +125,7 @@ interface Container {
   status: 'running' | 'stopped' | 'paused'
   ports: string
   createdAt: Date
+  machine?: string
 }
 
 const loading = ref(false)
@@ -135,7 +140,8 @@ const containers = ref<Container[]>([
     image: 'nginx:latest',
     status: 'running',
     ports: '80:8080',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    machine: 'test-server'
   },
   {
     id: '2',
@@ -143,7 +149,8 @@ const containers = ref<Container[]>([
     image: 'postgres:15',
     status: 'running',
     ports: '5432:5432',
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    machine: 'test-server'
   },
   {
     id: '3',
@@ -151,7 +158,8 @@ const containers = ref<Container[]>([
     image: 'redis:7',
     status: 'stopped',
     ports: '6379:6379',
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    machine: 'test-server'
   }
 ])
 
