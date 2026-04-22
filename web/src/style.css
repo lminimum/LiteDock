@@ -87,6 +87,10 @@
   --header-height: 56px;
   --container-max: 67.5rem;
   --content-padding: var(--space-6);
+
+  /* Terminal / Logs */
+  --color-terminal-bg: hsl(0, 5%, 8%);
+  --color-terminal-text: hsl(142, 60%, 75%);
 }
 
 /* Dark Mode */
@@ -109,6 +113,9 @@
     --color-warning-bg: hsl(38, 80%, 15%);
     --color-error-bg: hsl(0, 60%, 15%);
     --color-info-bg: hsl(217, 60%, 15%);
+
+    --color-terminal-bg: hsl(0, 5%, 8%);
+    --color-terminal-text: hsl(142, 40%, 65%);
   }
 }
 

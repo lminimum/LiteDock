@@ -6,8 +6,8 @@
           <ArrowLeft :size="16" />
         </button>
         <h1>{{ machine?.name || t('machines.title') }}</h1>
-        <div v-if="machine" class="badge" :class="getStatusClass(machine.status)">
-          {{ t(`machines.status.${machine.status}`) }}
+        <div v-if="machine" class="badge" :class="getConnectionStatusClass(connectionStatus)">
+          {{ getConnectionStatusText(connectionStatus) }}
         </div>
       </div>
       <button @click="refreshAll" class="btn btn-secondary" :disabled="loading">
@@ -201,6 +201,7 @@ const route = useRoute()
 const machineId = route.params.id as string
 
 const loading = ref(false)
+const connectionStatus = ref<'unknown' | 'testing' | 'online' | 'offline'>('unknown')
 const logsLoading = ref(false)
 const execLoading = ref(false)
 const searchQuery = ref('')
@@ -260,6 +261,7 @@ const goBack = () => {
 
 const refreshAll = async () => {
   loading.value = true
+  connectionStatus.value = 'testing'
   try {
     const [m, c] = await Promise.all([
       remoteMachineService.get(machineId),
@@ -267,11 +269,42 @@ const refreshAll = async () => {
     ])
     machine.value = m
     containers.value = c
+
+    // Test connection and update status
+    try {
+      await remoteMachineService.testConnection(machineId)
+      connectionStatus.value = 'online'
+      machine.value = { ...m, status: 'online' }
+    } catch {
+      connectionStatus.value = 'offline'
+      machine.value = { ...m, status: 'offline' }
+    }
   } catch (e) {
     console.error('Failed to refresh:', e)
+    connectionStatus.value = 'offline'
   } finally {
     loading.value = false
   }
+}
+
+const getConnectionStatusClass = (status: string) => {
+  const classMap: Record<string, string> = {
+    online: 'badge-success',
+    offline: 'badge-error',
+    testing: 'badge-info',
+    unknown: 'badge-warning'
+  }
+  return classMap[status] || ''
+}
+
+const getConnectionStatusText = (status: string) => {
+  const textMap: Record<string, string> = {
+    online: t('machines.status.online'),
+    offline: t('machines.status.offline'),
+    testing: t('machines.testing'),
+    unknown: t('machines.status.unknown')
+  }
+  return textMap[status] || status
 }
 
 const selectContainerForLogs = async (container: RemoteContainer) => {
@@ -559,7 +592,7 @@ onUnmounted(() => {
   min-height: 300px;
   max-height: 400px;
   overflow: auto;
-  background: var(--color-background-strong);
+  background: var(--color-terminal-bg);
   padding: var(--space-3);
 }
 
@@ -567,7 +600,7 @@ onUnmounted(() => {
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  color: var(--color-text-weaker);
+  color: var(--color-terminal-text);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -590,7 +623,7 @@ onUnmounted(() => {
   min-height: 150px;
   max-height: 200px;
   overflow: auto;
-  background: var(--color-background-strong);
+  background: var(--color-terminal-bg);
   padding: var(--space-3);
 }
 
@@ -598,7 +631,7 @@ onUnmounted(() => {
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  color: var(--color-text-weaker);
+  color: var(--color-terminal-text);
   white-space: pre-wrap;
   word-break: break-all;
 }

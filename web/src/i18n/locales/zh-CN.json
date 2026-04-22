@@ -104,6 +104,7 @@
       "offline": "离线",
       "unknown": "未知"
     },
+    "testing": "测试中...",
     "containerActions": "操作",
     "noContainers": "暂无容器",
     "loadingLogs": "加载日志中...",

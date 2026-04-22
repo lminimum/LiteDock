@@ -104,6 +104,7 @@
       "offline": "Offline",
       "unknown": "Unknown"
     },
+    "testing": "Testing...",
     "containerActions": "Actions",
     "noContainers": "No containers",
     "loadingLogs": "Loading logs...",
