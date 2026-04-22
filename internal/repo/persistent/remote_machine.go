@@ -2,6 +2,7 @@ package persistent
 
 import (
 	"context"
+	stdErrors "errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -98,9 +99,10 @@ func (r *RemoteMachineRepo) List(ctx context.Context) ([]entity.RemoteMachine, e
 		Next() bool
 		Scan(...any) error
 		Close() error
+		Err() error
 	})
 	if !ok {
-		return nil, errors.Wrap(err, "RemoteMachineRepo.List.typeAssertion")
+		return nil, stdErrors.New("RemoteMachineRepo.List: rows does not implement scanner interface (need Next/Scan/Close/Err)")
 	}
 	defer scanner.Close()
 
@@ -127,6 +129,10 @@ func (r *RemoteMachineRepo) List(ctx context.Context) ([]entity.RemoteMachine, e
 			return nil, errors.Wrap(err, "RemoteMachineRepo.List.scanRow")
 		}
 		machines = append(machines, m)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, errors.Wrap(err, "RemoteMachineRepo.List.rowsErr")
 	}
 
 	return machines, nil

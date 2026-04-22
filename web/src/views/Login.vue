@@ -244,36 +244,6 @@ const goToSetup = () => {
   color: var(--color-text-strong);
 }
 
-.input {
-  width: 100%;
-  padding: var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-strong);
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.input::placeholder {
-  color: var(--color-text-weaker);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--color-background-strong);
-  box-shadow: 0 0 0 3px var(--color-background-interactive-weaker);
-}
-
-.form-group.error .input {
-  border-color: var(--color-error);
-}
-
-.error-text {
-  font-size: var(--font-size-xs);
-  color: var(--color-error);
-}
-
 .password-input {
   position: relative;
 }
@@ -301,6 +271,15 @@ const goToSetup = () => {
   color: var(--color-text);
 }
 
+.form-group.error .input {
+  border-color: var(--color-error);
+}
+
+.error-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+}
+
 .form-options {
   display: flex;
   justify-content: space-between;
@@ -320,17 +299,6 @@ const goToSetup = () => {
   width: auto;
   margin: 0;
   accent-color: var(--color-background-strong);
-}
-
-.btn-primary {
-  background: var(--color-background-strong);
-  color: var(--color-background);
-  border-color: var(--color-background-strong);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-text-weak);
-  border-color: var(--color-text-weak);
 }
 
 .loading {

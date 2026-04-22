@@ -51,6 +51,7 @@ import {
   Network,
   HardDrive,
   Settings,
+  Server,
 } from 'lucide-vue-next'
 
 defineProps<{
@@ -69,6 +70,7 @@ const currentRouteName = computed(() => route.name)
 const mainNavItems = computed(() => [
   { name: 'Dashboard', path: '/', label: t('nav.overview'), icon: LayoutDashboard },
   { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Box, badge: '12' },
+  { name: 'Machines', path: '/machines', label: t('nav.machines'), icon: Server },
   { name: 'Orchestration', path: '/orchestration', label: t('nav.orchestration'), icon: GitBranch },
   { name: 'Images', path: '/images', label: t('nav.images'), icon: Image },
   { name: 'Networks', path: '/networks', label: t('nav.networks'), icon: Network },

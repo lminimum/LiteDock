@@ -1,7 +1,7 @@
 -- Create remote_machines table
 CREATE TABLE IF NOT EXISTS remote_machines (
     id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
     host VARCHAR(255) NOT NULL,
     port INTEGER DEFAULT 22,
     username VARCHAR(255) NOT NULL,
@@ -15,8 +15,5 @@ CREATE TABLE IF NOT EXISTS remote_machines (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index on name for faster lookups
 CREATE INDEX idx_remote_machines_name ON remote_machines(name);
-
--- Create index on host for faster lookups
 CREATE INDEX idx_remote_machines_host ON remote_machines(host);

@@ -117,6 +117,62 @@ export interface LoginResponse {
   expiresIn: number
 }
 
+export type AuthMethod = 'password' | 'key'
+
+export interface RemoteMachine {
+  id: string
+  name: string
+  host: string
+  port: number
+  username: string
+  auth_method: AuthMethod
+  ssh_key_path?: string
+  docker_host: string
+  status: 'online' | 'offline' | 'unknown'
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateMachineRequest {
+  name: string
+  host: string
+  port?: number
+  username: string
+  auth_method: AuthMethod
+  password?: string
+  ssh_key?: string
+  ssh_key_path?: string
+  docker_host?: string
+}
+
+export interface UpdateMachineRequest {
+  name?: string
+  host?: string
+  port?: number
+  username?: string
+  auth_method?: AuthMethod
+  password?: string
+  ssh_key?: string
+  ssh_key_path?: string
+  docker_host?: string
+}
+
+export interface RemoteContainer {
+  id: string
+  name: string
+  image: string
+  status: 'running' | 'stopped' | 'paused' | 'restarting' | 'exited' | 'created'
+  ports: string[]
+  createdAt: string
+  startedAt?: string
+  labels?: Record<string, string>
+  mounts?: Array<{
+    type: string
+    source: string
+    destination: string
+  }>
+}
+
 // 配置类型
 export interface AppConfig {
   system: {

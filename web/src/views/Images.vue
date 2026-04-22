@@ -1,7 +1,7 @@
 <template>
   <div class="page-placeholder">
     <div class="placeholder-content">
-      <div class="placeholder-card">
+      <div class="card" style="text-align: center; padding: var(--space-10) var(--space-8);">
         <div class="placeholder-icon">
           <ImageIcon :size="48" :stroke-width="1" />
         </div>
@@ -46,14 +46,6 @@ const features = [
 .placeholder-content {
   max-width: 600px;
   width: 100%;
-}
-
-.placeholder-card {
-  text-align: center;
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-  padding: var(--space-10) var(--space-8);
 }
 
 .placeholder-icon {
@@ -121,16 +113,12 @@ const features = [
     min-height: 50vh;
   }
 
-  .placeholder-card {
+  .card {
     padding: var(--space-6) var(--space-4);
   }
 
   .placeholder-card h2 {
     font-size: var(--font-size-xl);
-  }
-
-  .placeholder-features {
-    padding: var(--space-4);
   }
 }
 </style>

@@ -16,19 +16,31 @@
             type="text"
             :placeholder="t('auth.usernamePlaceholder')"
             :disabled="loading"
+            class="input"
           />
           <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
         </div>
 
         <div class="form-group" :class="{ error: errors.password }">
           <label for="password">{{ t('auth.adminPassword') }}</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            :placeholder="t('auth.adminPasswordPlaceholder')"
-            :disabled="loading"
-          />
+          <div class="password-input">
+            <input
+              id="password"
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              :placeholder="t('auth.adminPasswordPlaceholder')"
+              :disabled="loading"
+              class="input"
+            />
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="password-toggle"
+            >
+              <Eye v-if="!showPassword" :size="16" />
+              <EyeOff v-else :size="16" />
+            </button>
+          </div>
           <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
         </div>
 
@@ -37,9 +49,10 @@
           <input
             id="confirmPassword"
             v-model="form.confirmPassword"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             :placeholder="t('auth.confirmPasswordPlaceholder')"
             :disabled="loading"
+            class="input"
           />
           <span class="error-text" v-if="errors.confirmPassword">{{ errors.confirmPassword }}</span>
         </div>
@@ -52,6 +65,7 @@
             type="email"
             placeholder="admin@example.com"
             :disabled="loading"
+            class="input"
           />
         </div>
 
@@ -59,10 +73,10 @@
           {{ submitError }}
         </div>
 
-        <button type="submit" class="submit-btn" :disabled="loading">
+        <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
           <span v-if="!loading">{{ t('auth.createAccount') }}</span>
           <span v-else class="loading">
-            <span class="spinner"></span>
+            <Loader2 :size="16" class="spinning" />
             {{ t('auth.creating') }}
           </span>
         </button>
@@ -74,6 +88,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { t } from '@/i18n'
 
@@ -94,6 +109,7 @@ const errors = reactive({
 
 const loading = ref(false)
 const submitError = ref('')
+const showPassword = ref(false)
 
 const validate = (): boolean => {
   errors.username = ''
@@ -151,155 +167,128 @@ const handleSubmit = async () => {
 <style scoped>
 .setup-container {
   min-height: 100vh;
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
-  padding: var(--spacing-lg);
+  padding: var(--space-6);
 }
 
 .setup-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  width: 100%;
   max-width: 400px;
-  overflow: hidden;
+  width: 100%;
+  padding: var(--space-8);
 }
 
 .setup-header {
-  padding: var(--spacing-xl);
   text-align: center;
-  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-6);
 }
 
 .logo-text {
   width: 56px;
   height: 56px;
-  background: var(--primary-gradient);
-  color: white;
+  background: var(--color-background-strong);
+  color: var(--color-background);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  margin: 0 auto var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 auto var(--space-4);
+  font-family: var(--font-mono);
 }
 
 .setup-header h1 {
-  font-size: var(--text-xl);
-  margin-bottom: var(--spacing-xs);
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
 }
 
 .setup-header p {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
   margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
 }
 
 .setup-form {
-  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .form-group {
-  margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-strong);
 }
 
-.form-group input {
-  width: 100%;
-  padding: 12px var(--spacing-md);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+.password-input {
+  position: relative;
 }
 
-.form-group input::placeholder {
-  color: var(--text-muted);
+.password-input .input {
+  padding-right: var(--space-10);
 }
 
-.form-group input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+.password-toggle {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-weaker);
+  cursor: pointer;
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.form-group input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.password-toggle:hover {
+  color: var(--color-text);
 }
 
-.form-group.error input {
-  border-color: var(--error-color);
+.form-group.error .input {
+  border-color: var(--color-error);
 }
 
 .error-text {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--error-color);
-  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }
 
 .error-message {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-lg);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
   text-align: center;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 14px var(--spacing-lg);
-  background: var(--primary-gradient);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-2);
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
+.spinning {
   animation: spin 1s linear infinite;
 }
 

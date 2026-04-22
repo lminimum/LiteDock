@@ -60,6 +60,16 @@ const router = createRouter({
           name: 'Volumes',
           component: () => import('@/views/Volumes.vue')
         },
+        {
+          path: 'machines',
+          name: 'Machines',
+          component: () => import('@/views/Machines.vue')
+        },
+        {
+          path: 'machines/:id',
+          name: 'MachineDetail',
+          component: () => import('@/views/MachineDetail.vue')
+        },
         // 设置页面
         {
           path: 'settings',

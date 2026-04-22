@@ -206,6 +206,46 @@ make compose-down      # Stop all containers
 - kebab-case for component names
 - Components in `src/components/`
 
+#### CSS / Style Reuse (CRITICAL)
+**复用优先，不要重复定义样式。**
+
+1. **使用全局 Design Tokens**: 所有颜色、间距、字体、圆角、阴影、过渡动画都已在 `web/src/style.css` 中定义为 CSS 变量。优先使用：
+   - `var(--color-*)` 系列（颜色）
+   - `var(--space-*)` 系列（间距）
+   - `var(--font-*)` 系列（字体）
+   - `var(--radius-*)` 系列（圆角）
+   - `var(--shadow-*)` 系列（阴影）
+   - `var(--transition-*)` 系列（过渡）
+
+2. **使用全局 Utility Classes**: `style.css` 中已定义大量全局类和组件样式，优先使用：
+   - `.card` - 卡片样式
+   - `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.btn-lg` - 按钮
+   - `.input` - 输入框
+   - `.badge`, `.badge-success`, `.badge-warning`, `.badge-error`, `.badge-info` - 徽章
+   - `.flex`, `.gap-*`, `.items-center`, `.justify-between` 等 Flex/Grid 工具类
+   - `.text-xs` ~ `.text-2xl`, `.font-medium`, `.font-semibold` 等文本工具类
+   - `.p-*`, `.px-*`, `.py-*`, `.m-*`, `.mt-*`, `.mb-*` 等间距工具类
+   - `.rounded-sm`, `.rounded-md`, `.rounded-lg`, `.rounded-full` 等圆角工具类
+
+3. **新增样式前先检查**: 在 `<style scoped>` 中定义新样式前，先确认 `style.css` 中是否已有相同或类似的样式定义。
+
+4. **禁止重复**: 不得在组件 `<style scoped>` 中重复定义已在 `style.css` 全局定义的相同 CSS 规则（如再次定义 `.btn`, `.input`, `.card` 等基础组件类）。
+
+5. **响应式覆盖**: 如果全局类的响应式行为需要微调，可以只在组件 scoped style 中覆盖需要改动的属性（如 `.card` 的 padding），而不是重新定义整个卡片样式。
+
+6. **Dashboard.vue 例外**: `Dashboard.vue` 有独特的视觉样式（如 `stat-card` 使用不同背景色），允许保留组件级样式定义，但必须使用标准 CSS 变量名（如 `--color-background-weak` 而非 `--color-bg-secondary`）。
+
+**示例**:
+```vue
+<!-- ✅ 正确：使用全局 .btn 和 .btn-primary 类 -->
+<button class="btn btn-primary">Click</button>
+
+<!-- ❌ 错误：在 scoped style 中重新定义 .btn -->
+<style scoped>
+.btn { display: inline-flex; padding: 8px 16px; ... } /* 不要这样做 */
+</style>
+```
+
 ---
 
 ## Linting and Quality

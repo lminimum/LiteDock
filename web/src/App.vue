@@ -17,10 +17,10 @@ onMounted(() => {
 
 <style>
 #app {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: var(--text-primary);
+  color: var(--color-text-strong);
   height: 100vh;
   margin: 0;
   padding: 0;
