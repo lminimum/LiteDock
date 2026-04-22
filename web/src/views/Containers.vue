@@ -1,18 +1,15 @@
 <template>
   <div class="containers-page">
-    <div class="page-header">
-      <h1>{{ t('containers.title') }}</h1>
-      <div class="header-actions">
-        <button @click="refreshContainers" class="btn btn-secondary" :disabled="loading">
-          <RefreshCw :size="16" :class="{ 'spinning': loading }" />
-          {{ t('containers.refresh') }}
-        </button>
-        <button @click="showCreateModal = true" class="btn btn-primary">
-          <Plus :size="16" />
-          {{ t('containers.create') }}
-        </button>
-      </div>
-    </div>
+    <PageHeader :title="t('containers.title')">
+      <button @click="refreshContainers" class="btn btn-secondary" :disabled="loading">
+        <RefreshCw :size="16" :class="{ 'spinning': loading }" />
+        {{ t('containers.refresh') }}
+      </button>
+      <button @click="showCreateModal = true" class="btn btn-primary">
+        <Plus :size="16" />
+        {{ t('containers.create') }}
+      </button>
+    </PageHeader>
 
     <div class="filters">
       <div class="search-box">
@@ -122,6 +119,7 @@ import {
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine } from '@/types'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 interface Container {
   id: string
@@ -261,25 +259,6 @@ onMounted(() => refreshContainers())
 .containers-page {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-6);
-}
-
-.page-header h1 {
-  margin: 0;
-  color: var(--color-text-strong);
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-semibold);
-}
-
-.header-actions {
-  display: flex;
-  gap: var(--space-3);
 }
 
 .filters {

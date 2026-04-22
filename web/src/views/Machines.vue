@@ -1,18 +1,15 @@
 <template>
   <div class="machines-page">
-    <div class="page-header">
-      <h1>{{ t('machines.title') }}</h1>
-      <div class="header-actions">
-        <button @click="refreshMachines" class="btn btn-secondary" :disabled="loading">
-          <RefreshCw :size="16" :class="{ 'spinning': loading }" />
-          {{ t('machines.refresh') }}
-        </button>
-        <button @click="openAddModal" class="btn btn-primary">
-          <Plus :size="16" />
-          {{ t('machines.addMachine') }}
-        </button>
-      </div>
-    </div>
+    <PageHeader :title="t('machines.title')">
+      <button @click="refreshMachines" class="btn btn-secondary" :disabled="loading">
+        <RefreshCw :size="16" :class="{ 'spinning': loading }" />
+        {{ t('machines.refresh') }}
+      </button>
+      <button @click="openAddModal" class="btn btn-primary">
+        <Plus :size="16" />
+        {{ t('machines.addMachine') }}
+      </button>
+    </PageHeader>
 
     <div class="filters">
       <div class="search-box">
@@ -188,6 +185,7 @@ import {
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine, CreateMachineRequest, UpdateMachineRequest } from '@/types'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const router = useRouter()
 
@@ -372,25 +370,6 @@ onMounted(() => refreshMachines())
 .machines-page {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-6);
-}
-
-.page-header h1 {
-  margin: 0;
-  color: var(--color-text-strong);
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-semibold);
-}
-
-.header-actions {
-  display: flex;
-  gap: var(--space-3);
 }
 
 .filters {

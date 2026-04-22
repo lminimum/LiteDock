@@ -1,5 +1,6 @@
 <template>
   <div class="page-placeholder">
+    <PageHeader :title="t('pages.networks.title')" />
     <div class="placeholder-content">
       <div class="card" style="text-align: center; padding: var(--space-10) var(--space-8);">
         <div class="placeholder-icon">
@@ -24,6 +25,7 @@
 <script setup lang="ts">
 import { Globe, Check } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const features = [
   t('pages.networks.list'),

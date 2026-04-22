@@ -1,8 +1,6 @@
 <template>
   <div class="dashboard">
-    <div class="page-header">
-      <h1>{{ t('dashboard.title') }}</h1>
-    </div>
+    <PageHeader :title="t('dashboard.title')" />
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon containers">
@@ -198,6 +196,7 @@ import {
   Globe
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import PageHeader from '@/components/ui/PageHeader.vue'
 
 const refreshing = ref(false)
 
