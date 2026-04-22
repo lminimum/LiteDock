@@ -56,6 +56,8 @@
     "running": "运行中",
     "stopped": "已停止",
     "paused": "已暂停",
+    "restarting": "重启中",
+    "exited": "已退出",
     "created": "已创建",
     "start": "启动",
     "stop": "停止",

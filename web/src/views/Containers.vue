@@ -29,6 +29,9 @@
           <option value="running">{{ t('containers.running') }}</option>
           <option value="stopped">{{ t('containers.stopped') }}</option>
           <option value="paused">{{ t('containers.paused') }}</option>
+          <option value="restarting">{{ t('containers.restarting') }}</option>
+          <option value="exited">{{ t('containers.exited') }}</option>
+          <option value="created">{{ t('containers.created') }}</option>
         </select>
       </div>
     </div>
@@ -54,7 +57,7 @@
           </div>
           <div class="info-item">
             <span class="label">{{ t('containers.ports') }}</span>
-            <span class="value">{{ container.ports || '-' }}</span>
+            <span class="value">{{ (container.ports || []).join(', ') || '-' }}</span>
           </div>
           <div v-if="container.machine" class="info-item">
             <span class="label">{{ t('containers.machine') }}</span>
@@ -117,51 +120,61 @@ import {
   Trash2
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import { remoteMachineService } from '@/services/remoteMachineService'
+import type { RemoteMachine } from '@/types'
 
 interface Container {
   id: string
   name: string
   image: string
-  status: 'running' | 'stopped' | 'paused'
-  ports: string
-  createdAt: Date
-  machine?: string
+  status: 'running' | 'stopped' | 'paused' | 'restarting' | 'exited' | 'created'
+  ports: string[]
+  createdAt: string
+  machine: string
+  machineId: string
 }
 
 const loading = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('')
 const showCreateModal = ref(false)
+const machines = ref<RemoteMachine[]>([])
 
-const containers = ref<Container[]>([
-  {
-    id: '1',
-    name: 'web-server',
-    image: 'nginx:latest',
-    status: 'running',
-    ports: '80:8080',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    machine: 'test-server'
-  },
-  {
-    id: '2',
-    name: 'database',
-    image: 'postgres:15',
-    status: 'running',
-    ports: '5432:5432',
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    machine: 'test-server'
-  },
-  {
-    id: '3',
-    name: 'redis-cache',
-    image: 'redis:7',
-    status: 'stopped',
-    ports: '6379:6379',
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    machine: 'test-server'
+const containers = ref<Container[]>([])
+
+const refreshContainers = async () => {
+  loading.value = true
+  try {
+    const allMachines = await remoteMachineService.list()
+    machines.value = allMachines
+
+    const allContainers: Container[] = []
+    await Promise.all(
+      allMachines.map(async (m) => {
+        try {
+          const remoteContainers = await remoteMachineService.listContainers(m.id)
+          for (const c of remoteContainers) {
+            allContainers.push({ ...c, machine: m.name, machineId: m.id })
+          }
+        } catch (e) {
+          // machine offline or unreachable
+        }
+      })
+    )
+
+    // Sort by machine name, then by container name
+    allContainers.sort((a, b) => {
+      if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
+      return a.name.localeCompare(b.name)
+    })
+
+    containers.value = allContainers
+  } catch (e) {
+    console.error('Failed to load containers:', e)
+  } finally {
+    loading.value = false
   }
-])
+}
 
 const filteredContainers = computed(() => {
   let filtered = containers.value
@@ -169,7 +182,8 @@ const filteredContainers = computed(() => {
   if (searchQuery.value) {
     filtered = filtered.filter(container =>
       container.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      container.image.toLowerCase().includes(searchQuery.value.toLowerCase())
+      container.image.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      container.machine.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
   }
 
@@ -184,7 +198,10 @@ const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     running: t('containers.running'),
     stopped: t('containers.stopped'),
-    paused: t('containers.paused')
+    paused: t('containers.paused'),
+    restarting: t('containers.restarting'),
+    exited: t('containers.exited'),
+    created: t('containers.created')
   }
   return statusMap[status] || status
 }
@@ -193,27 +210,24 @@ const getStatusClass = (status: string) => {
   const classMap: Record<string, string> = {
     running: 'badge-success',
     stopped: 'badge-error',
-    paused: 'badge-warning'
+    paused: 'badge-warning',
+    restarting: 'badge-warning',
+    exited: 'badge-error',
+    created: 'badge-info'
   }
   return classMap[status] || ''
 }
 
-const formatDate = (date: Date) => {
+const formatDate = (date: string) => {
+  if (!date) return '-'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '-'
   return new Intl.DateTimeFormat('zh-CN', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(date)
-}
-
-const refreshContainers = async () => {
-  loading.value = true
-  try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  } finally {
-    loading.value = false
-  }
+  }).format(d)
 }
 
 const startContainer = async (id: string) => {
