@@ -45,7 +45,7 @@ func Run(cfg *config.Config) {
 	containerUseCase := container.New(containerRepo, l)
 
 	// RemoteMachine UseCase
-	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, l)
+	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))

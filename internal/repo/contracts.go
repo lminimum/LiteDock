@@ -3,6 +3,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	"github.com/lminimum/LiteDock/internal/entity"
 )
@@ -10,10 +11,14 @@ import (
 //go:generate mockgen -source=contracts.go -destination=../usecase/mocks_repo_test.go -package=usecase_test
 
 type (
-	// ContainerRepo - manages Docker containers
+	// ContainerRepo - manages Docker containers with caching
 	ContainerRepo interface {
 		List(context.Context) ([]entity.Container, error)
 		Get(context.Context, string) (*entity.Container, error)
+		ListByMachine(ctx context.Context, machineID string) ([]entity.Container, error)
+		UpsertBatch(ctx context.Context, machineID string, containers []entity.Container) error
+		DeleteByMachine(ctx context.Context, machineID string) error
+		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
 	}
 
 	// UserRepo - manages user accounts

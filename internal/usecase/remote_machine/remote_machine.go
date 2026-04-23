@@ -14,12 +14,19 @@ import (
 )
 
 type UseCase struct {
-	repo repo.RemoteMachineRepo
-	l   logger.Interface
+	repo           repo.RemoteMachineRepo
+	containerRepo  repo.ContainerRepo
+	cacheMaxAge   time.Duration
+	l             logger.Interface
 }
 
-func New(repo repo.RemoteMachineRepo, l logger.Interface) *UseCase {
-	return &UseCase{repo: repo, l: l}
+func New(repo repo.RemoteMachineRepo, containerRepo repo.ContainerRepo, cacheMaxAge time.Duration, l logger.Interface) *UseCase {
+	return &UseCase{
+		repo:          repo,
+		containerRepo: containerRepo,
+		cacheMaxAge:   cacheMaxAge,
+		l:             l,
+	}
 }
 
 func (uc *UseCase) Create(ctx context.Context, m *entity.RemoteMachine) (*entity.RemoteMachine, error) {
@@ -112,30 +119,112 @@ func (uc *UseCase) TestConnection(ctx context.Context, id string) error {
 }
 
 func (uc *UseCase) ListContainers(ctx context.Context, machineID string) ([]entity.Container, error) {
+	containers, err := uc.containerRepo.ListByMachine(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.ListContainers.ListByMachine")
+	}
+
+	valid, err := uc.containerRepo.IsCacheValid(ctx, machineID, uc.cacheMaxAge)
+	if err != nil {
+		uc.l.Warn("UseCase.ListContainers.IsCacheValid: %v", err)
+	}
+
+	if len(containers) == 0 {
+		return uc.fetchAndCacheContainers(ctx, machineID)
+	}
+
+	if !valid {
+		go uc.refreshContainers(machineID)
+	}
+
+	return containers, nil
+}
+
+func (uc *UseCase) fetchAndCacheContainers(ctx context.Context, machineID string) ([]entity.Container, error) {
 	m, err := uc.repo.GetByID(ctx, machineID)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.ListContainers.repo.GetByID")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.GetByID")
 	}
 
 	sshCfg := uc.buildSSHConfig(m)
 	sshClient, err := sshclient.New(sshCfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.ListContainers.sshclient.New")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.sshclient.New")
 	}
 	defer sshClient.Close()
 
 	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.ListContainers.dockerclient.NewRemoteClient")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.dockerclient.NewRemoteClient")
 	}
 	defer dockerClient.Close()
 
 	containers, err := dockerClient.ContainerList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.ListContainers.dockerClient.ContainerList")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.dockerClient.ContainerList")
+	}
+
+	now := time.Now()
+	for i := range containers {
+		containers[i].MachineID = machineID
+		containers[i].CachedAt = now
+	}
+
+	if len(containers) > 0 {
+		err = uc.containerRepo.UpsertBatch(ctx, machineID, containers)
+		if err != nil {
+			uc.l.Warn("UseCase.fetchAndCacheContainers.UpsertBatch: %v", err)
+		}
 	}
 
 	return containers, nil
+}
+
+func (uc *UseCase) refreshContainers(machineID string) {
+	ctx := context.Background()
+
+	m, err := uc.repo.GetByID(ctx, machineID)
+	if err != nil {
+		uc.l.Warn("UseCase.refreshContainers.GetByID: %v", err)
+		return
+	}
+
+	sshCfg := uc.buildSSHConfig(m)
+	sshClient, err := sshclient.New(sshCfg)
+	if err != nil {
+		uc.l.Warn("UseCase.refreshContainers.sshclient.New: %v", err)
+		return
+	}
+	defer sshClient.Close()
+
+	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
+	if err != nil {
+		uc.l.Warn("UseCase.refreshContainers.dockerclient.NewRemoteClient: %v", err)
+		return
+	}
+	defer dockerClient.Close()
+
+	containers, err := dockerClient.ContainerList(ctx)
+	if err != nil {
+		uc.l.Warn("UseCase.refreshContainers.dockerClient.ContainerList: %v", err)
+		return
+	}
+
+	now := time.Now()
+	for i := range containers {
+		containers[i].MachineID = machineID
+		containers[i].CachedAt = now
+	}
+
+	if len(containers) > 0 {
+		err = uc.containerRepo.UpsertBatch(ctx, machineID, containers)
+		if err != nil {
+			uc.l.Warn("UseCase.refreshContainers.UpsertBatch: %v", err)
+			return
+		}
+	}
+
+	uc.l.Debug("UseCase.refreshContainers: refreshed %d containers for machine %s", len(containers), machineID)
 }
 
 func (uc *UseCase) GetContainerLogs(ctx context.Context, machineID, containerID, tail string) (string, error) {
@@ -216,6 +305,7 @@ func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID st
 		return errors.Wrap(err, "UseCase.StartContainer.dockerClient.ContainerStart")
 	}
 
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
 	return nil
 }
 
@@ -243,6 +333,7 @@ func (uc *UseCase) StopContainer(ctx context.Context, machineID, containerID str
 		return errors.Wrap(err, "UseCase.StopContainer.dockerClient.ContainerStop")
 	}
 
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
 	return nil
 }
 
@@ -270,6 +361,7 @@ func (uc *UseCase) RestartContainer(ctx context.Context, machineID, containerID 
 		return errors.Wrap(err, "UseCase.RestartContainer.dockerClient.ContainerRestart")
 	}
 
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
 	return nil
 }
 
@@ -297,6 +389,7 @@ func (uc *UseCase) RemoveContainer(ctx context.Context, machineID, containerID s
 		return errors.Wrap(err, "UseCase.RemoveContainer.dockerClient.ContainerRemove")
 	}
 
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
 	return nil
 }
 
