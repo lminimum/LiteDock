@@ -15,11 +15,24 @@ type ContainerHandler struct {
 }
 
 // List handles GET /v1/containers
+// @Summary List local containers
+// @Description Get all Docker containers (local)
+// @Tags containers
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /containers [get]
 func (h *ContainerHandler) List(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"containers": []interface{}{}})
 }
 
 // Get handles GET /v1/containers/:id
+// @Summary Get a container by ID
+// @Description Get details of a specific Docker container (local)
+// @Tags containers
+// @Produce json
+// @Param id path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Router /containers/{id} [get]
 func (h *ContainerHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
 

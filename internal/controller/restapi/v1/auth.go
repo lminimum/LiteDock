@@ -16,6 +16,16 @@ type AuthHandler struct {
 }
 
 // Login - handles POST /auth/login
+// @Summary User login
+// @Description Authenticate user and return JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body map[string]string true "Login credentials"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	type LoginRequest struct {
 		Username string `json:"username"`
@@ -53,6 +63,15 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 // Register - handles POST /auth/register
+// @Summary User registration
+// @Description Register a new user account
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body map[string]string true "Registration details"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	type RegisterRequest struct {
 		Username string `json:"username"`
@@ -97,6 +116,13 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 }
 
 // SetupStatus - handles GET /auth/setup-status
+// @Summary Check if initial setup is complete
+// @Description Returns whether the system has been initially configured
+// @Tags auth
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /auth/setup-status [get]
 func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
 	complete, err := h.auth.IsSetupComplete(c.Context())
 	if err != nil {
@@ -114,6 +140,14 @@ func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
 }
 
 // GetMe - handles GET /auth/me
+// @Summary Get current user
+// @Description Get the currently authenticated user's information
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} entity.User
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/me [get]
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	// Get token from Authorization header
 	authHeader := c.Get("Authorization")

@@ -1,9 +1,655 @@
 basePath: /v1
+definitions:
+  entity.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  v1.CreateMachineRequest:
+    properties:
+      auth_method:
+        enum:
+        - password
+        - key
+        type: string
+      docker_host:
+        type: string
+      host:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      ssh_key:
+        type: string
+      ssh_key_path:
+        type: string
+      username:
+        type: string
+    required:
+    - auth_method
+    - host
+    - name
+    - username
+    type: object
+  v1.ExecRequest:
+    properties:
+      cmd:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - cmd
+    type: object
+  v1.UpdateMachineRequest:
+    properties:
+      auth_method:
+        enum:
+        - password
+        - key
+        type: string
+      docker_host:
+        type: string
+      host:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      ssh_key:
+        type: string
+      ssh_key_path:
+        type: string
+      username:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   description: Docker container management platform
   title: LiteDock API
   version: "1.0"
-paths: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Get the currently authenticated user's information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User registration
+      tags:
+      - auth
+  /auth/setup-status:
+    get:
+      description: Returns whether the system has been initially configured
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check if initial setup is complete
+      tags:
+      - auth
+  /containers:
+    get:
+      description: Get all Docker containers (local)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List local containers
+      tags:
+      - containers
+  /containers/{id}:
+    get:
+      description: Get details of a specific Docker container (local)
+      parameters:
+      - description: Container ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a container by ID
+      tags:
+      - containers
+  /machines:
+    get:
+      description: Get all registered remote Docker hosts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List all remote machines
+      tags:
+      - machines
+    post:
+      consumes:
+      - application/json
+      description: Add a new remote Docker host to manage
+      parameters:
+      - description: Machine creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateMachineRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new remote machine
+      tags:
+      - machines
+  /machines/{id}:
+    delete:
+      description: Remove a remote Docker host from management
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a remote machine
+      tags:
+      - machines
+    get:
+      description: Get details of a specific remote Docker host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a remote machine by ID
+      tags:
+      - machines
+    put:
+      consumes:
+      - application/json
+      description: Update an existing remote Docker host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Machine update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateMachineRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a remote machine
+      tags:
+      - machines
+  /machines/{id}/containers:
+    get:
+      description: Get all Docker containers running on a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List containers on a remote machine
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}:
+    delete:
+      description: Delete a Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - default: false
+        description: Force removal
+        in: query
+        name: force
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Remove a container
+      tags:
+      - machines
+    get:
+      description: Get detailed information about a Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Inspect a container
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/exec:
+    post:
+      consumes:
+      - application/json
+      description: Run a command inside a Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: Command to execute
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.ExecRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute command in container
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/logs:
+    get:
+      description: Fetch Docker container logs
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - default: "100"
+        description: Number of lines to fetch
+        in: query
+        name: tail
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get container logs
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/restart:
+    post:
+      description: Restart a Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Restart a container
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/start:
+    post:
+      description: Start a stopped Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Start a container
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/stop:
+    post:
+      description: Stop a running Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Stop a container
+      tags:
+      - machines
+  /machines/{id}/test:
+    post:
+      description: Verify SSH and Docker connectivity to a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test connection to a remote machine
+      tags:
+      - machines
 swagger: "2.0"

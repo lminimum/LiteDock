@@ -14,6 +14,11 @@ type RemoteMachineHandler struct {
 	v  *validator.Validate
 }
 
+// NewRemoteMachineRoutes
+// @Summary Register remote machine routes
+// @Tags machines
+// @Accept json
+// @Produce json
 func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseInterface, l logger.Interface) {
 	h := &RemoteMachineHandler{uc: rm, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
@@ -64,6 +69,17 @@ type ExecRequest struct {
 	Cmd []string `json:"cmd" validate:"required,min=1"`
 }
 
+// Create - handles POST /v1/machines
+// @Summary Create a new remote machine
+// @Description Add a new remote Docker host to manage
+// @Tags machines
+// @Accept json
+// @Produce json
+// @Param request body CreateMachineRequest true "Machine creation request"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines [post]
 func (h *RemoteMachineHandler) Create(c *fiber.Ctx) error {
 	var req CreateMachineRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -108,6 +124,14 @@ func (h *RemoteMachineHandler) Create(c *fiber.Ctx) error {
 	})
 }
 
+// List - handles GET /v1/machines
+// @Summary List all remote machines
+// @Description Get all registered remote Docker hosts
+// @Tags machines
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines [get]
 func (h *RemoteMachineHandler) List(c *fiber.Ctx) error {
 	machines, err := h.uc.List(c.Context())
 	if err != nil {
@@ -125,6 +149,16 @@ func (h *RemoteMachineHandler) List(c *fiber.Ctx) error {
 	})
 }
 
+// Get - handles GET /v1/machines/:id
+// @Summary Get a remote machine by ID
+// @Description Get details of a specific remote Docker host
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id} [get]
 func (h *RemoteMachineHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -144,6 +178,19 @@ func (h *RemoteMachineHandler) Get(c *fiber.Ctx) error {
 	})
 }
 
+// Update - handles PUT /v1/machines/:id
+// @Summary Update a remote machine
+// @Description Update an existing remote Docker host
+// @Tags machines
+// @Accept json
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param request body UpdateMachineRequest true "Machine update request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id} [put]
 func (h *RemoteMachineHandler) Update(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -216,6 +263,15 @@ func (h *RemoteMachineHandler) Update(c *fiber.Ctx) error {
 	})
 }
 
+// Delete - handles DELETE /v1/machines/:id
+// @Summary Delete a remote machine
+// @Description Remove a remote Docker host from management
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id} [delete]
 func (h *RemoteMachineHandler) Delete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -235,6 +291,15 @@ func (h *RemoteMachineHandler) Delete(c *fiber.Ctx) error {
 	})
 }
 
+// TestConnection - handles POST /v1/machines/:id/test
+// @Summary Test connection to a remote machine
+// @Description Verify SSH and Docker connectivity to a remote host
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/test [post]
 func (h *RemoteMachineHandler) TestConnection(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -254,6 +319,15 @@ func (h *RemoteMachineHandler) TestConnection(c *fiber.Ctx) error {
 	})
 }
 
+// ListContainers - handles GET /v1/machines/:id/containers
+// @Summary List containers on a remote machine
+// @Description Get all Docker containers running on a remote host
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers [get]
 func (h *RemoteMachineHandler) ListContainers(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -273,6 +347,17 @@ func (h *RemoteMachineHandler) ListContainers(c *fiber.Ctx) error {
 	})
 }
 
+// GetContainerLogs - handles GET /v1/machines/:id/containers/:containerId/logs
+// @Summary Get container logs
+// @Description Fetch Docker container logs
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Param tail query string false "Number of lines to fetch" default(100)
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/logs [get]
 func (h *RemoteMachineHandler) GetContainerLogs(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -294,6 +379,19 @@ func (h *RemoteMachineHandler) GetContainerLogs(c *fiber.Ctx) error {
 	})
 }
 
+// ExecContainer - handles POST /v1/machines/:id/containers/:containerId/exec
+// @Summary Execute command in container
+// @Description Run a command inside a Docker container
+// @Tags machines
+// @Accept json
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Param request body ExecRequest true "Command to execute"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/exec [post]
 func (h *RemoteMachineHandler) ExecContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -330,6 +428,16 @@ func (h *RemoteMachineHandler) ExecContainer(c *fiber.Ctx) error {
 	})
 }
 
+// StartContainer - handles POST /v1/machines/:id/containers/:containerId/start
+// @Summary Start a container
+// @Description Start a stopped Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/start [post]
 func (h *RemoteMachineHandler) StartContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -350,6 +458,16 @@ func (h *RemoteMachineHandler) StartContainer(c *fiber.Ctx) error {
 	})
 }
 
+// StopContainer - handles POST /v1/machines/:id/containers/:containerId/stop
+// @Summary Stop a container
+// @Description Stop a running Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/stop [post]
 func (h *RemoteMachineHandler) StopContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -370,6 +488,16 @@ func (h *RemoteMachineHandler) StopContainer(c *fiber.Ctx) error {
 	})
 }
 
+// RestartContainer - handles POST /v1/machines/:id/containers/:containerId/restart
+// @Summary Restart a container
+// @Description Restart a Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/restart [post]
 func (h *RemoteMachineHandler) RestartContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -390,6 +518,17 @@ func (h *RemoteMachineHandler) RestartContainer(c *fiber.Ctx) error {
 	})
 }
 
+// RemoveContainer - handles DELETE /v1/machines/:id/containers/:containerId
+// @Summary Remove a container
+// @Description Delete a Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Param force query bool false "Force removal" default(false)
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId} [delete]
 func (h *RemoteMachineHandler) RemoveContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
@@ -411,6 +550,16 @@ func (h *RemoteMachineHandler) RemoveContainer(c *fiber.Ctx) error {
 	})
 }
 
+// InspectContainer - handles GET /v1/machines/:id/containers/:containerId
+// @Summary Inspect a container
+// @Description Get detailed information about a Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId} [get]
 func (h *RemoteMachineHandler) InspectContainer(c *fiber.Ctx) error {
 	id := c.Params("id")
 	containerID := c.Params("containerId")
