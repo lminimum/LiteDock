@@ -95,11 +95,20 @@ mock: ### run mockgen
 .PHONY: mock
 
 migrate-create:  ### create new migration
-	migrate create -ext sql -dir migrations '$(word 2,$(MAKECMDGOALS))'
+	go run -tags 'postgres mysql' github.com/golang-migrate/migrate/v4/cmd/migrate create \
+		-ext sql -dir migrations '$(word 2,$(MAKECMDGOALS))'
 .PHONY: migrate-create
 
 migrate-up: ### migration up
-	migrate -path migrations -database '$(PG_URL)?sslmode=disable' up
+	@if echo '$(DB_URL)' | grep -q 'mysql://'; then \
+		go run -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate \
+			-path migrations \
+			-database '$(DB_URL)' up; \
+	else \
+		go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate \
+			-path migrations \
+			-database '$(DB_URL)?sslmode=disable' up; \
+	fi
 .PHONY: migrate-up
 
 bin-deps: ### install tools
