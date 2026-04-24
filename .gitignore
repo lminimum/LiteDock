@@ -2,6 +2,13 @@
 .idea
 .vscode
 
+# Agent
+.sisyphus
+AGENTS.md
+
+# Plans
+docs/plans
+
 # Config
 .env
 
