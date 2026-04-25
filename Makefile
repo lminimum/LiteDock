@@ -53,9 +53,7 @@ format: ### Format Go code (gofumpt + gci)
 	gci write . --skip-generated -s standard -s default
 .PHONY: format
 
-run: ### Start backend (deps + swagger)
-	@$(MAKE) deps
-	@$(MAKE) swag-v1
+run: deps swag-v1 ### Start backend
 	go mod download && \
 	CGO_ENABLED=0 go run -tags migrate ./cmd/app
 .PHONY: run

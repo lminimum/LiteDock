@@ -223,6 +223,26 @@ paths:
       summary: Get a container by ID
       tags:
       - containers
+  /dashboard/stats:
+    get:
+      description: Get aggregated stats for the dashboard (machine count, container
+        counts)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get dashboard statistics
+      tags:
+      - dashboard
   /machines:
     get:
       description: Get all registered remote Docker hosts

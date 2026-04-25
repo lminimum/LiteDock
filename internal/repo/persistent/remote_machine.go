@@ -209,3 +209,12 @@ func (r *RemoteMachineRepo) GetByHost(ctx context.Context, host string) (*entity
 
 	return &m, nil
 }
+
+func (r *RemoteMachineRepo) Count(ctx context.Context) (int64, error) {
+	var count int64
+
+	row := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM remote_machines")
+	err := scanRow(row, &count)
+
+	return count, err
+}

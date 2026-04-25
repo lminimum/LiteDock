@@ -67,6 +67,14 @@ func (uc *UseCase) List(ctx context.Context) ([]entity.RemoteMachine, error) {
 	return machines, nil
 }
 
+func (uc *UseCase) Count(ctx context.Context) (int64, error) {
+	count, err := uc.repo.Count(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "UseCase.Count.repo.Count")
+	}
+	return count, nil
+}
+
 func (uc *UseCase) Update(ctx context.Context, m *entity.RemoteMachine) error {
 	err := uc.repo.Update(ctx, m)
 	if err != nil {

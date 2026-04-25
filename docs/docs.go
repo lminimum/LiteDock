@@ -223,6 +223,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/dashboard/stats": {
+            "get": {
+                "description": "Get aggregated stats for the dashboard (machine count, container counts)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get dashboard statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/machines": {
             "get": {
                 "description": "Get all registered remote Docker hosts",
