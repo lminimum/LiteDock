@@ -21,6 +21,7 @@
             id="username"
             v-model="credentials.username"
             type="text"
+            autocomplete="username"
             :placeholder="t('auth.usernamePlaceholder')"
             :disabled="loading"
             required
@@ -36,6 +37,7 @@
               id="password"
               v-model="credentials.password"
               :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
               :placeholder="t('auth.passwordPlaceholder')"
               :disabled="loading"
               required

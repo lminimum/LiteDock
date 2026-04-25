@@ -102,7 +102,7 @@
     "runExec": "运行",
     "execOutput": "输出:",
     "confirmDelete": "确定要删除这台远程机器吗？",
-    "saving": "保存中...",
+    "saving": "保存",
     "status": {
       "online": "在线",
       "offline": "离线",

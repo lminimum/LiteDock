@@ -14,6 +14,7 @@
             id="username"
             v-model="form.username"
             type="text"
+            autocomplete="username"
             :placeholder="t('auth.usernamePlaceholder')"
             :disabled="loading"
             class="input"
