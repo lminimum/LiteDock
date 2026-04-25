@@ -17,6 +17,16 @@
       </div>
 
       <div class="stat-card">
+        <div class="stat-icon machines">
+          <Globe :size="24" />
+        </div>
+        <div class="stat-content">
+          <h3>{{ stats.machines.total }}</h3>
+          <p>{{ t('nav.machines') }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
         <div class="stat-icon images">
           <ImageIcon :size="24" />
         </div>
@@ -197,14 +207,16 @@ import {
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import api from '@/utils/api'
 
 const refreshing = ref(false)
 
 const stats = reactive({
-  containers: { total: 12, running: 8, stopped: 4 },
-  images: { total: 25, size: '2.3 GB' },
-  networks: { total: 6, active: 4 },
-  volumes: { total: 8, size: '15.7 GB' }
+  containers: { total: 0, running: 0, stopped: 0 },
+  images: { total: 0, size: '0 GB' },
+  networks: { total: 0, active: 0 },
+  volumes: { total: 0, size: '0 GB' },
+  machines: { total: 0 }
 })
 
 const resources = reactive({ cpu: 45, memory: 62, disk: 38 })
@@ -246,10 +258,18 @@ const formatTime = (time: Date) => {
 const refreshResources = async () => {
   refreshing.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const [statsRes] = await Promise.all([
+      api.get('/dashboard/stats')
+    ])
+    if (statsRes.data.success) {
+      const { machines } = statsRes.data.data
+      stats.machines.total = machines.total
+    }
     resources.cpu = Math.floor(Math.random() * 100)
     resources.memory = Math.floor(Math.random() * 100)
     resources.disk = Math.floor(Math.random() * 100)
+  } catch (e) {
+    console.error('Failed to fetch stats:', e)
   } finally {
     refreshing.value = false
   }
@@ -303,6 +323,7 @@ onMounted(() => refreshResources())
 }
 
 .stat-icon.containers { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.stat-icon.machines { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .stat-icon.images { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
 .stat-icon.networks { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
 .stat-icon.volumes { background: rgba(249, 115, 22, 0.1); color: #f97316; }

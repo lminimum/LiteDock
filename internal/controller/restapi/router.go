@@ -49,5 +49,6 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 		v1.NewContainerRoutes(apiV1Group, container, l)
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
 		v1.NewRemoteMachineRoutes(apiV1Group, remoteMachine, l)
+		v1.NewDashboardRoutes(apiV1Group, remoteMachine, l)
 	}
 }

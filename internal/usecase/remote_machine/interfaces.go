@@ -10,6 +10,7 @@ type UseCaseInterface interface {
 	Create(context.Context, *entity.RemoteMachine) (*entity.RemoteMachine, error)
 	GetByID(context.Context, string) (*entity.RemoteMachine, error)
 	List(context.Context) ([]entity.RemoteMachine, error)
+	Count(context.Context) (int64, error)
 	Update(context.Context, *entity.RemoteMachine) error
 	Delete(context.Context, string) error
 	GetByHost(context.Context, string) (*entity.RemoteMachine, error)
