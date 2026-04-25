@@ -19,6 +19,8 @@ type (
 		UpsertBatch(ctx context.Context, machineID string, containers []entity.Container) error
 		DeleteByMachine(ctx context.Context, machineID string) error
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+		CountAll(ctx context.Context) (int64, error)
+		CountByStatus(ctx context.Context, status string) (int64, error)
 	}
 
 	// UserRepo - manages user accounts

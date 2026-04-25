@@ -14,6 +14,8 @@ type (
 	Container interface {
 		List(ctx context.Context) ([]entity.Container, error)
 		Get(ctx context.Context, id string) (*entity.Container, error)
+		CountAll(ctx context.Context) (int64, error)
+		CountByStatus(ctx context.Context, status string) (int64, error)
 	}
 
 	// Auth -.

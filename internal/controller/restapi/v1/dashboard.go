@@ -2,17 +2,19 @@ package v1
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/lminimum/LiteDock/internal/usecase"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 type DashboardHandler struct {
-	uc remote_machine.UseCaseInterface
-	l  logger.Interface
+	uc            remote_machine.UseCaseInterface
+	containerUC   usecase.Container
+	l             logger.Interface
 }
 
-func NewDashboardRoutes(apiV1Group fiber.Router, uc remote_machine.UseCaseInterface, l logger.Interface) {
-	h := &DashboardHandler{uc: uc, l: l}
+func NewDashboardRoutes(apiV1Group fiber.Router, uc remote_machine.UseCaseInterface, container usecase.Container, l logger.Interface) {
+	h := &DashboardHandler{uc: uc, containerUC: container, l: l}
 
 	dashboard := apiV1Group.Group("/dashboard")
 	{
@@ -38,11 +40,34 @@ func (h *DashboardHandler) Stats(c *fiber.Ctx) error {
 		})
 	}
 
+	totalContainers, err := h.containerUC.CountAll(c.Context())
+	if err != nil {
+		h.l.Warn("DashboardHandler.Stats.CountAll failed: %v", err)
+		totalContainers = 0
+	}
+
+	runningContainers, err := h.containerUC.CountByStatus(c.Context(), "running")
+	if err != nil {
+		h.l.Warn("DashboardHandler.Stats.CountByStatus failed: %v", err)
+		runningContainers = 0
+	}
+
+	stoppedContainers, err := h.containerUC.CountByStatus(c.Context(), "exited")
+	if err != nil {
+		h.l.Warn("DashboardHandler.Stats.CountByStatus failed: %v", err)
+		stoppedContainers = 0
+	}
+
 	return c.JSON(fiber.Map{
 		"success": true,
 		"data": fiber.Map{
 			"machines": fiber.Map{
 				"total": machineCount,
+			},
+			"containers": fiber.Map{
+				"total":   totalContainers,
+				"running": runningContainers,
+				"stopped": stoppedContainers,
 			},
 		},
 	})

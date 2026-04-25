@@ -154,3 +154,29 @@ func (r *ContainerRepo) IsCacheValid(ctx context.Context, machineID string, maxA
 
 	return time.Now().Before(cachedAt.Add(maxAge)), nil
 }
+
+func (r *ContainerRepo) CountAll(ctx context.Context) (int64, error) {
+	query := `SELECT COUNT(*) FROM containers`
+
+	var count int64
+	row := r.db.QueryRow(ctx, query)
+	err := scanRow(row, &count)
+	if err != nil {
+		return 0, errors.Wrap(err, "ContainerRepo.CountAll.Scan")
+	}
+
+	return count, nil
+}
+
+func (r *ContainerRepo) CountByStatus(ctx context.Context, status string) (int64, error) {
+	query := `SELECT COUNT(*) FROM containers WHERE status = ?`
+
+	var count int64
+	row := r.db.QueryRow(ctx, query, status)
+	err := scanRow(row, &count)
+	if err != nil {
+		return 0, errors.Wrap(err, "ContainerRepo.CountByStatus.Scan")
+	}
+
+	return count, nil
+}

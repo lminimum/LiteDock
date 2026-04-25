@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -92,16 +93,61 @@ func (rc *RemoteClient) ContainerList(ctx context.Context) ([]entity.Container, 
 		name := c.Names[0]
 		name = strings.TrimPrefix(name, "/")
 
+		ports := make([]string, 0, len(c.Ports))
+		for _, p := range c.Ports {
+			portStr := formatPort(p)
+			if portStr != "" {
+				ports = append(ports, portStr)
+			}
+		}
+
 		result = append(result, entity.Container{
 			ID:      c.ID,
 			Name:    name,
 			Image:   c.Image,
-			Status:  c.Status,
+			Status:  normalizeStatus(c.Status),
+			Ports:   ports,
 			Created: c.Created,
 		})
 	}
 
 	return result, nil
+}
+
+func formatPort(p types.Port) string {
+	if p.PrivatePort == 0 {
+		return ""
+	}
+	if p.PublicPort != 0 {
+		return fmt.Sprintf("%s:%d->%d/%s", p.IP, p.PublicPort, p.PrivatePort, p.Type)
+	}
+	return fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
+}
+
+func normalizeStatus(status string) string {
+	status = strings.ToLower(status)
+	if strings.HasPrefix(status, "up") {
+		if strings.Contains(status, "(healthy)") || strings.Contains(status, "healthy") {
+			return "running"
+		}
+		return "running"
+	}
+	if strings.HasPrefix(status, "exited") {
+		return "exited"
+	}
+	if strings.HasPrefix(status, "paused") {
+		return "paused"
+	}
+	if strings.HasPrefix(status, "restarting") {
+		return "restarting"
+	}
+	if strings.HasPrefix(status, "created") {
+		return "created"
+	}
+	if strings.HasPrefix(status, "dead") {
+		return "dead"
+	}
+	return status
 }
 
 func (rc *RemoteClient) ContainerLogs(ctx context.Context, containerID, tail string) (string, error) {

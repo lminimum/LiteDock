@@ -262,8 +262,13 @@ const refreshResources = async () => {
       api.get('/dashboard/stats')
     ])
     if (statsRes.data.success) {
-      const { machines } = statsRes.data.data
+      const { machines, containers } = statsRes.data.data
       stats.machines.total = machines.total
+      if (containers) {
+        stats.containers.total = containers.total || 0
+        stats.containers.running = containers.running || 0
+        stats.containers.stopped = containers.stopped || 0
+      }
     }
     resources.cpu = Math.floor(Math.random() * 100)
     resources.memory = Math.floor(Math.random() * 100)
