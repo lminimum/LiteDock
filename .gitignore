@@ -3,11 +3,14 @@
 .vscode
 
 # Agent
-.sisyphus
+.sisyphus/
 AGENTS.md
 
 # Plans
 docs/plans
+
+# Vue/TypeScript compiled output
+*.vue.js
 
 # Config
 .env

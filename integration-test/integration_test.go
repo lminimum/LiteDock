@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	host     = "app"
+	host     = "litedock"
 	attempts = 20
 
 	httpURL        = "http://" + host + ":8080"

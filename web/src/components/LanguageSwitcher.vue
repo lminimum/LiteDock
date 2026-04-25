@@ -27,7 +27,7 @@ const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value
 }
 
-const setLocale = (l: string) => {
+const setLocale = (l: 'en' | 'zh-CN') => {
   locale.value = l
   dropdownOpen.value = false
 }

@@ -234,15 +234,6 @@ const filteredContainers = computed(() => {
   return filtered
 })
 
-const getStatusClass = (status: string) => {
-  const classMap: Record<string, string> = {
-    online: 'badge-success',
-    offline: 'badge-error',
-    unknown: 'badge-warning'
-  }
-  return classMap[status] || ''
-}
-
 const getContainerStatusClass = (status: string) => {
   const classMap: Record<string, string> = {
     running: 'badge-success',

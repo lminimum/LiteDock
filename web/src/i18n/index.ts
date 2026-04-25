@@ -23,7 +23,7 @@ export const i18n = createI18n({
 
 export const locale = computed({
   get: () => i18n.global.locale.value,
-  set: (val: string) => {
+  set: (val: 'en' | 'zh-CN') => {
     i18n.global.locale.value = val
     localStorage.setItem(LOCALE_STORAGE_KEY, val)
   },

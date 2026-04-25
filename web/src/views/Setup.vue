@@ -30,6 +30,7 @@
               :type="showPassword ? 'text' : 'password'"
               :placeholder="t('auth.adminPasswordPlaceholder')"
               :disabled="loading"
+              autocomplete="new-password"
               class="input"
             />
             <button
@@ -52,6 +53,7 @@
             :type="showPassword ? 'text' : 'password'"
             :placeholder="t('auth.confirmPasswordPlaceholder')"
             :disabled="loading"
+            autocomplete="new-password"
             class="input"
           />
           <span class="error-text" v-if="errors.confirmPassword">{{ errors.confirmPassword }}</span>

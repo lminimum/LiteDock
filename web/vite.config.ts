@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      port: 3023,
+      host: '0.0.0.0',
       proxy: {
         '/v1': {
           target,

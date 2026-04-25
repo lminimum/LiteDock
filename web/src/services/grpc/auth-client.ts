@@ -1,12 +1,7 @@
-import { Metadata } from 'google-protobuf';
-import {
-  LoginRequest,
+import type {
   LoginResponse,
-  RegisterRequest,
   RegisterResponse,
-  GetCurrentUserRequest,
   GetCurrentUserResponse,
-  RefreshTokenRequest,
   RefreshTokenResponse
 } from './auth-types';
 

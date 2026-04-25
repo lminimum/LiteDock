@@ -2,6 +2,7 @@
 .git
 .github
 nginx
+!nginx/docker-nginx.conf
 
 .dockerignore
 .env
