@@ -76,35 +76,12 @@
             </button>
           </div>
           <div class="card-content">
-            <div class="resource-item">
-              <div class="resource-info">
-                <span class="resource-label">{{ t('dashboard.cpu') }}</span>
-                <span class="resource-value">{{ resources.cpu }}%</span>
-              </div>
-              <div class="progress">
-                <div class="progress-bar" :style="{ width: resources.cpu + '%' }"></div>
-              </div>
-            </div>
-
-            <div class="resource-item">
-              <div class="resource-info">
-                <span class="resource-label">{{ t('dashboard.memory') }}</span>
-                <span class="resource-value">{{ resources.memory }}%</span>
-              </div>
-              <div class="progress">
-                <div class="progress-bar" :style="{ width: resources.memory + '%' }"></div>
-              </div>
-            </div>
-
-            <div class="resource-item">
-              <div class="resource-info">
-                <span class="resource-label">{{ t('dashboard.disk') }}</span>
-                <span class="resource-value">{{ resources.disk }}%</span>
-              </div>
-              <div class="progress">
-                <div class="progress-bar" :style="{ width: resources.disk + '%' }"></div>
-              </div>
-            </div>
+            <SystemResourcesChart
+              :labels="chartLabels"
+              :cpu="chartCpu"
+              :memory="chartMemory"
+              :disk="chartDisk"
+            />
           </div>
         </div>
 
@@ -193,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, markRaw } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, markRaw } from 'vue'
 import {
   Box,
   Image as ImageIcon,
@@ -207,6 +184,7 @@ import {
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
 
 const refreshing = ref(false)
@@ -219,7 +197,40 @@ const stats = reactive({
   machines: { total: 0 }
 })
 
-const resources = reactive({ cpu: 45, memory: 62, disk: 38 })
+const TOTAL_POINTS = 60
+const POINT_INTERVAL_SECONDS = 5
+
+const generateTimeLabels = (): string[] => {
+  const labels: string[] = []
+  const now = new Date()
+  for (let i = TOTAL_POINTS - 1; i >= 0; i--) {
+    const t = new Date(now.getTime() - i * POINT_INTERVAL_SECONDS * 1000)
+    labels.push(t.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
+  }
+  return labels
+}
+
+const chartLabels = ref<string[]>(generateTimeLabels())
+const chartCpu = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
+const chartMemory = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
+const chartDisk = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
+
+const refreshResources = async () => {
+  try {
+    const resourcesRes = await api.get('/dashboard/resources')
+    if (resourcesRes.data.success) {
+      const { cpu, memory, disk } = resourcesRes.data.data
+      const newCpu = [...chartCpu.value.slice(1), cpu ?? 0]
+      const newMemory = [...chartMemory.value.slice(1), memory ?? 0]
+      const newDisk = [...chartDisk.value.slice(1), disk ?? 0]
+      chartCpu.value = newCpu
+      chartMemory.value = newMemory
+      chartDisk.value = newDisk
+    }
+  } catch (e) {
+    console.error('Failed to fetch resources:', e)
+  }
+}
 
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
@@ -255,37 +266,23 @@ const formatTime = (time: Date) => {
   return t('dashboard.daysAgo', { n: days })
 }
 
-const refreshResources = async () => {
-  refreshing.value = true
-  try {
-    const [statsRes] = await Promise.all([
-      api.get('/dashboard/stats')
-    ])
-    if (statsRes.data.success) {
-      const { machines, containers } = statsRes.data.data
-      stats.machines.total = machines.total
-      if (containers) {
-        stats.containers.total = containers.total || 0
-        stats.containers.running = containers.running || 0
-        stats.containers.stopped = containers.stopped || 0
-      }
-    }
-    resources.cpu = Math.floor(Math.random() * 100)
-    resources.memory = Math.floor(Math.random() * 100)
-    resources.disk = Math.floor(Math.random() * 100)
-  } catch (e) {
-    console.error('Failed to fetch stats:', e)
-  } finally {
-    refreshing.value = false
-  }
-}
-
 const createContainer = () => console.log('createContainer')
 const pullImage = () => console.log('pullImage')
 const createNetwork = () => console.log('createNetwork')
 const createVolume = () => console.log('createVolume')
 
-onMounted(() => refreshResources())
+const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null)
+
+onMounted(() => {
+  refreshResources()
+  refreshInterval.value = setInterval(refreshResources, 5000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value)
+  }
+})
 </script>
 
 <style scoped>

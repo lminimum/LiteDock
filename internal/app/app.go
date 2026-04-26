@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/lminimum/LiteDock/config"
 	"github.com/lminimum/LiteDock/internal/controller/restapi"
@@ -13,6 +14,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
 	"github.com/lminimum/LiteDock/internal/usecase/container"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
+	"github.com/lminimum/LiteDock/pkg/collector"
 	"github.com/lminimum/LiteDock/pkg/database"
 	"github.com/lminimum/LiteDock/pkg/httpserver"
 	"github.com/lminimum/LiteDock/pkg/logger"
@@ -37,6 +39,7 @@ func Run(cfg *config.Config) {
 	userRepo := persistent.NewUserRepo(db)
 	containerRepo := persistent.NewContainerRepo(db)
 	remoteMachineRepo := persistent.NewRemoteMachineRepo(db)
+	systemMetricsRepo := persistent.NewSystemMetricsRepo(db)
 
 	// Auth UseCase
 	authUseCase := auth.New(userRepo, l)
@@ -47,9 +50,12 @@ func Run(cfg *config.Config) {
 	// RemoteMachine UseCase
 	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
 
+	metricsCollector := collector.NewMetricsCollector(systemMetricsRepo, l, 5*time.Minute)
+	go metricsCollector.Start()
+
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, l)
+	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, l)
 
 	// Start servers
 	httpServer.Start()
@@ -66,6 +72,7 @@ func Run(cfg *config.Config) {
 	}
 
 	// Shutdown
+	metricsCollector.Stop()
 	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))

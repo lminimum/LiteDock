@@ -45,4 +45,10 @@ type (
 		Delete(context.Context, string) error
 		GetByHost(context.Context, string) (*entity.RemoteMachine, error)
 	}
+
+	SystemMetricsRepo interface {
+		Create(ctx context.Context, m *entity.SystemMetric) error
+		GetHistory(ctx context.Context, since time.Time) ([]entity.SystemMetric, error)
+		DeleteOlderThan(ctx context.Context, before time.Time) error
+	}
 )

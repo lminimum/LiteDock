@@ -37,3 +37,6 @@ vendor/
 app
 
 coverage.txt
+
+# Worktrees
+.worktrees/
