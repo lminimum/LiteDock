@@ -71,9 +71,6 @@
         <div class="card">
           <div class="card-header">
             <h3>{{ t('dashboard.systemResources') }}</h3>
-            <button @click="refreshResources" class="btn btn-ghost btn-sm" :disabled="refreshing">
-              <RefreshCw :size="16" :class="{ 'spinning': refreshing }" />
-            </button>
           </div>
           <div class="card-content">
             <SystemResourcesChart
@@ -176,7 +173,6 @@ import {
   Image as ImageIcon,
   Network,
   HardDrive,
-  RefreshCw,
   Plus,
   Download,
   PlusCircle,
@@ -187,8 +183,6 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
 
-const refreshing = ref(false)
-
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
   images: { total: 0, size: '0 GB' },
@@ -198,37 +192,112 @@ const stats = reactive({
 })
 
 const TOTAL_POINTS = 60
-const POINT_INTERVAL_SECONDS = 5
+const UPDATE_INTERVAL_MS = 2000
 
-const generateTimeLabels = (): string[] => {
-  const labels: string[] = []
-  const now = new Date()
-  for (let i = TOTAL_POINTS - 1; i >= 0; i--) {
-    const t = new Date(now.getTime() - i * POINT_INTERVAL_SECONDS * 1000)
-    labels.push(t.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
-  }
-  return labels
-}
-
-const chartLabels = ref<string[]>(generateTimeLabels())
+const chartLabels = ref<string[]>([])
 const chartCpu = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
 const chartMemory = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
 const chartDisk = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
 
-const refreshResources = async () => {
+const initChartLabels = () => {
+  const labels: string[] = []
+  const now = new Date()
+  for (let i = TOTAL_POINTS - 1; i >= 0; i--) {
+    const t = new Date(now.getTime() - i * UPDATE_INTERVAL_MS)
+    labels.push(t.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
+  }
+  chartLabels.value = labels
+}
+
+const loadHistory = async (): Promise<boolean> => {
   try {
-    const resourcesRes = await api.get('/dashboard/resources')
-    if (resourcesRes.data.success) {
-      const { cpu, memory, disk } = resourcesRes.data.data
-      const newCpu = [...chartCpu.value.slice(1), cpu ?? 0]
-      const newMemory = [...chartMemory.value.slice(1), memory ?? 0]
-      const newDisk = [...chartDisk.value.slice(1), disk ?? 0]
+    const res = await api.get('/dashboard/resources/history?minutes=5')
+    if (res.data.success && res.data.data.length > 0) {
+      const history = res.data.data.slice(-TOTAL_POINTS)
+      const cpu: number[] = []
+      const memory: number[] = []
+      const disk: number[] = []
+      const labels: string[] = []
+
+      for (const m of history) {
+        cpu.push(m.cpu ?? 0)
+        memory.push(m.memory ?? 0)
+        disk.push(m.disk ?? 0)
+        labels.push(m.time ?? '')
+      }
+
+      const fillCount = TOTAL_POINTS - cpu.length
+      chartCpu.value = [...new Array(fillCount).fill(0), ...cpu]
+      chartMemory.value = [...new Array(fillCount).fill(0), ...memory]
+      chartDisk.value = [...new Array(fillCount).fill(0), ...disk]
+      chartLabels.value = [...new Array(fillCount).fill(''), ...labels]
+      return true
+    }
+    return false
+  } catch (e) {
+    console.error('Failed to load history:', e)
+    return false
+  }
+}
+
+let ws: WebSocket | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let isMounted = false
+
+const startWS = () => {
+  if (!isMounted) return
+  // Use window.location to construct WebSocket URL for proper browser connection
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = import.meta.env.VITE_API_WS_HOST || `${window.location.hostname}:8080`
+  const wsUrl = `${protocol}//${host}`
+  ws = new WebSocket(`${wsUrl}/v1/dashboard/resources/stream`)
+
+  ws.onopen = () => {
+    console.log('WebSocket connected')
+  }
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      const newCpu = [...chartCpu.value.slice(1), data.cpu ?? 0]
+      const newMemory = [...chartMemory.value.slice(1), data.memory ?? 0]
+      const newDisk = [...chartDisk.value.slice(1), data.disk ?? 0]
       chartCpu.value = newCpu
       chartMemory.value = newMemory
       chartDisk.value = newDisk
+
+      const newLabels = [...chartLabels.value.slice(1), data.time ?? '']
+      chartLabels.value = newLabels
+    } catch (e) {
+      console.error('Failed to parse WebSocket message:', e)
+    }
+  }
+
+  ws.onerror = (e) => {
+    console.error('WebSocket error:', e)
+  }
+
+  ws.onclose = () => {
+    console.log('WebSocket disconnected')
+    if (!isMounted) return
+    reconnectTimer = setTimeout(startWS, 5000)
+  }
+}
+
+const refreshStats = async () => {
+  try {
+    const statsRes = await api.get('/dashboard/stats')
+    if (statsRes.data.success) {
+      const { machines, containers } = statsRes.data.data
+      stats.machines.total = machines.total
+      if (containers) {
+        stats.containers.total = containers.total || 0
+        stats.containers.running = containers.running || 0
+        stats.containers.stopped = containers.stopped || 0
+      }
     }
   } catch (e) {
-    console.error('Failed to fetch resources:', e)
+    console.error('Failed to fetch stats:', e)
   }
 }
 
@@ -271,16 +340,25 @@ const pullImage = () => console.log('pullImage')
 const createNetwork = () => console.log('createNetwork')
 const createVolume = () => console.log('createVolume')
 
-const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null)
-
-onMounted(() => {
-  refreshResources()
-  refreshInterval.value = setInterval(refreshResources, 5000)
+onMounted(async () => {
+  isMounted = true
+  const hasHistory = await loadHistory()
+  if (!hasHistory) {
+    initChartLabels()
+  }
+  startWS()
+  refreshStats()
 })
 
 onUnmounted(() => {
-  if (refreshInterval.value) {
-    clearInterval(refreshInterval.value)
+  isMounted = false
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  if (ws) {
+    ws.close()
+    ws = null
   }
 })
 </script>

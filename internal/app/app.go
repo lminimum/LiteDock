@@ -55,7 +55,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, l)
 
 	// Start servers
 	httpServer.Start()
@@ -73,6 +73,7 @@ func Run(cfg *config.Config) {
 
 	// Shutdown
 	metricsCollector.Stop()
+	dashboardHandler.CloseAllConnections()
 	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))

@@ -24,7 +24,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, metricsRepo repo.SystemMetricsRepo, l logger.Interface) {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, metricsRepo repo.SystemMetricsRepo, l logger.Interface) *v1.DashboardHandler {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -46,10 +46,13 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 
 	// Routers
 	apiV1Group := app.Group("/v1")
+	var dashboardHandler *v1.DashboardHandler
 	{
 		v1.NewContainerRoutes(apiV1Group, container, l)
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
 		v1.NewRemoteMachineRoutes(apiV1Group, remoteMachine, l)
-		v1.NewDashboardRoutes(apiV1Group, remoteMachine, container, metricsRepo, l)
+		dashboardHandler = v1.NewDashboardRoutes(apiV1Group, remoteMachine, container, metricsRepo, l)
 	}
+
+	return dashboardHandler
 }

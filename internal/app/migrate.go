@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -15,16 +16,14 @@ import (
 )
 
 const (
-	_defaultAttempts = 20
-	_defaultTimeout  = time.Second
+	_migrateAttempts = 5
+	_migrateWait     = 200 * time.Millisecond
 )
-
-const _defaultDBType = "postgres"
 
 func AutoMigrate(cfg *config.Config) error {
 	dbType := cfg.DB.Type
 	if dbType == "" {
-		dbType = _defaultDBType
+		dbType = "postgres"
 	}
 
 	databaseURL, err := buildDatabaseURL(dbType, cfg.DB.URL)
@@ -32,94 +31,52 @@ func AutoMigrate(cfg *config.Config) error {
 		return err
 	}
 
-	m, err := connectMigrate(databaseURL)
+	m, err := migrate.New("file://migrations", databaseURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("AutoMigrate connect: %w", err)
 	}
 	defer m.Close()
 
-	return runMigrations(m, dbType)
+	for i := 0; i < _migrateAttempts; i++ {
+		err = m.Up()
+		if err == nil || errors.Is(err, migrate.ErrNoChange) {
+			return nil
+		}
+		if i < _migrateAttempts-1 {
+			time.Sleep(_migrateWait)
+		}
+	}
+
+	return fmt.Errorf("AutoMigrate %s: %w", dbType, err)
 }
 
 func buildDatabaseURL(dbType, url string) (string, error) {
 	switch dbType {
 	case "postgres":
-		return buildPostgresURL(url)
+		if url == "" {
+			return "", apperrors.ErrDBURLRequired
+		}
+		if !strings.Contains(url, "sslmode=") {
+			url += "?sslmode=disable"
+		}
+		return url, nil
 	case "mysql":
-		return buildMySQLURL(url)
+		if url == "" {
+			return "", apperrors.ErrDBURLRequiredMySQL
+		}
+		if !strings.HasPrefix(url, "mysql://") {
+			url = "mysql://" + url
+		}
+		return url, nil
 	case "sqlite":
-		return buildSQLiteURL(url)
+		if url == "" {
+			url = "./data.db"
+		}
+		if !strings.Contains(url, "://") {
+			url = "sqlite://" + url
+		}
+		return url, nil
 	default:
 		return "", apperrors.Wrap(apperrors.ErrDBTypeNotSupported, "AutoMigrate."+dbType)
 	}
-}
-
-func buildPostgresURL(url string) (string, error) {
-	if url == "" {
-		return "", apperrors.ErrDBURLRequired
-	}
-
-	if !strings.Contains(url, "sslmode=") {
-		url += "?sslmode=disable"
-	}
-
-	return url, nil
-}
-
-func buildMySQLURL(url string) (string, error) {
-	if url == "" {
-		return "", apperrors.ErrDBURLRequiredMySQL
-	}
-
-	if !strings.HasPrefix(url, "mysql://") {
-		url = "mysql://" + url
-	}
-
-	return url, nil
-}
-
-func buildSQLiteURL(url string) (string, error) {
-	if url == "" {
-		url = "./data.db"
-	}
-
-	if !strings.Contains(url, "://") {
-		url = "sqlite://" + url
-	}
-
-	return url, nil
-}
-
-func connectMigrate(databaseURL string) (*migrate.Migrate, error) {
-	var (
-		attempts = _defaultAttempts
-		err      error
-		m        *migrate.Migrate
-	)
-
-	for attempts > 0 {
-		m, err = migrate.New("file://migrations", databaseURL)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(_defaultTimeout)
-
-		attempts--
-	}
-
-	if err != nil {
-		return nil, apperrors.Wrap(err, "connectMigrate")
-	}
-
-	return m, nil
-}
-
-func runMigrations(m *migrate.Migrate, dbType string) error {
-	err := m.Up()
-	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return apperrors.Wrap(err, "AutoMigrate."+dbType+".Up")
-	}
-
-	return nil
 }

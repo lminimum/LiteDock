@@ -223,6 +223,31 @@ paths:
       summary: Get a container by ID
       tags:
       - containers
+  /dashboard/resources/history:
+    get:
+      description: Get historical metrics for the chart (last N minutes)
+      parameters:
+      - default: 5
+        description: Number of minutes to look back
+        in: query
+        name: minutes
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get historical system resources metrics
+      tags:
+      - dashboard
   /dashboard/stats:
     get:
       description: Get aggregated stats for the dashboard (machine count, container

@@ -7,28 +7,43 @@ import (
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/logger"
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/lminimum/LiteDock/pkg/systemmetrics"
 )
 
 type MetricsCollector struct {
-	metricsRepo repo.SystemMetricsRepo
-	l           logger.Interface
-	interval    time.Duration
-	stopCh      chan struct{}
+	metricsRepo   repo.SystemMetricsRepo
+	l             logger.Interface
+	interval      time.Duration
+	stopCh        chan struct{}
+	cleanupStopCh chan struct{}
 }
 
 func NewMetricsCollector(metricsRepo repo.SystemMetricsRepo, l logger.Interface, interval time.Duration) *MetricsCollector {
 	return &MetricsCollector{
-		metricsRepo: metricsRepo,
-		l:           l,
-		interval:    interval,
-		stopCh:      make(chan struct{}),
+		metricsRepo:   metricsRepo,
+		l:             l,
+		interval:      interval,
+		stopCh:        make(chan struct{}),
+		cleanupStopCh: make(chan struct{}),
 	}
 }
 
+// Start begins periodic metric collection and scheduled cleanup.
+// It blocks until Stop() is called.
 func (mc *MetricsCollector) Start() {
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				mc.cleanupOld()
+			case <-mc.cleanupStopCh:
+				return
+			}
+		}
+	}()
+
 	mc.collect()
 
 	ticker := time.NewTicker(mc.interval)
@@ -44,22 +59,26 @@ func (mc *MetricsCollector) Start() {
 	}
 }
 
+// Stop signals both the collection loop and the cleanup goroutine to stop.
 func (mc *MetricsCollector) Stop() {
+	close(mc.cleanupStopCh)
 	close(mc.stopCh)
 }
 
 func (mc *MetricsCollector) collect() {
 	ctx := context.Background()
 
-	cpuVal := getCPUUsage()
-	memoryVal := getMemoryUsage()
-	diskVal := getDiskUsage()
+	sm, err := systemmetrics.GetSystemMetrics()
+	if err != nil {
+		mc.l.Error(err, "MetricsCollector.collect failed")
+		return
+	}
 
 	m := &entity.SystemMetric{
-		RecordedAt:    time.Now(),
-		CPUPercent:    cpuVal,
-		MemoryPercent: memoryVal,
-		DiskPercent:   diskVal,
+		RecordedAt:    sm.At,
+		CPUPercent:    sm.CPU,
+		MemoryPercent: sm.Memory,
+		DiskPercent:   sm.Disk,
 	}
 
 	if err := mc.metricsRepo.Create(ctx, m); err != nil {
@@ -67,9 +86,7 @@ func (mc *MetricsCollector) collect() {
 		return
 	}
 
-	mc.l.Debug("MetricsCollector: collected cpu=%.2f memory=%.2f disk=%.2f", cpuVal, memoryVal, diskVal)
-
-	go mc.cleanupOld()
+	mc.l.Debug("MetricsCollector: collected cpu=%.2f memory=%.2f disk=%.2f", sm.CPU, sm.Memory, sm.Disk)
 }
 
 func (mc *MetricsCollector) cleanupOld() {
@@ -78,35 +95,4 @@ func (mc *MetricsCollector) cleanupOld() {
 	if err := mc.metricsRepo.DeleteOlderThan(ctx, threshold); err != nil {
 		mc.l.Warn("MetricsCollector.cleanupOld failed: %v", err)
 	}
-}
-
-func getCPUUsage() float64 {
-	percent, err := cpu.Percent(500*time.Millisecond, false)
-	if err != nil || len(percent) == 0 {
-		return 0
-	}
-	return percent[0]
-}
-
-func getMemoryUsage() float64 {
-	m, err := mem.VirtualMemory()
-	if err != nil {
-		return 0
-	}
-	return m.UsedPercent
-}
-
-func getDiskUsage() float64 {
-	parts, err := disk.Partitions(false)
-	if err != nil {
-		return 0
-	}
-	if len(parts) == 0 {
-		return 0
-	}
-	usage, err := disk.Usage(parts[0].Mountpoint)
-	if err != nil {
-		return 0
-	}
-	return usage.UsedPercent
 }
