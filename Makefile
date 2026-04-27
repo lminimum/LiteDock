@@ -24,6 +24,24 @@ compose-up: ### Run docker compose (core services: database)
 	$(BASE_STACK) up --build -d
 .PHONY: compose-up
 
+kill: ### Kill all frontend and backend processes
+	@-pkill -f "app$$" 2>/dev/null || true
+	@-pkill -f "litedock" 2>/dev/null || true
+	@-fuser -k 8080/tcp 2>/dev/null || true
+	@-fuser -k 8081/tcp 2>/dev/null || true
+	@-fuser -k 3023/tcp 2>/dev/null || true
+	@-fuser -k 3024/tcp 2>/dev/null || true
+	@-pkill -f "node.*LiteDock.*vite" 2>/dev/null || true
+	@-pkill -f "vite.*web" 2>/dev/null || true
+	@echo "All frontend and backend processes killed"
+.PHONY: kill
+
+restart: kill run web-dev ### Kill all processes and restart backend + frontend
+.PHONY: restart
+
+restart-backend: kill run ### Kill all processes and restart backend only
+.PHONY: restart-backend
+
 compose-up-all: ### Run docker compose (full stack with backend and reverse proxy)
 	$(BASE_STACK) up --build -d
 .PHONY: compose-up-all
