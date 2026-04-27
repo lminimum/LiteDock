@@ -50,7 +50,7 @@ func Run(cfg *config.Config) {
 	// RemoteMachine UseCase
 	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
 
-	metricsCollector := collector.NewMetricsCollector(systemMetricsRepo, l, 5*time.Minute)
+	metricsCollector := collector.NewMetricsCollector(systemMetricsRepo, l, 2*time.Second)
 	go metricsCollector.Start()
 
 	// HTTP Server

@@ -65,6 +65,10 @@ func (mc *MetricsCollector) Stop() {
 	close(mc.stopCh)
 }
 
+const (
+	maxMetricsRecords = 3600
+)
+
 func (mc *MetricsCollector) collect() {
 	ctx := context.Background()
 
@@ -84,6 +88,10 @@ func (mc *MetricsCollector) collect() {
 	if err := mc.metricsRepo.Create(ctx, m); err != nil {
 		mc.l.Error(err, "MetricsCollector.collect failed to save metric")
 		return
+	}
+
+	if err := mc.metricsRepo.PruneToCount(ctx, maxMetricsRecords); err != nil {
+		mc.l.Warn("MetricsCollector.collect.PruneToCount failed: %v", err)
 	}
 
 	mc.l.Debug("MetricsCollector: collected cpu=%.2f memory=%.2f disk=%.2f", sm.CPU, sm.Memory, sm.Disk)

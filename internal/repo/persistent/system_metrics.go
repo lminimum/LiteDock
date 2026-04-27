@@ -94,3 +94,20 @@ func (r *SystemMetricsRepo) DeleteOlderThan(ctx context.Context, before time.Tim
 
 	return nil
 }
+
+func (r *SystemMetricsRepo) PruneToCount(ctx context.Context, maxCount int) error {
+	query := `
+		DELETE FROM system_metrics
+		WHERE id NOT IN (
+			SELECT id FROM system_metrics
+			ORDER BY recorded_at DESC
+			LIMIT ?
+		)`
+
+	err := r.db.Exec(ctx, query, maxCount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

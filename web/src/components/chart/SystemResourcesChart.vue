@@ -9,7 +9,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js'
 
 ChartJS.register(
@@ -19,7 +20,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 )
 
 import type { TooltipItem } from 'chart.js'
@@ -43,41 +45,57 @@ const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 onMounted(() => window.addEventListener('resize', handleResize))
 onUnmounted(() => window.removeEventListener('resize', handleResize))
 
-const data = computed(() => ({
-  labels: props.labels,
-  datasets: [
-    {
-      label: 'CPU %',
-      data: props.cpu,
-      borderColor: getCSSColor('--color-info'),
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      tension: 0.4,
-      pointRadius: 0,
-      pointHoverRadius: 4
-    },
-    {
-      label: 'Memory %',
-      data: props.memory,
-      borderColor: getCSSColor('--color-warning'),
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      tension: 0.4,
-      pointRadius: 0,
-      pointHoverRadius: 4
-    },
-    {
-      label: 'Disk %',
-      data: props.disk,
-      borderColor: getCSSColor('--color-success'),
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      tension: 0.4,
-      pointRadius: 0,
-      pointHoverRadius: 4
+  const data = computed(() => {
+  const getColor = (varName: string, alpha: number = 1) => {
+    const color = getCSSColor(varName)
+    if (color.startsWith('#')) {
+      const r = parseInt(color.slice(1, 3), 16)
+      const g = parseInt(color.slice(3, 5), 16)
+      const b = parseInt(color.slice(5, 7), 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
     }
-  ]
-}))
+    return color
+  }
+
+  return {
+    labels: props.labels,
+    datasets: [
+      {
+        label: 'CPU %',
+        data: props.cpu,
+        borderColor: getColor('--color-info'),
+        backgroundColor: getColor('--color-info', 0.1),
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true
+      },
+      {
+        label: 'Memory %',
+        data: props.memory,
+        borderColor: getColor('--color-warning'),
+        backgroundColor: getColor('--color-warning', 0.1),
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true
+      },
+      {
+        label: 'Disk %',
+        data: props.disk,
+        borderColor: getColor('--color-success'),
+        backgroundColor: getColor('--color-success', 0.1),
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true
+      }
+    ]
+  }
+})
 
 const options = computed(() => ({
   responsive: true,
