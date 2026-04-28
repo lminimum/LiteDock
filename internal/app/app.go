@@ -2,6 +2,8 @@
 package app
 
 import (
+	"context"
+	stderrors "errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,12 +12,14 @@ import (
 
 	"github.com/lminimum/LiteDock/config"
 	"github.com/lminimum/LiteDock/internal/controller/restapi"
+	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo/persistent"
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
 	"github.com/lminimum/LiteDock/internal/usecase/container"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/pkg/collector"
 	"github.com/lminimum/LiteDock/pkg/database"
+	apperrors "github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/httpserver"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
@@ -40,6 +44,9 @@ func Run(cfg *config.Config) {
 	containerRepo := persistent.NewContainerRepo(db)
 	remoteMachineRepo := persistent.NewRemoteMachineRepo(db)
 	systemMetricsRepo := persistent.NewSystemMetricsRepo(db)
+
+	// Auto-create local machine if not exists
+	initLocalMachine(l, remoteMachineRepo)
 
 	// Auth UseCase
 	authUseCase := auth.New(userRepo, l)
@@ -78,4 +85,38 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}
+}
+
+func initLocalMachine(l logger.Interface, machineRepo *persistent.RemoteMachineRepo) {
+	ctx := context.Background()
+
+	_, err := machineRepo.GetByID(ctx, remote_machine.LocalMachineID)
+	if err == nil {
+		l.Debug("app - initLocalMachine: local machine already exists")
+		return
+	}
+
+	if !stderrors.Is(err, apperrors.ErrRemoteMachineNotFound) {
+		l.Warn("app - initLocalMachine: failed to check local machine: %v", err)
+		return
+	}
+
+	localMachine := &entity.RemoteMachine{
+		ID:         remote_machine.LocalMachineID,
+		Name:       "本机",
+		Host:       remote_machine.LocalMachineHost,
+		Port:       0,
+		Username:   "local",
+		AuthMethod: entity.AuthMethodPassword,
+		DockerHost: "/var/run/docker.sock",
+		Status:     "unknown",
+	}
+
+	err = machineRepo.Create(ctx, localMachine)
+	if err != nil {
+		l.Warn("app - initLocalMachine: failed to create local machine: %v", err)
+		return
+	}
+
+	l.Info("app - initLocalMachine: created local machine (ID: %s)", remote_machine.LocalMachineID)
 }
