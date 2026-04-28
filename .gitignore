@@ -15,6 +15,11 @@ docs/plans
 # Config
 .env
 
+# Node dependencies (root - QA testing artifacts)
+node_modules/
+package-lock.json
+package.json
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
