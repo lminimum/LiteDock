@@ -75,6 +75,26 @@
     "createdAt": "创建时间:",
     "confirmDelete": "确定要删除这个容器吗？"
   },
+  "networks": {
+    "title": "网络管理",
+    "searchPlaceholder": "搜索网络...",
+    "allDrivers": "所有驱动类型",
+    "allScopes": "所有范围",
+    "create": "创建网络",
+    "delete": "删除",
+    "refresh": "刷新",
+    "name": "名称",
+    "driver": "驱动类型",
+    "scope": "范围",
+    "internal": "内部",
+    "attachable": "可连接",
+    "confirmDelete": "删除此网络？此操作无法撤销。",
+    "noNetworks": "未找到网络",
+    "namePlaceholder": "输入网络名称...",
+    "driverPlaceholder": "选择驱动类型...",
+    "created": "创建于",
+    "containers": "容器"
+  },
   "machines": {
     "title": "远程机器",
     "searchPlaceholder": "搜索远程机器...",
