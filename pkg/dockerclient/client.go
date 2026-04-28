@@ -20,5 +20,9 @@ type Client interface {
 	ContainerRestart(ctx context.Context, containerID string, timeout time.Duration) error
 	ContainerRemove(ctx context.Context, containerID string, force bool) error
 	ContainerInspect(ctx context.Context, containerID string) (*container.InspectResponse, error)
+	NetworkList(ctx context.Context) ([]entity.Network, error)
+	NetworkCreate(ctx context.Context, name, driver string) (*entity.Network, error)
+	NetworkDelete(ctx context.Context, networkID string) error
+	NetworkInspect(ctx context.Context, networkID string) (*entity.Network, error)
 	Close() error
 }

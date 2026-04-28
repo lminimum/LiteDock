@@ -79,6 +79,8 @@ var (
 	ErrDockerOperation   = errors.New("docker: operation failed")
 	ErrContainerNotFound = errors.New("docker: container not found")
 	ErrContainerExec     = errors.New("docker: container exec failed")
+	ErrNetworkNotFound    = errors.New("docker: network not found")
+	ErrNetworkHasContainers = errors.New("docker: network has active containers")
 )
 
 // SQL errors.

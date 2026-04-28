@@ -52,4 +52,13 @@ type (
 		DeleteOlderThan(ctx context.Context, before time.Time) error
 		PruneToCount(ctx context.Context, maxCount int) error
 	}
+
+	// NetworkRepo - manages Docker networks with caching
+	NetworkRepo interface {
+		ListByMachine(ctx context.Context, machineID string) ([]entity.Network, error)
+		GetByName(ctx context.Context, machineID string, name string) (*entity.Network, error)
+		UpsertBatch(ctx context.Context, machineID string, networks []entity.Network) error
+		DeleteByMachine(ctx context.Context, machineID string) error
+		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+	}
 )

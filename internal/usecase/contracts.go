@@ -36,4 +36,12 @@ type (
 		Delete(ctx context.Context, id string) error
 		GetByHost(ctx context.Context, host string) (*entity.RemoteMachine, error)
 	}
+
+	// Network -.
+	Network interface {
+		ListNetworks(ctx context.Context, machineID string) ([]entity.Network, error)
+		CreateNetwork(ctx context.Context, machineID string, name, driver string) (*entity.Network, error)
+		DeleteNetwork(ctx context.Context, machineID string, networkName string) error
+		InspectNetwork(ctx context.Context, machineID string, networkName string) (*entity.Network, error)
+	}
 )
