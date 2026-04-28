@@ -252,6 +252,8 @@ let isMounted = false
 const startWS = () => {
   if (!isMounted) return
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+// Use Vite proxy (same host as page) so we don't hardcode backend port
+  const wsUrl = `${protocol}//${window.location.host}`
   // Use Vite proxy (same host as page) so we don't hardcode backend port
   const wsUrl = `${protocol}//${window.location.host}`
   ws = new WebSocket(`${wsUrl}/v1/dashboard/resources/stream`)
