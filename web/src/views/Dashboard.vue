@@ -27,19 +27,6 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon images">
-          <ImageIcon :size="24" />
-        </div>
-        <div class="stat-content">
-          <h3>{{ stats.images.total }}</h3>
-          <p>{{ t('dashboard.totalImages') }}</p>
-          <div class="stat-breakdown">
-            <span>{{ stats.images.size }} {{ t('dashboard.totalSize') }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
         <div class="stat-icon networks">
           <Network :size="24" />
         </div>
@@ -170,7 +157,6 @@
 import { ref, reactive, onMounted, onUnmounted, markRaw } from 'vue'
 import {
   Box,
-  Image as ImageIcon,
   Network,
   HardDrive,
   Plus,
@@ -185,7 +171,6 @@ import api from '@/utils/api'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
-  images: { total: 0, size: '0 GB' },
   networks: { total: 0, active: 0 },
   volumes: { total: 0, size: '0 GB' },
   machines: { total: 0 }
@@ -305,7 +290,7 @@ const systemStatus = reactive({ docker: true, database: true, messageQueue: true
 
 const recentActivities = ref([
   { id: 1, type: 'container', title: t('dashboard.containerStarted', { name: 'web-server' }), time: new Date(Date.now() - 5 * 60 * 1000) },
-  { id: 2, type: 'image', title: t('dashboard.imagePulled', { name: 'nginx:latest' }), time: new Date(Date.now() - 15 * 60 * 1000) },
+  { id: 2, type: 'container', title: t('dashboard.imagePulled', { name: 'nginx:latest' }), time: new Date(Date.now() - 15 * 60 * 1000) },
   { id: 3, type: 'container', title: t('dashboard.containerStopped', { name: 'database' }), time: new Date(Date.now() - 30 * 60 * 1000) },
   { id: 4, type: 'network', title: t('dashboard.networkCreated', { name: 'frontend-network' }), time: new Date(Date.now() - 45 * 60 * 1000) },
   { id: 5, type: 'volume', title: t('dashboard.volumeDeleted', { name: 'data-volume' }), time: new Date(Date.now() - 60 * 60 * 1000) }
@@ -313,7 +298,6 @@ const recentActivities = ref([
 
 const iconMap: Record<string, ReturnType<typeof markRaw>> = {
   container: markRaw(Box),
-  image: markRaw(ImageIcon),
   network: markRaw(Globe),
   volume: markRaw(HardDrive)
 }
@@ -403,7 +387,6 @@ onUnmounted(() => {
 
 .stat-icon.containers { background: var(--color-info-bg); color: var(--color-info); }
 .stat-icon.machines { background: var(--color-info-bg); color: var(--color-info); }
-.stat-icon.images { background: var(--color-accent); color: #fdfcfc; }
 .stat-icon.networks { background: var(--color-success-bg); color: var(--color-success); }
 .stat-icon.volumes { background: var(--color-warning-bg); color: var(--color-warning); }
 
@@ -615,11 +598,85 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2);
+  }
+
+  .stat-card {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-1);
+  }
+
+  .stat-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .stat-icon svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .stat-content h3 {
+    font-size: var(--font-size-sm);
+  }
+
+  .stat-content p {
+    font-size: 9px;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .stat-breakdown {
+    display: none;
+  }
+
+  .dashboard-content {
     grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .card {
+    margin-bottom: var(--space-3);
+  }
+
+  .card-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .card-header h3 {
+    font-size: var(--font-size-sm);
+  }
+
+  .card-content {
+    padding: var(--space-3);
   }
 
   .quick-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .quick-action-btn {
+    flex-direction: row;
+    padding: var(--space-3);
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .status-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .activity-title {
+    font-size: var(--font-size-xs);
+  }
+
+  .view-all {
+    font-size: var(--font-size-xs);
   }
 }
 </style>
