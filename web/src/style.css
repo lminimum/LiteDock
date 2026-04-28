@@ -1,47 +1,52 @@
 /*
  * LiteDock Design System
- * Based on OpenCode.ai aesthetic - minimalist, technical, monospace
+ * OpenCode.ai aesthetic — warm dark, flat, monospace-first
  */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 /* ============================================
-   Design Tokens
+   Design Tokens — OpenCode Warm Dark
    ============================================ */
 
 :root {
-  /* Colors - Light Mode */
-  --color-background: hsl(0, 20%, 99%);
-  --color-background-weak: hsl(0, 8%, 97%);
-  --color-background-strong: hsl(0, 5%, 12%);
-  --color-text: hsl(0, 1%, 39%);
-  --color-text-strong: hsl(0, 5%, 12%);
-  --color-text-weak: hsl(0, 1%, 60%);
-  --color-text-weaker: hsl(30, 2%, 81%);
-  --color-border: hsl(30, 2%, 81%);
-  --color-border-weak: hsla(0, 100%, 3%, 0.12);
-  --color-background-interactive: hsl(62, 84%, 88%);
-  --color-background-interactive-weaker: hsl(64, 74%, 95%);
-  --color-background-overlay: hsla(0, 0%, 0%, 0.5);
+  /* Primary Palette */
+  --color-background: #201d1d;
+  --color-background-weak: #302c2c;
+  --color-background-strong: #302c2c;
+  --color-text: #9a9898;
+  --color-text-strong: #fdfcfc;
+  --color-text-weak: #6e6e73;
+  --color-text-weaker: #646262;
+  --color-border: rgba(15, 0, 0, 0.12);
+  --color-border-weak: rgba(15, 0, 0, 0.08);
+  --color-background-overlay: rgba(0, 0, 0, 0.5);
 
-  /* Interactive States (buttons, dropdowns, selections) */
-  --interactive-bg: hsl(62, 84%, 88%);
-  --interactive-bg-hover: hsl(62, 78%, 78%);
-  --interactive-bg-active: hsl(62, 72%, 68%);
-  --interactive-text: hsl(62, 30%, 20%);
+  /* Accent */
+  --color-accent: #007aff;
+  --color-accent-hover: #0056b3;
+  --color-accent-active: #004085;
 
-  /* Semantic Colors */
-  --color-success: hsl(142, 71%, 45%);
-  --color-success-bg: hsl(142, 76%, 95%);
-  --color-warning: hsl(38, 92%, 50%);
-  --color-warning-bg: hsl(48, 96%, 95%);
-  --color-error: hsl(0, 84%, 60%);
-  --color-error-bg: hsl(0, 86%, 97%);
-  --color-info: hsl(217, 91%, 60%);
-  --color-info-bg: hsl(217, 91%, 97%);
+  /* Interactive */
+  --color-background-interactive: #007aff;
+  --color-background-interactive-weaker: rgba(0, 122, 255, 0.15);
 
-  /* Typography */
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  /* Semantic (Apple HIG) */
+  --color-success: #30d158;
+  --color-success-bg: rgba(48, 209, 88, 0.15);
+  --color-warning: #ff9f0a;
+  --color-warning-hover: #cc7f08;
+  --color-warning-active: #995f06;
+  --color-warning-bg: rgba(255, 159, 10, 0.15);
+  --color-error: #ff3b30;
+  --color-error-hover: #d70015;
+  --color-error-active: #a50011;
+  --color-error-bg: rgba(255, 59, 48, 0.15);
+  --color-info: #007aff;
+  --color-info-bg: rgba(0, 122, 255, 0.15);
+
+  /* Typography — Berkeley Mono · IBM Plex Mono fallback */
+  --font-mono: 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --font-size-xs: 0.8125rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -49,16 +54,16 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
-  --font-size-4xl: 2.25rem;
+  --font-size-4xl: 2.375rem;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  --line-height-tight: 1.25;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.625;
+  --line-height-tight: 1.00;
+  --line-height-normal: 1.50;
+  --line-height-relaxed: 2.00;
 
-  /* Spacing */
+  /* Spacing — 8px grid */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -71,21 +76,21 @@
   --space-16: 4rem;
   --space-20: 5rem;
 
-  /* Border Radius */
+  /* Border Radius — flat, utilitarian */
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 8px;
+  --radius-lg: 6px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px hsla(0, 100%, 0%, 0.06);
-  --shadow-md: 0 4px 6px -1px hsla(0, 100%, 0%, 0.08), 0 2px 4px -2px hsla(0, 100%, 0%, 0.06);
-  --shadow-lg: 0 10px 15px -3px hsla(0, 100%, 0%, 0.08), 0 4px 6px -4px hsla(0, 100%, 0%, 0.06);
+  /* Shadows — none (OpenCode is flat) */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 
   /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
 
   /* Layout */
   --sidebar-width: 220px;
@@ -145,31 +150,29 @@
   --dropdown-text-active: var(--interactive-text);
 
   /* Terminal / Logs */
-  --color-terminal-bg: hsl(0, 5%, 8%);
-  --color-terminal-text: hsl(142, 60%, 75%);
+  --color-terminal-bg: #151313;
+  --color-terminal-text: #30d158;
 }
 
-/* Dark Mode */
+/* Dark Mode — same warm dark palette, refined */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: hsl(0, 9%, 7%);
-    --color-background-weak: hsl(0, 6%, 10%);
-    --color-background-strong: hsl(0, 15%, 94%);
-    --color-text: hsl(0, 4%, 71%);
-    --color-text-strong: hsl(0, 15%, 94%);
-    --color-text-weak: hsl(0, 2%, 49%);
-    --color-text-weaker: hsl(0, 2%, 29%);
-    --color-border: hsl(0, 2%, 22%);
-    --color-border-weak: hsla(0, 0%, 100%, 0.08);
-    --color-background-interactive: hsl(62, 100%, 90%);
-    --color-background-interactive-weaker: hsl(62, 80%, 20%);
-    --color-background-overlay: hsla(0, 0%, 0%, 0.75);
+    --color-background: #201d1d;
+    --color-background-weak: #302c2c;
+    --color-background-strong: #302c2c;
+    --color-text: #9a9898;
+    --color-text-strong: #fdfcfc;
+    --color-text-weak: #6e6e73;
+    --color-text-weaker: #646262;
+    --color-border: rgba(15, 0, 0, 0.12);
+    --color-border-weak: rgba(15, 0, 0, 0.08);
 
-    --color-success-bg: hsl(142, 60%, 15%);
-    --color-warning-bg: hsl(38, 80%, 15%);
-    --color-error-bg: hsl(0, 60%, 15%);
-    --color-info-bg: hsl(217, 60%, 15%);
+    --color-success-bg: rgba(48, 209, 88, 0.15);
+    --color-warning-bg: rgba(255, 159, 10, 0.15);
+    --color-error-bg: rgba(255, 59, 48, 0.15);
+    --color-info-bg: rgba(0, 122, 255, 0.15);
 
+<<<<<<< HEAD
     --color-terminal-bg: hsl(0, 5%, 8%);
     --color-terminal-text: hsl(142, 40%, 65%);
 
@@ -209,6 +212,10 @@
     --setup-btn-secondary-border: hsl(0, 2%, 41%);
     --setup-btn-secondary-text: hsl(0, 2%, 71%);
     --setup-btn-secondary-hover: hsl(0, 2%, 28%);
+=======
+    --color-terminal-bg: #151313;
+    --color-terminal-text: #30d158;
+>>>>>>> bf2d670 (feat(web): integrate OpenCode.ai design system)
   }
 }
 
@@ -234,6 +241,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
   line-height: var(--line-height-normal);
   color: var(--color-text);
   background: var(--color-background);
@@ -249,12 +257,12 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-mono);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-strong);
-  line-height: var(--line-height-tight);
+  line-height: var(--line-height-normal);
 }
 
-h1 { font-size: var(--font-size-3xl); }
+h1 { font-size: var(--font-size-4xl); }
 h2 { font-size: var(--font-size-2xl); }
 h3 { font-size: var(--font-size-xl); }
 h4 { font-size: var(--font-size-lg); }
@@ -267,13 +275,14 @@ p {
 }
 
 a {
-  color: var(--color-text-strong);
-  text-decoration: none;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--color-text-weak);
+  color: var(--color-accent-hover);
 }
 
 code, pre {
@@ -405,34 +414,33 @@ button:disabled {
   opacity: 0.5;
 }
 
-/* Focus visible for keyboard navigation */
+/* Focus visible — border-based, no shadow (OpenCode flat) */
 :focus-visible {
-  outline: 2px solid var(--color-background-interactive);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* ============================================
-   Cards
+   Cards — flat, border-only (no shadow)
    ============================================ */
 
 .card {
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  background: var(--color-background-weak);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: var(--space-6);
 }
 
 .card-hover {
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .card-hover:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-border);
+  border-color: var(--color-text-weaker);
 }
 
 /* ============================================
-   Buttons (Base - use UiButton component)
+   Buttons
    ============================================ */
 
 .btn {
@@ -457,17 +465,19 @@ button:disabled {
   opacity: 0.5;
 }
 
+/* Primary — dark surface on dark bg, elevated with border */
 .btn-primary {
   background: var(--color-background-strong);
-  color: var(--color-background);
-  border-color: var(--color-background-strong);
+  color: var(--color-text-strong);
+  border-color: var(--color-text-weaker);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-text-weak);
+  background: #3d3939;
   border-color: var(--color-text-weak);
 }
 
+/* Secondary — transparent with warm border */
 .btn-secondary {
   background: transparent;
   color: var(--color-text-strong);
@@ -476,9 +486,10 @@ button:disabled {
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-background-weak);
-  border-color: var(--color-border);
+  border-color: var(--color-text-weaker);
 }
 
+/* Ghost — transparent, no border */
 .btn-ghost {
   background: transparent;
   color: var(--color-text);
@@ -489,17 +500,19 @@ button:disabled {
   background: var(--color-background-weak);
 }
 
+/* Danger — Apple HIG red */
 .btn-danger {
   background: var(--color-error);
-  color: white;
+  color: #fdfcfc;
   border-color: var(--color-error);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: hsl(0, 84%, 55%);
-  border-color: hsl(0, 84%, 55%);
+  background: var(--color-error-hover);
+  border-color: var(--color-error-hover);
 }
 
+/* Sizes */
 .btn-sm {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
@@ -511,7 +524,7 @@ button:disabled {
 }
 
 /* ============================================
-   Form Inputs
+   Form Inputs — border-based focus, no shadow
    ============================================ */
 
 .input {
@@ -522,8 +535,8 @@ button:disabled {
   color: var(--color-text-strong);
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
 }
 
 .input::placeholder {
@@ -532,8 +545,7 @@ button:disabled {
 
 .input:focus {
   outline: none;
-  border-color: var(--color-background-strong);
-  box-shadow: 0 0 0 3px var(--color-background-interactive-weaker);
+  border-color: var(--color-accent);
 }
 
 .input:disabled {
@@ -581,14 +593,14 @@ button:disabled {
 
 .progress {
   height: 6px;
-  background: var(--color-background-weak);
+  background: var(--color-background);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: var(--color-background-strong);
+  background: var(--color-accent);
   border-radius: var(--radius-full);
   transition: width var(--transition-base);
 }
@@ -651,18 +663,18 @@ button:disabled {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--color-text-weaker);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-weaker);
+  background: var(--color-text-weak);
 }
 
 /* Firefox scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) var(--color-background);
+  scrollbar-color: var(--color-text-weaker) var(--color-background);
 }
 
 /* ============================================
