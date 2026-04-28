@@ -1,7 +1,7 @@
 <!-- web/src/components/layout/Sidebar.vue -->
 <template>
-  <aside class="sidebar" :class="{ collapsed: effectiveCollapsed, 'mobile-open': mobileOpen, 'mobile-mode': isMobile }">
-    <SidebarLogo :collapsed="effectiveCollapsed" :is-mobile="isMobile" @close="handleClose" />
+  <aside class="sidebar" :class="{ collapsed: effectiveCollapsed, 'mobile-open': mobileOpen && !isClosing, 'mobile-mode': isMobile, 'mobile-closing': isClosing }">
+    <SidebarLogo :collapsed="effectiveCollapsed" :is-mobile="isMobile" />
     <SidebarNav :collapsed="effectiveCollapsed" :is-mobile="isMobile" />
     <SidebarUserInfo v-if="!isMobile" :collapsed="effectiveCollapsed" @toggle="handleToggle" />
   </aside>
@@ -30,6 +30,10 @@ const { collapsed: userCollapsed, toggle } = useSidebar()
 const isMobile = ref(false)
 // Tablet breakpoint: viewport 768px - 1023px
 const isTablet = ref(false)
+// Track closing state for slide-out animation
+const isClosing = ref(false)
+
+let closeTimeout: ReturnType<typeof setTimeout> | null = null
 
 const updateViewport = () => {
   isMobile.value = window.innerWidth < 768
@@ -43,6 +47,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateViewport)
+  if (closeTimeout) clearTimeout(closeTimeout)
 })
 
 // On mobile: never collapsed (show full nav)
@@ -60,15 +65,32 @@ const handleToggle = () => {
   }
 }
 
-// Close sidebar on mobile
-const handleClose = () => {
-  emit('toggle')
-}
-
 // Watch route changes to close sidebar on mobile
 watch(() => route.path, () => {
   if (isMobile.value && props.mobileOpen) {
-    handleClose()
+    emit('toggle')
+  }
+})
+
+// Animate out when mobileOpen becomes false
+watch(() => props.mobileOpen, (open) => {
+  if (isMobile.value) {
+    if (!open && !isClosing.value) {
+      // Starting close animation
+      isClosing.value = true
+      if (closeTimeout) clearTimeout(closeTimeout)
+      closeTimeout = setTimeout(() => {
+        isClosing.value = false
+        emit('toggle')
+      }, 350)
+    } else if (open) {
+      // Opening - cancel any closing animation
+      if (closeTimeout) {
+        clearTimeout(closeTimeout)
+        closeTimeout = null
+      }
+      isClosing.value = false
+    }
   }
 })
 </script>
@@ -90,27 +112,34 @@ watch(() => route.path, () => {
   width: var(--sidebar-collapsed-width);
 }
 
-/* Mobile: sidebar becomes fullscreen overlay drawer */
+/* Mobile: sidebar becomes drawer overlay */
 @media (max-width: 767px) {
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
     bottom: 0;
-    width: 100vw;
+    width: min(calc(100vw - var(--space-6)), 260px);
     height: 100vh;
     transform: translateX(-100%);
     z-index: 100;
+    box-shadow: none;
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.35s ease;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   }
 
   .sidebar.mobile-open {
     transform: translateX(0);
+    box-shadow: -8px 0 48px rgba(0, 0, 0, 0.5);
   }
 
-  /* On mobile, always show full width (not collapsed) */
+  .sidebar.mobile-closing {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
   .sidebar.collapsed {
-    width: 100vw;
+    width: min(calc(100vw - var(--space-6)), 260px);
   }
 }
 

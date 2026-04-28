@@ -7,24 +7,13 @@
     <div class="logo-collapsed">
       <span class="logo-text">LD</span>
     </div>
-    <!-- Mobile close button -->
-    <button v-if="isMobile" class="close-btn" @click="$emit('close')" :title="t('common.close')">
-      <X :size="24" />
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { t } from '@/i18n'
-import { X } from 'lucide-vue-next'
-
 defineProps<{
   collapsed: boolean
   isMobile: boolean
-}>()
-
-defineEmits<{
-  (e: 'close'): void
 }>()
 </script>
 
@@ -80,34 +69,6 @@ defineEmits<{
 
 .sidebar-header.collapsed .logo-collapsed {
   opacity: 1;
-}
-
-/* Mobile close button */
-.close-btn {
-  position: absolute;
-  right: var(--space-4);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: none;
-  border: none;
-  color: var(--color-text-weak);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.close-btn:hover {
-  background: var(--color-background-hover);
-  color: var(--color-text-strong);
-}
-
-.close-btn:active {
-  transform: translateY(-50%) scale(0.95);
 }
 
 /* Mobile mode adjustments */

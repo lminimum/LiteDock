@@ -9,7 +9,9 @@
     "volumes": "Volumes",
     "settings": "Settings",
     "main": "Main",
-    "system": "System"
+    "system": "System",
+    "docker": "Docker",
+    "infrastructure": "Infrastructure"
   },
   "dashboard": {
     "title": "Overview",

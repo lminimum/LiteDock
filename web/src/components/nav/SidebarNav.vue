@@ -2,7 +2,7 @@
 <template>
   <nav class="sidebar-nav" :class="{ collapsed, 'mobile-mode': isMobile }">
     <div class="nav-section">
-      <div class="nav-section-header" v-if="!isMobile">
+      <div class="nav-section-header" v-if="!isMobile && !collapsed">
         <div class="nav-section-title">{{ t('nav.main') }}</div>
         <div class="nav-section-spacer"></div>
       </div>
@@ -14,13 +14,15 @@
         :label="item.label"
         :active="currentRouteName === item.name"
         :collapsed="collapsed"
-        :badge="item.badge"
         :is-mobile="isMobile"
+        :children="item.children"
+        :expanded="expandedMenus[item.name]"
+        @toggle-children="toggleMenu(item.name)"
       />
     </div>
 
     <div class="nav-section">
-      <div class="nav-section-header" v-if="!isMobile">
+      <div class="nav-section-header" v-if="!isMobile && !collapsed">
         <div class="nav-section-title">{{ t('nav.system') }}</div>
         <div class="nav-section-spacer"></div>
       </div>
@@ -33,6 +35,9 @@
         :active="currentRouteName === item.name"
         :collapsed="collapsed"
         :is-mobile="isMobile"
+        :children="item.children"
+        :expanded="expandedMenus[item.name]"
+        @toggle-children="toggleMenu(item.name)"
       />
     </div>
   </nav>
@@ -43,17 +48,35 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { t } from '@/i18n'
 import NavItem from '@/components/nav/NavItem.vue'
-import api from '@/utils/api'
 import {
   LayoutDashboard,
   Box,
-  GitBranch,
-  Image,
-  Network,
-  HardDrive,
   Settings,
   Server,
+  Container,
+  GitBranch,
+  Image as ImageIcon,
+  HardDrive,
+  Globe,
 } from 'lucide-vue-next'
+
+import type { Component } from 'vue'
+
+interface NavChildItem {
+  name: string
+  path: string
+  label: string
+  icon?: Component
+}
+
+interface NavItemDef {
+  name: string
+  path?: string
+  label: string
+  icon: Component
+  badge?: string
+  children?: NavChildItem[]
+}
 
 defineProps<{
   collapsed: boolean
@@ -69,22 +92,53 @@ const containerCount = ref<string | undefined>(undefined)
 
 const currentRouteName = computed(() => route.name)
 
-const mainNavItems = computed(() => [
+// Track which menus are expanded
+const expandedMenus = ref<Record<string, boolean>>({})
+const parentMenuNames = ['Docker', 'Infrastructure']
+
+// Default expand all menus
+onMounted(() => {
+  parentMenuNames.forEach(name => {
+    expandedMenus.value[name] = true
+  })
+})
+
+const toggleMenu = (name: string) => {
+  expandedMenus.value[name] = !expandedMenus.value[name]
+}
+
+const mainNavItems = computed<NavItemDef[]>(() => [
   { name: 'Dashboard', path: '/', label: t('nav.overview'), icon: LayoutDashboard },
-  { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Box, badge: containerCount.value },
-  { name: 'Machines', path: '/machines', label: t('nav.machines'), icon: Server },
-  { name: 'Orchestration', path: '/orchestration', label: t('nav.orchestration'), icon: GitBranch },
-  { name: 'Images', path: '/images', label: t('nav.images'), icon: Image },
-  { name: 'Networks', path: '/networks', label: t('nav.networks'), icon: Network },
-  { name: 'Volumes', path: '/volumes', label: t('nav.volumes'), icon: HardDrive },
+  {
+    name: 'Docker',
+    label: t('nav.docker'),
+    icon: Box,
+    badge: containerCount.value,
+    children: [
+      { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Container },
+      { name: 'Orchestration', path: '/orchestration', label: t('nav.orchestration'), icon: GitBranch },
+      { name: 'Images', path: '/images', label: t('nav.images'), icon: ImageIcon },
+      { name: 'Volumes', path: '/volumes', label: t('nav.volumes'), icon: HardDrive },
+      { name: 'Networks', path: '/networks', label: t('nav.networks'), icon: Globe },
+    ],
+  },
+  {
+    name: 'Infrastructure',
+    label: t('nav.infrastructure'),
+    icon: Server,
+    children: [
+      { name: 'Machines', path: '/machines', label: t('nav.machines'), icon: Server },
+    ],
+  },
 ])
 
-const systemNavItems = computed(() => [
+const systemNavItems = computed<NavItemDef[]>(() => [
   { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings },
 ])
 
 onMounted(async () => {
   try {
+    const { default: api } = await import('@/utils/api')
     const res = await api.get('/dashboard/stats')
     if (res.data.success && res.data.data.containers) {
       containerCount.value = String(res.data.data.containers.total || 0)
@@ -130,11 +184,6 @@ onMounted(async () => {
 
 .nav-section-spacer {
   flex: 1;
-}
-
-/* Collapsed state - title fades out but space remains */
-.sidebar-nav.collapsed .nav-section-title {
-  opacity: 0;
 }
 
 /* Mobile mode - center items */

@@ -36,25 +36,28 @@
         v-for="machine in filteredMachines"
         :key="machine.id"
         class="machine-card"
-        :class="{ 'status-online': machine.status === 'online' }"
+        :class="{ 'status-online': machine.status === 'online', 'machine-local': machine.id === 'local' }"
       >
         <div class="machine-header">
-          <div class="machine-name">{{ machine.name }}</div>
+          <div class="machine-name">
+            {{ machine.name }}
+            <span v-if="machine.id === 'local'" class="badge badge-primary badge-sm" style="margin-left: 8px;">本地</span>
+          </div>
           <div class="badge" :class="getStatusClass(machine.status)">
             {{ t(`machines.status.${machine.status}`) }}
           </div>
         </div>
 
         <div class="machine-info">
-          <div class="info-item">
+          <div v-if="machine.id !== 'local'" class="info-item">
             <span class="label">{{ t('machines.host') }}</span>
             <span class="value">{{ machine.host }}:{{ machine.port }}</span>
           </div>
-          <div class="info-item">
+          <div v-if="machine.id !== 'local'" class="info-item">
             <span class="label">{{ t('machines.username') }}</span>
             <span class="value">{{ machine.username }}</span>
           </div>
-          <div class="info-item">
+          <div v-if="machine.id !== 'local'" class="info-item">
             <span class="label">{{ t('machines.authMethod') }}</span>
             <span class="badge" :class="machine.auth_method === 'password' ? 'badge-info' : 'badge-success'">
               {{ machine.auth_method === 'password' ? 'Password' : 'SSH Key' }}
@@ -64,6 +67,10 @@
             <span class="label">{{ t('machines.dockerHost') }}</span>
             <span class="value mono">{{ machine.docker_host }}</span>
           </div>
+          <div v-if="machine.id === 'local'" class="info-item">
+            <span class="label">连接方式</span>
+            <span class="badge badge-primary">Unix Socket（本机）</span>
+          </div>
         </div>
 
         <div class="machine-actions">
@@ -71,7 +78,7 @@
             <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" />
             {{ t('machines.test') }}
           </button>
-          <button @click="openEditModal(machine)" class="btn btn-sm btn-secondary">
+          <button @click="openEditModal(machine)" class="btn btn-sm btn-secondary" :disabled="machine.id === 'local'">
             <Pencil :size="14" />
             {{ t('machines.edit') }}
           </button>
@@ -79,7 +86,7 @@
             <Box :size="14" />
             {{ t('machines.containers') }}
           </button>
-          <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text">
+          <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
             <Trash2 :size="14" />
             {{ t('machines.delete') }}
           </button>
@@ -417,6 +424,20 @@ onMounted(() => refreshMachines())
 
 .machine-card.status-online {
   border-left-color: var(--color-success);
+}
+
+.machine-card.machine-local {
+  border-left-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-background) 0%, color-mix(in srgb, var(--color-primary) 3%, var(--color-background)) 100%);
+}
+
+.machine-card.machine-local .machine-name {
+  color: var(--color-primary);
+}
+
+.badge-sm {
+  font-size: var(--font-size-xs);
+  padding: 1px 6px;
 }
 
 .machine-card:hover {

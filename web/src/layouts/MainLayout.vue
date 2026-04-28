@@ -3,13 +3,13 @@
   <div class="main-layout">
     <!-- Mobile backdrop overlay -->
     <div
-      v-if="isMobile && mobileSidebarOpen"
       class="sidebar-backdrop"
+      :class="{ visible: isMobile && mobileSidebarOpen, closing: isClosing }"
       @click="closeMobileSidebar"
     ></div>
 
-    <!-- Sidebar - hidden on mobile (overlay mode) -->
-    <div v-if="!isMobile || mobileSidebarOpen" class="sidebar-wrapper">
+    <!-- Sidebar - always rendered -->
+    <div class="sidebar-wrapper">
       <Sidebar :mobile-open="mobileSidebarOpen" @toggle="handleSidebarToggle" />
     </div>
 
@@ -31,6 +31,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 // Mobile detection
 const isMobile = ref(false)
 const mobileSidebarOpen = ref(false)
+const isClosing = ref(false)
 
 const updateMobile = () => {
   isMobile.value = window.innerWidth < 768
@@ -46,14 +47,24 @@ onUnmounted(() => {
 })
 
 const toggleMobileSidebar = () => {
-  mobileSidebarOpen.value = !mobileSidebarOpen.value
+  if (mobileSidebarOpen.value) {
+    closeMobileSidebar()
+  } else {
+    mobileSidebarOpen.value = true
+  }
 }
 
 const closeMobileSidebar = () => {
-  mobileSidebarOpen.value = false
+  if (!mobileSidebarOpen.value) return
+  isClosing.value = true
+  setTimeout(() => {
+    mobileSidebarOpen.value = false
+    isClosing.value = false
+  }, 350)
 }
 
 const handleSidebarToggle = () => {
+  // Sidebar handles its own animation, just sync closing state
   if (isMobile.value) {
     closeMobileSidebar()
   }
@@ -94,12 +105,18 @@ const handleSidebarToggle = () => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 40;
-  animation: fadeIn 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-backdrop.closing {
+  opacity: 0;
 }
 
 @media (max-width: 767px) {

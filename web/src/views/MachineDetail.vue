@@ -17,8 +17,13 @@
     </div>
 
     <div v-if="machine" class="machine-info-bar">
-      <span class="info-chip">{{ machine.host }}:{{ machine.port }}</span>
-      <span class="info-chip">{{ machine.username }}</span>
+      <template v-if="machine.id !== 'local'">
+        <span class="info-chip">{{ machine.host }}:{{ machine.port }}</span>
+        <span class="info-chip">{{ machine.username }}</span>
+      </template>
+      <template v-else>
+        <span class="info-chip badge badge-primary">本地连接</span>
+      </template>
       <span class="info-chip mono">{{ machine.docker_host }}</span>
     </div>
 

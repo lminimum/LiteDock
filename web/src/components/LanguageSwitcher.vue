@@ -78,8 +78,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   top: calc(100% + 4px);
   right: 0;
   min-width: 120px;
-  background: var(--color-background-elevated, #1a1a2e);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  background: var(--dropdown-bg, var(--color-background-elevated, #1a1a2e));
+  border: 1px solid var(--dropdown-border, var(--color-border, rgba(255, 255, 255, 0.1)));
   border-radius: 8px;
   padding: 4px;
   z-index: 1000;
@@ -93,7 +93,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--color-text-secondary, #a0a0a0);
+  color: var(--dropdown-text, var(--color-text-secondary, #a0a0a0));
   font-family: 'IBM Plex Mono', monospace;
   font-size: 13px;
   text-align: left;
@@ -102,12 +102,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .lang-dropdown button:hover {
-  background: var(--color-background-hover, rgba(255, 255, 255, 0.05));
-  color: var(--color-text-primary, #ffffff);
+  background: var(--dropdown-hover-bg);
+  color: var(--dropdown-text-hover, var(--color-text-primary, #ffffff));
 }
 
 .lang-dropdown button.active {
-  background: var(--color-background-interactive, rgba(99, 102, 241, 0.15));
-  color: var(--color-text-primary, #ffffff);
+  background: var(--dropdown-active-bg);
+  color: var(--dropdown-text-active, var(--interactive-text, #ffffff));
 }
 </style>

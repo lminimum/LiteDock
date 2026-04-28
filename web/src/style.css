@@ -24,6 +24,12 @@
   --color-background-interactive-weaker: hsl(64, 74%, 95%);
   --color-background-overlay: hsla(0, 0%, 0%, 0.5);
 
+  /* Interactive States (buttons, dropdowns, selections) */
+  --interactive-bg: hsl(62, 84%, 88%);
+  --interactive-bg-hover: hsl(62, 78%, 78%);
+  --interactive-bg-active: hsl(62, 72%, 68%);
+  --interactive-text: hsl(62, 30%, 20%);
+
   /* Semantic Colors */
   --color-success: hsl(142, 71%, 45%);
   --color-success-bg: hsl(142, 76%, 95%);
@@ -88,6 +94,56 @@
   --container-max: 67.5rem;
   --content-padding: var(--space-6);
 
+  /* ============================================
+   Setup Modal
+   ============================================ */
+
+  --setup-overlay-bg: hsla(0, 0%, 0%, 0.5);
+  --setup-modal-shadow: 0 10px 25px hsla(0, 0%, 0%, 0.2);
+  --setup-modal-bg: #ffffff;
+  --setup-modal-border: #e2e8f0;
+  --setup-modal-header-bg: #f8fafc;
+  --setup-modal-header-border: #e2e8f0;
+  --setup-modal-text: #1e293b;
+  --setup-modal-text-secondary: #64748b;
+  --setup-modal-text-on-dark: #f1f5f9;
+  --setup-step-line: #e2e8f0;
+  --setup-step-number-bg: #e2e8f0;
+  --setup-step-number-text: #64748b;
+  --setup-step-active-bg: #667eea;
+  --setup-step-active-text: #ffffff;
+  --setup-step-completed-bg: #10b981;
+  --setup-step-completed-text: #ffffff;
+  --setup-step-title: #64748b;
+  --setup-form-label: #374151;
+  --setup-input-bg: #ffffff;
+  --setup-input-border: #d1d5db;
+  --setup-input-text: #111827;
+  --setup-focus-border: #667eea;
+  --setup-focus-shadow: 0 0 0 3px hsla(262, 83%, 58%, 0.1);
+  --setup-success-bg: #10b981;
+  --setup-success-text: #ffffff;
+  --setup-config-summary-bg: #f8fafc;
+  --setup-btn-primary-bg: #667eea;
+  --setup-btn-primary-hover: #5a67d8;
+  --setup-btn-primary-text: #ffffff;
+  --setup-btn-secondary-bg: #f8fafc;
+  --setup-btn-secondary-border: #d1d5db;
+  --setup-btn-secondary-text: #64748b;
+  --setup-btn-secondary-hover: #f1f5f9;
+
+  /* ============================================
+   Dropdown / Select
+   ============================================ */
+
+  --dropdown-bg: var(--color-background-elevated);
+  --dropdown-border: var(--color-border);
+  --dropdown-hover-bg: var(--interactive-bg-hover);
+  --dropdown-active-bg: var(--interactive-bg-active);
+  --dropdown-text: var(--color-text);
+  --dropdown-text-hover: var(--color-text-strong);
+  --dropdown-text-active: var(--interactive-text);
+
   /* Terminal / Logs */
   --color-terminal-bg: hsl(0, 5%, 8%);
   --color-terminal-text: hsl(142, 60%, 75%);
@@ -116,6 +172,43 @@
 
     --color-terminal-bg: hsl(0, 5%, 8%);
     --color-terminal-text: hsl(142, 40%, 65%);
+
+    --interactive-bg: hsl(62, 60%, 28%);
+    --interactive-bg-hover: hsl(62, 55%, 35%);
+    --interactive-bg-active: hsl(62, 50%, 45%);
+    --interactive-text: hsl(62, 90%, 90%);
+
+    --dropdown-bg: hsl(0, 9%, 12%);
+    --dropdown-border: hsl(0, 2%, 22%);
+
+    --setup-modal-bg: hsl(0, 9%, 12%);
+    --setup-modal-border: hsl(0, 2%, 22%);
+    --setup-modal-header-bg: hsl(0, 6%, 16%);
+    --setup-modal-header-border: hsl(0, 2%, 22%);
+    --setup-modal-text: hsl(0, 15%, 94%);
+    --setup-modal-text-secondary: hsl(0, 2%, 71%);
+    --setup-step-line: hsl(0, 2%, 22%);
+    --setup-step-number-bg: hsl(0, 2%, 22%);
+    --setup-step-number-text: hsl(0, 2%, 71%);
+    --setup-step-active-bg: hsl(217, 91%, 67%);
+    --setup-step-completed-bg: hsl(160, 60%, 52%);
+    --setup-step-completed-text: hsl(215, 28%, 8%);
+    --setup-step-title: hsl(0, 2%, 61%);
+    --setup-form-label: hsl(0, 2%, 89%);
+    --setup-input-bg: hsl(0, 2%, 22%);
+    --setup-input-border: hsl(0, 2%, 41%);
+    --setup-input-text: hsl(0, 15%, 94%);
+    --setup-focus-border: hsl(217, 91%, 67%);
+    --setup-focus-shadow: 0 0 0 3px hsla(217, 91%, 67%, 0.15);
+    --setup-success-bg: hsl(160, 60%, 52%);
+    --setup-success-text: hsl(215, 28%, 8%);
+    --setup-config-summary-bg: hsl(0, 6%, 16%);
+    --setup-btn-primary-bg: hsl(217, 91%, 67%);
+    --setup-btn-primary-hover: hsl(217, 91%, 55%);
+    --setup-btn-secondary-bg: hsl(0, 2%, 22%);
+    --setup-btn-secondary-border: hsl(0, 2%, 41%);
+    --setup-btn-secondary-text: hsl(0, 2%, 71%);
+    --setup-btn-secondary-hover: hsl(0, 2%, 28%);
   }
 }
 

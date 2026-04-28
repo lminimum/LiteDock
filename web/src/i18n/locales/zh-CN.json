@@ -9,7 +9,9 @@
     "volumes": "存储卷",
     "settings": "设置",
     "main": "主要功能",
-    "system": "系统"
+    "system": "系统",
+    "docker": "Docker",
+    "infrastructure": "基础设施"
   },
   "dashboard": {
     "title": "概览",
