@@ -177,7 +177,7 @@ const goToSetup = () => {
 
 .login-card {
   background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
   max-width: 380px;
   width: 100%;
@@ -272,6 +272,10 @@ const goToSetup = () => {
   color: var(--color-text);
 }
 
+.input {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
 .form-group.error .input {
   border-color: var(--color-error);
 }
@@ -321,7 +325,7 @@ const goToSetup = () => {
   margin-top: var(--space-6);
   text-align: center;
   padding-top: var(--space-6);
-  border-top: 1px solid var(--color-border-weak);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .login-footer p {

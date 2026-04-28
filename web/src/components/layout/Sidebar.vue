@@ -100,7 +100,7 @@ watch(() => props.mobileOpen, (open) => {
   width: var(--sidebar-width);
   height: 100%;
   background: var(--color-background);
-  border-right: 1px solid var(--color-border-weak);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
