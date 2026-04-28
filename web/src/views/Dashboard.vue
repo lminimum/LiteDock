@@ -246,9 +246,17 @@ let isMounted = false
 
 const startWS = () => {
   if (!isMounted) return
-  // Use window.location to construct WebSocket URL for proper browser connection
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = import.meta.env.VITE_API_WS_HOST || `${window.location.hostname}:8080`
+  let host = import.meta.env.VITE_API_WS_HOST
+  if (!host) {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    try {
+      const url = new URL(apiUrl)
+      host = url.host
+    } catch {
+      host = 'localhost:8080'
+    }
+  }
   const wsUrl = `${protocol}//${host}`
   ws = new WebSocket(`${wsUrl}/v1/dashboard/resources/stream`)
 
