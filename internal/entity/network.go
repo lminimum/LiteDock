@@ -4,6 +4,7 @@ import "time"
 
 type Network struct {
 	ID         string            `json:"id"`
+	MachineID  string            `json:"machine_id"`
 	Name       string            `json:"name"`
 	Driver     string            `json:"driver"`
 	Scope      string            `json:"scope"`
