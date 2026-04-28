@@ -14,7 +14,6 @@
         :label="item.label"
         :active="currentRouteName === item.name"
         :collapsed="collapsed"
-        :badge="item.badge"
         :is-mobile="isMobile"
       />
     </div>
@@ -39,11 +38,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { t } from '@/i18n'
 import NavItem from '@/components/nav/NavItem.vue'
-import api from '@/utils/api'
 import {
   LayoutDashboard,
   Box,
@@ -65,13 +63,12 @@ defineEmits<{
 }>()
 
 const route = useRoute()
-const containerCount = ref<string | undefined>(undefined)
 
 const currentRouteName = computed(() => route.name)
 
 const mainNavItems = computed(() => [
   { name: 'Dashboard', path: '/', label: t('nav.overview'), icon: LayoutDashboard },
-  { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Box, badge: containerCount.value },
+  { name: 'Containers', path: '/containers', label: t('nav.containers'), icon: Box },
   { name: 'Machines', path: '/machines', label: t('nav.machines'), icon: Server },
   { name: 'Orchestration', path: '/orchestration', label: t('nav.orchestration'), icon: GitBranch },
   { name: 'Images', path: '/images', label: t('nav.images'), icon: Image },
@@ -82,17 +79,6 @@ const mainNavItems = computed(() => [
 const systemNavItems = computed(() => [
   { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings },
 ])
-
-onMounted(async () => {
-  try {
-    const res = await api.get('/dashboard/stats')
-    if (res.data.success && res.data.data.containers) {
-      containerCount.value = String(res.data.data.containers.total || 0)
-    }
-  } catch (e) {
-    console.error('Failed to fetch container count:', e)
-  }
-})
 </script>
 
 <style scoped>
