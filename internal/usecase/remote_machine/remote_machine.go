@@ -13,6 +13,12 @@ import (
 	"github.com/lminimum/LiteDock/pkg/sshclient"
 )
 
+// LocalMachineHost is the host value used to identify a local Docker machine.
+const LocalMachineHost = "localhost"
+
+// LocalMachineID is the fixed ID for the built-in local machine.
+const LocalMachineID = "local"
+
 type UseCase struct {
 	repo           repo.RemoteMachineRepo
 	containerRepo  repo.ContainerRepo
@@ -27,6 +33,44 @@ func New(repo repo.RemoteMachineRepo, containerRepo repo.ContainerRepo, cacheMax
 		cacheMaxAge:   cacheMaxAge,
 		l:             l,
 	}
+}
+
+// isLocalMachine returns true if the machine represents the local Docker socket.
+func isLocalMachine(m *entity.RemoteMachine) bool {
+	return m.ID == LocalMachineID
+}
+
+// getDockerClient creates the appropriate Docker client for the given machine.
+// For local machines, it connects directly to the local Docker socket.
+// For remote machines, it connects via SSH tunnel.
+func (uc *UseCase) getDockerClient(ctx context.Context, machineID string) (dockerclient.Client, error) {
+	m, err := uc.repo.GetByID(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
+	}
+
+	if isLocalMachine(m) {
+		cli, err := dockerclient.NewLocalClient()
+		if err != nil {
+			return nil, errors.Wrap(err, "UseCase.getDockerClient.NewLocalClient")
+		}
+		uc.l.Debug("UseCase.getDockerClient: using local Docker socket for machine %s", machineID)
+		return cli, nil
+	}
+
+	sshCfg := uc.buildSSHConfig(m)
+	sshClient, err := sshclient.New(sshCfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.getDockerClient.sshclient.New")
+	}
+
+	cli, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
+	if err != nil {
+		sshClient.Close()
+		return nil, errors.Wrap(err, "UseCase.getDockerClient.NewRemoteClient")
+	}
+
+	return cli, nil
 }
 
 func (uc *UseCase) Create(ctx context.Context, m *entity.RemoteMachine) (*entity.RemoteMachine, error) {
@@ -76,6 +120,9 @@ func (uc *UseCase) Count(ctx context.Context) (int64, error) {
 }
 
 func (uc *UseCase) Update(ctx context.Context, m *entity.RemoteMachine) error {
+	if m.ID == LocalMachineID {
+		return errors.Wrap(errors.ErrInvalidInput, "UseCase.Update: cannot update local machine")
+	}
 	err := uc.repo.Update(ctx, m)
 	if err != nil {
 		return errors.Wrap(err, "UseCase.Update.repo.Update")
@@ -84,6 +131,9 @@ func (uc *UseCase) Update(ctx context.Context, m *entity.RemoteMachine) error {
 }
 
 func (uc *UseCase) Delete(ctx context.Context, id string) error {
+	if id == LocalMachineID {
+		return errors.Wrap(errors.ErrInvalidInput, "UseCase.Delete: cannot delete local machine")
+	}
 	err := uc.repo.Delete(ctx, id)
 	if err != nil {
 		return errors.Wrap(err, "UseCase.Delete.repo.Delete")
@@ -100,27 +150,15 @@ func (uc *UseCase) GetByHost(ctx context.Context, host string) (*entity.RemoteMa
 }
 
 func (uc *UseCase) TestConnection(ctx context.Context, id string) error {
-	m, err := uc.repo.GetByID(ctx, id)
+	cli, err := uc.getDockerClient(ctx, id)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.TestConnection.repo.GetByID")
+		return errors.Wrap(err, "UseCase.TestConnection.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	err = cli.Ping(ctx)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.TestConnection.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.TestConnection.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	err = dockerClient.Ping(ctx)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.TestConnection.dockerClient.Ping")
+		return errors.Wrap(err, "UseCase.TestConnection.cli.Ping")
 	}
 
 	return nil
@@ -149,27 +187,15 @@ func (uc *UseCase) ListContainers(ctx context.Context, machineID string) ([]enti
 }
 
 func (uc *UseCase) fetchAndCacheContainers(ctx context.Context, machineID string) ([]entity.Container, error) {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.GetByID")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	containers, err := cli.ContainerList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	containers, err := dockerClient.ContainerList(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.dockerClient.ContainerList")
+		return nil, errors.Wrap(err, "UseCase.fetchAndCacheContainers.cli.ContainerList")
 	}
 
 	now := time.Now()
@@ -191,30 +217,16 @@ func (uc *UseCase) fetchAndCacheContainers(ctx context.Context, machineID string
 func (uc *UseCase) refreshContainers(machineID string) {
 	ctx := context.Background()
 
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		uc.l.Warn("UseCase.refreshContainers.GetByID: %v", err)
+		uc.l.Warn("UseCase.refreshContainers.getDockerClient: %v", err)
 		return
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	containers, err := cli.ContainerList(ctx)
 	if err != nil {
-		uc.l.Warn("UseCase.refreshContainers.sshclient.New: %v", err)
-		return
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		uc.l.Warn("UseCase.refreshContainers.dockerclient.NewRemoteClient: %v", err)
-		return
-	}
-	defer dockerClient.Close()
-
-	containers, err := dockerClient.ContainerList(ctx)
-	if err != nil {
-		uc.l.Warn("UseCase.refreshContainers.dockerClient.ContainerList: %v", err)
+		uc.l.Warn("UseCase.refreshContainers.cli.ContainerList: %v", err)
 		return
 	}
 
@@ -236,81 +248,45 @@ func (uc *UseCase) refreshContainers(machineID string) {
 }
 
 func (uc *UseCase) GetContainerLogs(ctx context.Context, machineID, containerID, tail string) (string, error) {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return "", errors.Wrap(err, "UseCase.GetContainerLogs.repo.GetByID")
+		return "", errors.Wrap(err, "UseCase.GetContainerLogs.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	logs, err := cli.ContainerLogs(ctx, containerID, tail)
 	if err != nil {
-		return "", errors.Wrap(err, "UseCase.GetContainerLogs.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return "", errors.Wrap(err, "UseCase.GetContainerLogs.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	logs, err := dockerClient.ContainerLogs(ctx, containerID, tail)
-	if err != nil {
-		return "", errors.Wrap(err, "UseCase.GetContainerLogs.dockerClient.ContainerLogs")
+		return "", errors.Wrap(err, "UseCase.GetContainerLogs.cli.ContainerLogs")
 	}
 
 	return logs, nil
 }
 
 func (uc *UseCase) ExecContainer(ctx context.Context, machineID, containerID string, cmd []string) (string, error) {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return "", errors.Wrap(err, "UseCase.ExecContainer.repo.GetByID")
+		return "", errors.Wrap(err, "UseCase.ExecContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	output, err := cli.ContainerExec(ctx, containerID, cmd)
 	if err != nil {
-		return "", errors.Wrap(err, "UseCase.ExecContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return "", errors.Wrap(err, "UseCase.ExecContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	output, err := dockerClient.ContainerExec(ctx, containerID, cmd)
-	if err != nil {
-		return output, errors.Wrap(err, "UseCase.ExecContainer.dockerClient.ContainerExec")
+		return output, errors.Wrap(err, "UseCase.ExecContainer.cli.ContainerExec")
 	}
 
 	return output, nil
 }
 
 func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID string) error {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.StartContainer.repo.GetByID")
+		return errors.Wrap(err, "UseCase.StartContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	err = cli.ContainerStart(ctx, containerID)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.StartContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.StartContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	err = dockerClient.ContainerStart(ctx, containerID)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.StartContainer.dockerClient.ContainerStart")
+		return errors.Wrap(err, "UseCase.StartContainer.cli.ContainerStart")
 	}
 
 	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
@@ -318,27 +294,15 @@ func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID st
 }
 
 func (uc *UseCase) StopContainer(ctx context.Context, machineID, containerID string) error {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.StopContainer.repo.GetByID")
+		return errors.Wrap(err, "UseCase.StopContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	err = cli.ContainerStop(ctx, containerID, 0)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.StopContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.StopContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	err = dockerClient.ContainerStop(ctx, containerID, 0)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.StopContainer.dockerClient.ContainerStop")
+		return errors.Wrap(err, "UseCase.StopContainer.cli.ContainerStop")
 	}
 
 	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
@@ -346,27 +310,15 @@ func (uc *UseCase) StopContainer(ctx context.Context, machineID, containerID str
 }
 
 func (uc *UseCase) RestartContainer(ctx context.Context, machineID, containerID string) error {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.RestartContainer.repo.GetByID")
+		return errors.Wrap(err, "UseCase.RestartContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	err = cli.ContainerRestart(ctx, containerID, 0)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.RestartContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.RestartContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	err = dockerClient.ContainerRestart(ctx, containerID, 0)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.RestartContainer.dockerClient.ContainerRestart")
+		return errors.Wrap(err, "UseCase.RestartContainer.cli.ContainerRestart")
 	}
 
 	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
@@ -374,27 +326,15 @@ func (uc *UseCase) RestartContainer(ctx context.Context, machineID, containerID 
 }
 
 func (uc *UseCase) RemoveContainer(ctx context.Context, machineID, containerID string, force bool) error {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.RemoveContainer.repo.GetByID")
+		return errors.Wrap(err, "UseCase.RemoveContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	err = cli.ContainerRemove(ctx, containerID, force)
 	if err != nil {
-		return errors.Wrap(err, "UseCase.RemoveContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.RemoveContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	err = dockerClient.ContainerRemove(ctx, containerID, force)
-	if err != nil {
-		return errors.Wrap(err, "UseCase.RemoveContainer.dockerClient.ContainerRemove")
+		return errors.Wrap(err, "UseCase.RemoveContainer.cli.ContainerRemove")
 	}
 
 	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
@@ -402,27 +342,15 @@ func (uc *UseCase) RemoveContainer(ctx context.Context, machineID, containerID s
 }
 
 func (uc *UseCase) InspectContainer(ctx context.Context, machineID, containerID string) (interface{}, error) {
-	m, err := uc.repo.GetByID(ctx, machineID)
+	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.InspectContainer.repo.GetByID")
+		return nil, errors.Wrap(err, "UseCase.InspectContainer.getDockerClient")
 	}
+	defer cli.Close()
 
-	sshCfg := uc.buildSSHConfig(m)
-	sshClient, err := sshclient.New(sshCfg)
+	c, err := cli.ContainerInspect(ctx, containerID)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.InspectContainer.sshclient.New")
-	}
-	defer sshClient.Close()
-
-	dockerClient, err := dockerclient.NewRemoteClient(sshClient, m.DockerHost)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.InspectContainer.dockerclient.NewRemoteClient")
-	}
-	defer dockerClient.Close()
-
-	c, err := dockerClient.ContainerInspect(ctx, containerID)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.InspectContainer.dockerClient.ContainerInspect")
+		return nil, errors.Wrap(err, "UseCase.InspectContainer.cli.ContainerInspect")
 	}
 
 	return c, nil
