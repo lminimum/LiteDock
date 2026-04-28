@@ -386,7 +386,7 @@ onMounted(() => refreshMachines())
   padding: var(--space-4);
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .search-box {
@@ -416,10 +416,10 @@ onMounted(() => refreshMachines())
 .machine-card {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-4);
   border-left: 3px solid var(--color-border);
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .machine-card.status-online {
@@ -427,12 +427,12 @@ onMounted(() => refreshMachines())
 }
 
 .machine-card.machine-local {
-  border-left-color: var(--color-primary);
-  background: linear-gradient(135deg, var(--color-background) 0%, color-mix(in srgb, var(--color-primary) 3%, var(--color-background)) 100%);
+  border-left-color: var(--color-accent);
+  background: var(--color-background-weak);
 }
 
 .machine-card.machine-local .machine-name {
-  color: var(--color-primary);
+  color: var(--color-accent);
 }
 
 .badge-sm {
@@ -441,7 +441,7 @@ onMounted(() => refreshMachines())
 }
 
 .machine-card:hover {
-  box-shadow: var(--shadow-md);
+  border-color: var(--color-text-weaker);
 }
 
 .machine-header {
@@ -505,7 +505,7 @@ onMounted(() => refreshMachines())
 .modal {
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
@@ -575,7 +575,7 @@ onMounted(() => refreshMachines())
   bottom: var(--space-6);
   right: var(--space-6);
   padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   z-index: 2000;
@@ -584,12 +584,12 @@ onMounted(() => refreshMachines())
 
 .toast-success {
   background: var(--color-success);
-  color: white;
+  color: #fdfcfc;
 }
 
 .toast-error {
   background: var(--color-error);
-  color: white;
+  color: #fdfcfc;
 }
 
 @keyframes slideUp {

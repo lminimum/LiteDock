@@ -119,7 +119,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .menu-toggle:hover {
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
   color: var(--color-text-strong);
 }
 
@@ -160,7 +160,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .btn-ghost:hover {
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
   color: var(--color-text-strong);
 }
 
@@ -184,7 +184,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   width: 16px;
   height: 16px;
   background: var(--color-error);
-  color: white;
+  color: #fdfcfc;
   border-radius: var(--radius-full);
   font-size: 10px;
   display: flex;

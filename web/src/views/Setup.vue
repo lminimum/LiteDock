@@ -180,8 +180,7 @@ const handleSubmit = async () => {
 .setup-card {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
   max-width: 400px;
   width: 100%;
   padding: var(--space-8);
@@ -197,7 +196,7 @@ const handleSubmit = async () => {
   height: 56px;
   background: var(--color-background-strong);
   color: var(--color-background);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;

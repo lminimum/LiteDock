@@ -199,7 +199,7 @@ const resetSettings = () => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-background-interactive-weaker);
   color: var(--color-text-strong);
   flex-shrink: 0;
@@ -228,7 +228,7 @@ const resetSettings = () => {
 .settings-sidebar {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-4);
   height: fit-content;
 }
@@ -266,7 +266,7 @@ const resetSettings = () => {
 .settings-main {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-8);
 }
 
@@ -299,8 +299,8 @@ const resetSettings = () => {
   color: var(--color-text-strong);
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
 }
 
 .setting-group .input::placeholder {
@@ -309,8 +309,7 @@ const resetSettings = () => {
 
 .setting-group .input:focus {
   outline: none;
-  border-color: var(--color-background-strong);
-  box-shadow: 0 0 0 3px var(--color-background-interactive-weaker);
+  border-color: var(--color-accent);
 }
 
 .setting-group textarea.input {

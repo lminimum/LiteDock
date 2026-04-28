@@ -50,26 +50,26 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .lang-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
   background: transparent;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  color: var(--color-text-secondary, #a0a0a0);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-weak);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .lang-btn:hover {
-  color: var(--color-text-primary, #ffffff);
-  border-color: var(--color-border-hover, rgba(255, 255, 255, 0.2));
-  background: var(--color-background-hover, rgba(255, 255, 255, 0.05));
+  color: var(--color-text-strong);
+  border-color: var(--color-text-weaker);
+  background: var(--color-background-weak);
 }
 
 .lang-abbrev {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.5px;
 }
 
@@ -78,36 +78,35 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   top: calc(100% + 4px);
   right: 0;
   min-width: 120px;
-  background: var(--dropdown-bg, var(--color-background-elevated, #1a1a2e));
-  border: 1px solid var(--dropdown-border, var(--color-border, rgba(255, 255, 255, 0.1)));
-  border-radius: 8px;
-  padding: 4px;
+  background: var(--color-background-weak);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .lang-dropdown button {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   background: transparent;
   border: none;
-  border-radius: 4px;
-  color: var(--dropdown-text, var(--color-text-secondary, #a0a0a0));
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-weak);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
   text-align: left;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .lang-dropdown button:hover {
-  background: var(--dropdown-hover-bg);
-  color: var(--dropdown-text-hover, var(--color-text-primary, #ffffff));
+  background: var(--color-background-weak);
+  color: var(--color-text-strong);
 }
 
 .lang-dropdown button.active {
-  background: var(--dropdown-active-bg);
-  color: var(--dropdown-text-active, var(--interactive-text, #ffffff));
+  background: var(--color-background-interactive-weaker);
+  color: var(--color-text-strong);
 }
 </style>

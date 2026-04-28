@@ -103,7 +103,7 @@ const handleSidebarToggle = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-background-overlay);
   z-index: 40;
   opacity: 0;
   pointer-events: none;

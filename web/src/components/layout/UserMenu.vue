@@ -78,7 +78,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .user-menu-button:hover {
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
 }
 
 .user-name {
@@ -94,8 +94,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   margin-top: var(--space-2);
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
   min-width: 160px;
   z-index: 50;
   padding: var(--space-1);
@@ -114,7 +113,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .user-menu-dropdown a:hover {
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
 }
 
 @media (max-width: 767px) {

@@ -101,7 +101,7 @@ const authStore = useAuthStore()
 }
 
 .sidebar-toggle:hover {
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
   color: var(--color-text-strong);
 }
 

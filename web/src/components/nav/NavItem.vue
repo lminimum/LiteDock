@@ -103,12 +103,12 @@ const handleClick = () => {
 
 .nav-item:hover {
   color: var(--color-text-strong);
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
 }
 
 .nav-item.active {
   color: var(--color-text-strong);
-  background: var(--color-background-hover);
+  background: var(--color-background-weak);
   border-left-color: var(--color-text-strong);
 }
 
@@ -235,16 +235,16 @@ const handleClick = () => {
     justify-content: flex-start;
     padding: var(--space-3) var(--space-6);
     margin: var(--space-1) var(--space-4);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     border-left: none;
   }
 
   .nav-item.mobile-mode:hover {
-    background: var(--color-background-hover);
+    background: var(--color-background-weak);
   }
 
   .nav-item.mobile-mode.active {
-    background: var(--color-background-hover);
+    background: var(--color-background-weak);
     border-left: none;
   }
 

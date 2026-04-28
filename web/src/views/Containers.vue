@@ -268,7 +268,7 @@ onMounted(() => refreshContainers())
   padding: var(--space-4);
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .search-box {
@@ -288,10 +288,10 @@ onMounted(() => refreshContainers())
 .container-card {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-4);
   border-left: 3px solid var(--color-border);
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color var(--transition-fast);
 }
 
 .container-card.status-running {
@@ -299,7 +299,7 @@ onMounted(() => refreshContainers())
 }
 
 .container-card:hover {
-  box-shadow: var(--shadow-md);
+  border-color: var(--color-text-weaker);
 }
 
 .container-header {

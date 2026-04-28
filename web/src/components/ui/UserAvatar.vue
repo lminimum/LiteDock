@@ -27,7 +27,7 @@ const sizeClass = computed(() => `avatar-${props.size}`)
 .user-avatar {
   border-radius: var(--radius-full);
   background: var(--color-background-strong);
-  color: var(--color-background);
+  color: var(--color-text-strong);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -178,8 +178,7 @@ const goToSetup = () => {
 .login-card {
   background: var(--color-background);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
   max-width: 380px;
   width: 100%;
   padding: var(--space-8);

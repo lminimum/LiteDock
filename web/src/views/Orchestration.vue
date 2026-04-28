@@ -74,7 +74,7 @@ const features = [
   text-align: left;
   background: var(--color-background-weak);
   border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: var(--space-6);
 }
 
