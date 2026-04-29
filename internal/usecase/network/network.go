@@ -65,7 +65,7 @@ func (uc *NetworkUseCase) ListNetworks(ctx context.Context, machineID string) ([
 	}
 
 	if len(networks) == 0 {
-		return uc.fetchAndCacheNetworks(ctx, machineID)
+		return uc.fetchNetworksFromDocker(ctx, machineID)
 	}
 
 	if !valid {
@@ -192,17 +192,17 @@ func (uc *NetworkUseCase) buildSSHConfig(m *entity.RemoteMachine) sshclient.Conf
 	return cfg
 }
 
-// fetchAndCacheNetworks fetches networks from Docker and caches them.
-func (uc *NetworkUseCase) fetchAndCacheNetworks(ctx context.Context, machineID string) ([]entity.Network, error) {
+// fetchNetworksFromDocker fetches networks from Docker and caches them.
+func (uc *NetworkUseCase) fetchNetworksFromDocker(ctx context.Context, machineID string) ([]entity.Network, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
-		return nil, errors.Wrap(err, "NetworkUseCase.fetchAndCacheNetworks.getDockerClient")
+		return nil, errors.Wrap(err, "NetworkUseCase.fetchNetworksFromDocker.getDockerClient")
 	}
 	defer cli.Close()
 
 	networks, err := cli.NetworkList(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "NetworkUseCase.fetchAndCacheNetworks.cli.NetworkList")
+		return nil, errors.Wrap(err, "NetworkUseCase.fetchNetworksFromDocker.cli.NetworkList")
 	}
 
 	now := time.Now()
@@ -212,9 +212,8 @@ func (uc *NetworkUseCase) fetchAndCacheNetworks(ctx context.Context, machineID s
 	}
 
 	if len(networks) > 0 {
-		err = uc.networkRepo.UpsertBatch(ctx, machineID, networks)
-		if err != nil {
-			uc.l.Warn("NetworkUseCase.fetchAndCacheNetworks.UpsertBatch: %v", err)
+		if err := uc.networkRepo.UpsertBatch(ctx, machineID, networks); err != nil {
+			return networks, errors.Wrap(err, "NetworkUseCase.fetchNetworksFromDocker.UpsertBatch")
 		}
 	}
 
@@ -225,31 +224,10 @@ func (uc *NetworkUseCase) fetchAndCacheNetworks(ctx context.Context, machineID s
 func (uc *NetworkUseCase) refreshNetworks(machineID string) {
 	ctx := context.Background()
 
-	cli, err := uc.getDockerClient(ctx, machineID)
+	networks, err := uc.fetchNetworksFromDocker(ctx, machineID)
 	if err != nil {
-		uc.l.Warn("NetworkUseCase.refreshNetworks.getDockerClient: %v", err)
+		uc.l.Warn("NetworkUseCase.refreshNetworks: %v", err)
 		return
-	}
-	defer cli.Close()
-
-	networks, err := cli.NetworkList(ctx)
-	if err != nil {
-		uc.l.Warn("NetworkUseCase.refreshNetworks.cli.NetworkList: %v", err)
-		return
-	}
-
-	now := time.Now()
-	for i := range networks {
-		networks[i].MachineID = machineID
-		networks[i].CachedAt = now
-	}
-
-	if len(networks) > 0 {
-		err = uc.networkRepo.UpsertBatch(ctx, machineID, networks)
-		if err != nil {
-			uc.l.Warn("NetworkUseCase.refreshNetworks.UpsertBatch: %v", err)
-			return
-		}
 	}
 
 	uc.l.Debug("NetworkUseCase.refreshNetworks: refreshed %d networks for machine %s", len(networks), machineID)

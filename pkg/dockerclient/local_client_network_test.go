@@ -70,7 +70,7 @@ func TestInspectToEntity_LocalClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := inspectToEntity(tt.input)
+			result := toEntity(tt.input)
 			require.Equal(t, tt.expected.ID, result.ID)
 			require.Equal(t, tt.expected.Name, result.Name)
 			require.Equal(t, tt.expected.Driver, result.Driver)

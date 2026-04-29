@@ -1,6 +1,7 @@
 package dockerclient
 
 import (
+	"context"
 	"testing"
 
 	"github.com/docker/docker/api/types/network"
@@ -15,26 +16,26 @@ func TestRemoteClientNetworkMethodsExist(t *testing.T) {
 	rc := &RemoteClient{}
 
 	_ = func() error {
-		_, err := rc.NetworkList(ctxForTest())
+		_, err := rc.NetworkList(context.Background())
 		return err
 	}
 
 	_ = func() error {
-		_, err := rc.NetworkCreate(ctxForTest(), "test", "bridge")
+		_, err := rc.NetworkCreate(context.Background(), "test", "bridge")
 		return err
 	}
 
 	_ = func() error {
-		return rc.NetworkDelete(ctxForTest(), "test")
+		return rc.NetworkDelete(context.Background(), "test")
 	}
 
 	_ = func() error {
-		_, err := rc.NetworkInspect(ctxForTest(), "test")
+		_, err := rc.NetworkInspect(context.Background(), "test")
 		return err
 	}
 }
 
-func TestSummaryToEntity(t *testing.T) {
+func TestToEntity(t *testing.T) {
 	input := network.Summary{
 		ID:     "net1",
 		Name:   "bridge",
@@ -42,7 +43,7 @@ func TestSummaryToEntity(t *testing.T) {
 		Scope:  "local",
 	}
 
-	got := summaryToEntity(input)
+	got := toEntity(input)
 
 	if got.ID != input.ID {
 		t.Errorf("expected ID %s, got %s", input.ID, got.ID)
@@ -58,14 +59,14 @@ func TestSummaryToEntity(t *testing.T) {
 	}
 }
 
-func TestSummaryListToEntity(t *testing.T) {
+func TestToEntityList(t *testing.T) {
 	networks := []network.Summary{
 		{ID: "net1", Name: "bridge", Driver: "bridge", Scope: "local"},
 		{ID: "net2", Name: "host", Driver: "host", Scope: "local"},
 		{ID: "net3", Name: "overlay", Driver: "overlay", Scope: "swarm"},
 	}
 
-	got := summaryListToEntity(networks)
+	got := toEntityList(networks)
 
 	if len(got) != 3 {
 		t.Errorf("expected 3 networks, got %d", len(got))

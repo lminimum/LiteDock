@@ -165,5 +165,6 @@ func (h *NetworkHandler) Delete(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
+		"message": "Network deleted successfully",
 	})
 }
