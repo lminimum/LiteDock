@@ -108,10 +108,7 @@ func (h *RemoteMachineHandler) Create(c *fiber.Ctx) error {
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"data":    result,
-	})
+	return createdResponse(c, result)
 }
 
 // List - handles GET /v1/machines
@@ -282,8 +279,7 @@ func (h *RemoteMachineHandler) ListContainers(c *fiber.Ctx) error {
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success":    true,
+	return successResponse(c, fiber.Map{
 		"containers": containers,
 	})
 }
@@ -310,9 +306,8 @@ func (h *RemoteMachineHandler) GetContainerLogs(c *fiber.Ctx) error {
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"logs":    logs,
+	return successResponse(c, fiber.Map{
+		"logs": logs,
 	})
 }
 
@@ -345,16 +340,11 @@ func (h *RemoteMachineHandler) ExecContainer(c *fiber.Ctx) error {
 	output, err := h.uc.ExecContainer(c.Context(), id, containerID, req.Cmd)
 	if err != nil {
 		h.l.Error(err, "ExecContainer failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-			"output":  output,
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"output":  output,
+	return successResponse(c, fiber.Map{
+		"output": output,
 	})
 }
 
@@ -472,8 +462,7 @@ func (h *RemoteMachineHandler) InspectContainer(c *fiber.Ctx) error {
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success":    true,
+	return successResponse(c, fiber.Map{
 		"container": result,
 	})
 }

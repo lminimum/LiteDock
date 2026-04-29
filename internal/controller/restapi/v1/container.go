@@ -22,7 +22,9 @@ type ContainerHandler struct {
 // @Success 200 {object} map[string]interface{}
 // @Router /containers [get]
 func (h *ContainerHandler) List(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"containers": []interface{}{}})
+	return successResponse(c, fiber.Map{
+		"containers": []interface{}{},
+	})
 }
 
 // Get handles GET /v1/containers/:id
@@ -36,5 +38,8 @@ func (h *ContainerHandler) List(c *fiber.Ctx) error {
 func (h *ContainerHandler) Get(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	return c.JSON(fiber.Map{"id": id, "name": "placeholder"})
+	return successResponse(c, fiber.Map{
+		"id":   id,
+		"name": "placeholder",
+	})
 }

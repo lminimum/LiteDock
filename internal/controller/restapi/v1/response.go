@@ -22,3 +22,10 @@ func successMessage(c *fiber.Ctx, message string) error {
 		"message": message,
 	})
 }
+
+func createdResponse(c *fiber.Ctx, data interface{}) error {
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"data":    data,
+	})
+}

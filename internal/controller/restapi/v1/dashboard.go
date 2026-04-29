@@ -54,10 +54,7 @@ func (h *DashboardHandler) Stats(c *fiber.Ctx) error {
 	machineCount, err := h.uc.Count(c.Context())
 	if err != nil {
 		h.l.Error(err, "DashboardHandler.Stats.Count failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	totalContainers, err := h.containerUC.CountAll(c.Context())
@@ -78,17 +75,14 @@ func (h *DashboardHandler) Stats(c *fiber.Ctx) error {
 		stoppedContainers = 0
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data": fiber.Map{
-			"machines": fiber.Map{
-				"total": machineCount,
-			},
-			"containers": fiber.Map{
-				"total":   totalContainers,
-				"running": runningContainers,
-				"stopped": stoppedContainers,
-			},
+	return successResponse(c, fiber.Map{
+		"machines": fiber.Map{
+			"total": machineCount,
+		},
+		"containers": fiber.Map{
+			"total":   totalContainers,
+			"running": runningContainers,
+			"stopped": stoppedContainers,
 		},
 	})
 }
@@ -97,19 +91,13 @@ func (h *DashboardHandler) Resources(c *fiber.Ctx) error {
 	sm, err := systemmetrics.GetSystemMetrics()
 	if err != nil {
 		h.l.Error(err, "DashboardHandler.Resources.GetSystemMetrics failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data": fiber.Map{
-			"cpu":    math.Round(sm.CPU*10) / 10,
-			"memory": math.Round(sm.Memory*10) / 10,
-			"disk":   math.Round(sm.Disk*10) / 10,
-		},
+	return successResponse(c, fiber.Map{
+		"cpu":    math.Round(sm.CPU*10) / 10,
+		"memory": math.Round(sm.Memory*10) / 10,
+		"disk":   math.Round(sm.Disk*10) / 10,
 	})
 }
 
@@ -132,10 +120,7 @@ func (h *DashboardHandler) ResourcesHistory(c *fiber.Ctx) error {
 	metrics, err := h.metricsRepo.GetHistory(c.Context(), since)
 	if err != nil {
 		h.l.Error(err, "DashboardHandler.ResourcesHistory.GetHistory failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	data := make([]map[string]interface{}, 0, len(metrics))
@@ -148,10 +133,7 @@ func (h *DashboardHandler) ResourcesHistory(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    data,
-	})
+	return successResponse(c, data)
 }
 
 func (h *DashboardHandler) ResourcesStreamWS(c *websocket.Conn) {
