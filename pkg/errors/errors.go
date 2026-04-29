@@ -1,6 +1,9 @@
 package errors
 
-import "errors"
+import (
+	"errors"
+	"net/http"
+)
 
 func Wrap(err error, msg string) error {
 	if err == nil {
@@ -72,8 +75,66 @@ var (
 
 // Docker errors.
 var (
-	ErrDockerConnection = errors.New("docker: connection failed")
-	ErrDockerOperation  = errors.New("docker: operation failed")
+	ErrDockerConnection  = errors.New("docker: connection failed")
+	ErrDockerOperation   = errors.New("docker: operation failed")
 	ErrContainerNotFound = errors.New("docker: container not found")
 	ErrContainerExec     = errors.New("docker: container exec failed")
 )
+
+// SQL errors.
+var ErrNoRows = errors.New("sql: no rows in result set")
+
+// IsNoRows checks if the error is a "no rows" error from database/sql.
+func IsNoRows(err error) bool {
+	return err != nil && err.Error() == "sql: no rows in result set"
+}
+
+// HTTPStatusMap maps error types to HTTP status codes.
+var HTTPStatusMap = map[error]int{
+	// Not found errors -> 404
+	ErrUserNotFound:          http.StatusNotFound,
+	ErrRemoteMachineNotFound: http.StatusNotFound,
+	ErrContainerNotFound:     http.StatusNotFound,
+	ErrNotFound:              http.StatusNotFound,
+
+	// Authentication errors -> 401
+	ErrInvalidCredentials:   http.StatusUnauthorized,
+	ErrInvalidToken:         http.StatusUnauthorized,
+	ErrInvalidTokenClaims:   http.StatusUnauthorized,
+	ErrUnexpectedSignMethod: http.StatusUnauthorized,
+
+	// Bad request errors -> 400
+	ErrInvalidInput: http.StatusBadRequest,
+
+	// Conflict errors -> 409
+	ErrUsernameExists:     http.StatusConflict,
+	ErrRemoteMachineExists: http.StatusConflict,
+	ErrAlreadyExists:      http.StatusConflict,
+
+	// Internal server errors -> 500
+	ErrDBURLRequired:      http.StatusInternalServerError,
+	ErrDBURLRequiredMySQL: http.StatusInternalServerError,
+	ErrDBTypeNotSupported: http.StatusInternalServerError,
+	ErrSSHConnection:      http.StatusInternalServerError,
+	ErrSSHAuth:            http.StatusInternalServerError,
+	ErrSSHKeyParse:        http.StatusInternalServerError,
+	ErrDockerConnection:   http.StatusInternalServerError,
+	ErrDockerOperation:    http.StatusInternalServerError,
+	ErrContainerExec:      http.StatusInternalServerError,
+}
+
+// HTTPStatus returns the HTTP status code for an error.
+// If the error is not in the map, it returns 500 (Internal Server Error).
+func HTTPStatus(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+
+	for knownErr, status := range HTTPStatusMap {
+		if errors.Is(err, knownErr) {
+			return status
+		}
+	}
+
+	return http.StatusInternalServerError
+}
