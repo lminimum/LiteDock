@@ -24,27 +24,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import { useViewport } from '@/composables/useViewport'
 
 // Mobile detection
-const isMobile = ref(false)
+const { isMobile } = useViewport()
 const mobileSidebarOpen = ref(false)
 const isClosing = ref(false)
-
-const updateMobile = () => {
-  isMobile.value = window.innerWidth < 768
-}
-
-onMounted(() => {
-  updateMobile()
-  window.addEventListener('resize', updateMobile)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateMobile)
-})
 
 const toggleMobileSidebar = () => {
   if (mobileSidebarOpen.value) {

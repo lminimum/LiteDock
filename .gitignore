@@ -13,6 +13,8 @@ docs/plans
 
 # Config
 .env
+.env.local
+.env.*.local
 
 # Node dependencies (root - QA testing artifacts)
 node_modules/

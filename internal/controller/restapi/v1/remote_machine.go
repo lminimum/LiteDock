@@ -83,17 +83,11 @@ type ExecRequest struct {
 func (h *RemoteMachineHandler) Create(c *fiber.Ctx) error {
 	var req CreateMachineRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-		})
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	if err := h.v.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	machine := &entity.RemoteMachine{
@@ -111,17 +105,10 @@ func (h *RemoteMachineHandler) Create(c *fiber.Ctx) error {
 	result, err := h.uc.Create(c.Context(), machine)
 	if err != nil {
 		h.l.Error(err, "Create failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"data":    result,
-	})
+	return createdResponse(c, result)
 }
 
 // List - handles GET /v1/machines
@@ -136,17 +123,10 @@ func (h *RemoteMachineHandler) List(c *fiber.Ctx) error {
 	machines, err := h.uc.List(c.Context())
 	if err != nil {
 		h.l.Error(err, "List failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    machines,
-	})
+	return successResponse(c, machines)
 }
 
 // Get - handles GET /v1/machines/:id
@@ -165,17 +145,10 @@ func (h *RemoteMachineHandler) Get(c *fiber.Ctx) error {
 	machine, err := h.uc.GetByID(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "Get failed")
-
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusNotFound, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    machine,
-	})
+	return successResponse(c, machine)
 }
 
 // Update - handles PUT /v1/machines/:id
@@ -196,27 +169,17 @@ func (h *RemoteMachineHandler) Update(c *fiber.Ctx) error {
 
 	var req UpdateMachineRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-		})
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	if err := h.v.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	machine, err := h.uc.GetByID(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "Update.GetByID failed")
-
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusNotFound, err.Error())
 	}
 
 	if req.Name != "" {
@@ -250,17 +213,10 @@ func (h *RemoteMachineHandler) Update(c *fiber.Ctx) error {
 	err = h.uc.Update(c.Context(), machine)
 	if err != nil {
 		h.l.Error(err, "Update failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    machine,
-	})
+	return successResponse(c, machine)
 }
 
 // Delete - handles DELETE /v1/machines/:id
@@ -278,17 +234,10 @@ func (h *RemoteMachineHandler) Delete(c *fiber.Ctx) error {
 	err := h.uc.Delete(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "Delete failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Machine deleted successfully",
-	})
+	return successMessage(c, "Machine deleted successfully")
 }
 
 // TestConnection - handles POST /v1/machines/:id/test
@@ -306,17 +255,10 @@ func (h *RemoteMachineHandler) TestConnection(c *fiber.Ctx) error {
 	err := h.uc.TestConnection(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "TestConnection failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Connection successful",
-	})
+	return successMessage(c, "Connection successful")
 }
 
 // ListContainers - handles GET /v1/machines/:id/containers
@@ -334,15 +276,10 @@ func (h *RemoteMachineHandler) ListContainers(c *fiber.Ctx) error {
 	containers, err := h.uc.ListContainers(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "ListContainers failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success":    true,
+	return successResponse(c, fiber.Map{
 		"containers": containers,
 	})
 }
@@ -366,16 +303,11 @@ func (h *RemoteMachineHandler) GetContainerLogs(c *fiber.Ctx) error {
 	logs, err := h.uc.GetContainerLogs(c.Context(), id, containerID, tail)
 	if err != nil {
 		h.l.Error(err, "GetContainerLogs failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"logs":    logs,
+	return successResponse(c, fiber.Map{
+		"logs": logs,
 	})
 }
 
@@ -398,33 +330,21 @@ func (h *RemoteMachineHandler) ExecContainer(c *fiber.Ctx) error {
 
 	var req ExecRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-		})
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	if err := h.v.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	output, err := h.uc.ExecContainer(c.Context(), id, containerID, req.Cmd)
 	if err != nil {
 		h.l.Error(err, "ExecContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-			"output":  output,
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"output":  output,
+	return successResponse(c, fiber.Map{
+		"output": output,
 	})
 }
 
@@ -445,17 +365,10 @@ func (h *RemoteMachineHandler) StartContainer(c *fiber.Ctx) error {
 	err := h.uc.StartContainer(c.Context(), id, containerID)
 	if err != nil {
 		h.l.Error(err, "StartContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Container started",
-	})
+	return successMessage(c, "Container started")
 }
 
 // StopContainer - handles POST /v1/machines/:id/containers/:containerId/stop
@@ -475,17 +388,10 @@ func (h *RemoteMachineHandler) StopContainer(c *fiber.Ctx) error {
 	err := h.uc.StopContainer(c.Context(), id, containerID)
 	if err != nil {
 		h.l.Error(err, "StopContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Container stopped",
-	})
+	return successMessage(c, "Container stopped")
 }
 
 // RestartContainer - handles POST /v1/machines/:id/containers/:containerId/restart
@@ -505,17 +411,10 @@ func (h *RemoteMachineHandler) RestartContainer(c *fiber.Ctx) error {
 	err := h.uc.RestartContainer(c.Context(), id, containerID)
 	if err != nil {
 		h.l.Error(err, "RestartContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Container restarted",
-	})
+	return successMessage(c, "Container restarted")
 }
 
 // RemoveContainer - handles DELETE /v1/machines/:id/containers/:containerId
@@ -537,17 +436,10 @@ func (h *RemoteMachineHandler) RemoveContainer(c *fiber.Ctx) error {
 	err := h.uc.RemoveContainer(c.Context(), id, containerID, force)
 	if err != nil {
 		h.l.Error(err, "RemoveContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Container removed",
-	})
+	return successMessage(c, "Container removed")
 }
 
 // InspectContainer - handles GET /v1/machines/:id/containers/:containerId
@@ -567,15 +459,10 @@ func (h *RemoteMachineHandler) InspectContainer(c *fiber.Ctx) error {
 	result, err := h.uc.InspectContainer(c.Context(), id, containerID)
 	if err != nil {
 		h.l.Error(err, "InspectContainer failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success":    true,
+	return successResponse(c, fiber.Map{
 		"container": result,
 	})
 }
