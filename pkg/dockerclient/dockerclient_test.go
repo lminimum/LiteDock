@@ -56,10 +56,22 @@ func TestSSHClientConfigWithKey(t *testing.T) {
 		Timeout:    30 * time.Second,
 	}
 
+	if cfg.Host != "localhost" {
+		t.Errorf("expected host localhost, got %s", cfg.Host)
+	}
+	if cfg.Port != 22 {
+		t.Errorf("expected port 22, got %d", cfg.Port)
+	}
+	if cfg.User != "testuser" {
+		t.Errorf("expected user testuser, got %s", cfg.User)
+	}
 	if len(cfg.PrivateKey) == 0 {
 		t.Error("expected private key to be set")
 	}
 	if cfg.Password != "" {
 		t.Error("expected no password when using key auth")
+	}
+	if cfg.Timeout != 30*time.Second {
+		t.Errorf("expected 30s timeout, got %v", cfg.Timeout)
 	}
 }
