@@ -24,7 +24,7 @@ func TestLocalClient_Close(t *testing.T) {
 	err = cli.Close()
 	require.NoError(t, err)
 
-	lc := &LocalClient{docker: nil}
+	lc := &LocalClient{baseClient: baseClient{docker: cli.docker}}
 	err = lc.Close()
 	require.NoError(t, err)
 }
