@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lminimum/LiteDock/internal/entity"
@@ -189,6 +190,43 @@ func (c *baseClient) Close() error {
 		return c.docker.Close()
 	}
 	return nil
+}
+
+func (c *baseClient) NetworkList(ctx context.Context) ([]entity.Network, error) {
+	networks, err := c.docker.NetworkList(ctx, network.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "NetworkList."+err.Error())
+	}
+	return toEntityList(networks), nil
+}
+
+func (c *baseClient) NetworkCreate(ctx context.Context, name, driver string) (*entity.Network, error) {
+	resp, err := c.docker.NetworkCreate(ctx, name, network.CreateOptions{Driver: driver})
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "NetworkCreate."+err.Error())
+	}
+	return &entity.Network{
+		ID:     resp.ID,
+		Name:   name,
+		Driver: driver,
+	}, nil
+}
+
+func (c *baseClient) NetworkDelete(ctx context.Context, networkID string) error {
+	err := c.docker.NetworkRemove(ctx, networkID)
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "NetworkDelete."+err.Error())
+	}
+	return nil
+}
+
+func (c *baseClient) NetworkInspect(ctx context.Context, networkID string) (*entity.Network, error) {
+	result, err := c.docker.NetworkInspect(ctx, networkID, network.InspectOptions{})
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrNetworkNotFound, "NetworkInspect."+err.Error())
+	}
+	net := toEntity(result)
+	return &net, nil
 }
 
 func formatPort(p types.Port) string {
