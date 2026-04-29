@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3023,
       host: '0.0.0.0',
+      allowedHosts: ['oi.lch.ink'],
       proxy: {
         '/v1': {
           target,
