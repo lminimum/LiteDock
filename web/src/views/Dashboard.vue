@@ -77,10 +77,10 @@
           </div>
           <div class="card-body">
             <SystemResourcesChart
-              :labels="chartLabels"
-              :cpu="chartCpu"
-              :memory="chartMemory"
-              :disk="chartDisk"
+              :labels="chart.labels.value"
+              :cpu="chart.cpu.value"
+              :memory="chart.memory.value"
+              :disk="chart.disk.value"
             />
           </div>
         </div>
@@ -169,8 +169,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, onUnmounted, markRaw } from 'vue'
+import { useRouter } from 'vue-router
 import {
   Box,
   Network,
@@ -187,6 +187,8 @@ import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
 import { imageService } from '@/services/imageService'
 import { formatSize } from '@/utils/format'
+import { useChart } from '@/composables/useChart'
+import { useWebSocket } from '@/composables/useWebSocket
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
@@ -196,99 +198,20 @@ const stats = reactive({
   images: { total: 0, size: '0 GB' }
 })
 
-const TOTAL_POINTS = 60
-const UPDATE_INTERVAL_MS = 2000
+const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
-const chartLabels = ref<string[]>([])
-const chartCpu = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
-const chartMemory = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
-const chartDisk = ref<number[]>(new Array(TOTAL_POINTS).fill(0))
+const chart = useChart()
 
-const initChartLabels = () => {
-  const labels: string[] = []
-  const now = new Date()
-  for (let i = TOTAL_POINTS - 1; i >= 0; i--) {
-    const t = new Date(now.getTime() - i * UPDATE_INTERVAL_MS)
-    labels.push(t.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
-  }
-  chartLabels.value = labels
-}
-
-const loadHistory = async (): Promise<boolean> => {
-  try {
-    const data: any = await api.get('/dashboard/resources/history?minutes=5')
-    if (data && data.length > 0) {
-      const history = data.slice(-TOTAL_POINTS)
-      const cpu: number[] = []
-      const memory: number[] = []
-      const disk: number[] = []
-      const labels: string[] = []
-
-      for (const m of history) {
-        cpu.push(m.cpu ?? 0)
-        memory.push(m.memory ?? 0)
-        disk.push(m.disk ?? 0)
-        labels.push(m.time ?? '')
-      }
-
-      const fillCount = TOTAL_POINTS - cpu.length
-      chartCpu.value = [...new Array(fillCount).fill(0), ...cpu]
-      chartMemory.value = [...new Array(fillCount).fill(0), ...memory]
-      chartDisk.value = [...new Array(fillCount).fill(0), ...disk]
-      chartLabels.value = [...new Array(fillCount).fill(''), ...labels]
-      return true
-    }
-    return false
-  } catch (e) {
-    console.error('Failed to load history:', e)
-    return false
-  }
-}
-
-let ws: WebSocket | null = null
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-let isMounted = false
-
-const startWS = () => {
-  if (!isMounted) return
+const getWsUrl = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-// Use Vite proxy (same host as page) so we don't hardcode backend port
-  const wsUrl = `${protocol}//${window.location.host}`
   // Use Vite proxy (same host as page) so we don't hardcode backend port
-  const wsUrl = `${protocol}//${window.location.host}`
-  ws = new WebSocket(`${wsUrl}/v1/dashboard/resources/stream`)
-
-  ws.onopen = () => {
-    console.log('WebSocket connected')
-  }
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data)
-      const newCpu = [...chartCpu.value.slice(1), data.cpu ?? 0]
-      const newMemory = [...chartMemory.value.slice(1), data.memory ?? 0]
-      const newDisk = [...chartDisk.value.slice(1), data.disk ?? 0]
-      chartCpu.value = newCpu
-      chartMemory.value = newMemory
-      chartDisk.value = newDisk
-
-      const newLabels = [...chartLabels.value.slice(1), data.time ?? '']
-      chartLabels.value = newLabels
-    } catch (e) {
-      console.error('Failed to parse WebSocket message:', e)
-    }
-  }
-
-  ws.onerror = (e) => {
-    console.error('WebSocket error:', e)
-  }
-
-  ws.onclose = () => {
-    console.log('WebSocket disconnected')
-    if (!isMounted) return
-    reconnectTimer = setTimeout(startWS, 5000)
-  }
+  return `${protocol}//${window.location.host}/v1/dashboard/resources/stream`
 }
+
+const { connect: connectWs } = useWebSocket({
+  url: getWsUrl(),
+  onMessage: (data) => chart.addDataPoint(data as { cpu: number; memory: number; disk: number; time: string })
+})
 
 const refreshStats = async () => {
   try {
@@ -316,8 +239,6 @@ const refreshStats = async () => {
     console.error('Failed to fetch image stats:', e)
   }
 }
-
-const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
 const recentActivities = ref([
   { id: 1, type: 'container', title: t('dashboard.containerStarted', { name: 'web-server' }), time: new Date(Date.now() - 5 * 60 * 1000) },
@@ -349,25 +270,12 @@ const createNetwork = () => console.log('createNetwork')
 const createVolume = () => console.log('createVolume')
 
 onMounted(async () => {
-  isMounted = true
-  const hasHistory = await loadHistory()
+  const hasHistory = await chart.loadHistory(api.get.bind(api))
   if (!hasHistory) {
-    initChartLabels()
+    chart.initLabels()
   }
-  startWS()
+  connectWs()
   refreshStats()
-})
-
-onUnmounted(() => {
-  isMounted = false
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer)
-    reconnectTimer = null
-  }
-  if (ws) {
-    ws.close()
-    ws = null
-  }
 })
 </script>
 
