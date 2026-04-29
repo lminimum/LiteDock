@@ -8,9 +8,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useSidebar } from '@/composables/useSidebar'
+import { useSidebarStore } from '@/stores/sidebar'
+import { useViewport } from '@/composables/useViewport'
 import SidebarLogo from '@/components/layout/SidebarLogo.vue'
 import SidebarNav from '@/components/nav/SidebarNav.vue'
 import SidebarUserInfo from '@/components/layout/SidebarUserInfo.vue'
@@ -24,29 +25,15 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
-const { collapsed: userCollapsed, toggle } = useSidebar()
+const sidebarStore = useSidebarStore()
+const { isMobile, isTablet } = useViewport()
 
-// Mobile breakpoint: viewport < 768px
-const isMobile = ref(false)
-// Tablet breakpoint: viewport 768px - 1023px
-const isTablet = ref(false)
 // Track closing state for slide-out animation
 const isClosing = ref(false)
 
 let closeTimeout: ReturnType<typeof setTimeout> | null = null
 
-const updateViewport = () => {
-  isMobile.value = window.innerWidth < 768
-  isTablet.value = window.innerWidth >= 768 && window.innerWidth <= 1023
-}
-
-onMounted(() => {
-  updateViewport()
-  window.addEventListener('resize', updateViewport)
-})
-
 onUnmounted(() => {
-  window.removeEventListener('resize', updateViewport)
   if (closeTimeout) clearTimeout(closeTimeout)
 })
 
@@ -55,13 +42,13 @@ onUnmounted(() => {
 // On desktop: follows user preference
 const effectiveCollapsed = computed(() => {
   if (isMobile.value) return false
-  return userCollapsed.value || isTablet.value
+  return sidebarStore.collapsed || isTablet.value
 })
 
-// Toggle sidebar - call useSidebar toggle directly for PC/Tablet
+// Toggle sidebar - call store toggle directly for PC/Tablet
 const handleToggle = () => {
   if (!isMobile.value) {
-    toggle()
+    sidebarStore.toggle()
   }
 }
 

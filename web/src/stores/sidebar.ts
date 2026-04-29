@@ -1,16 +1,17 @@
+import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const STORAGE_KEY = 'litedock-sidebar-collapsed'
 
-const collapsed = ref(false)
+export const useSidebarStore = defineStore('sidebar', () => {
+  const collapsed = ref(false)
 
-// Restore from localStorage on first import
-const saved = localStorage.getItem(STORAGE_KEY)
-if (saved !== null) {
-  collapsed.value = saved === 'true'
-}
+  // Restore from localStorage on initialization
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved !== null) {
+    collapsed.value = saved === 'true'
+  }
 
-export function useSidebar() {
   const toggle = () => {
     collapsed.value = !collapsed.value
     localStorage.setItem(STORAGE_KEY, collapsed.value.toString())
@@ -32,4 +33,4 @@ export function useSidebar() {
     collapse,
     expand,
   }
-}
+})
