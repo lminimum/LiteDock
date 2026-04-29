@@ -143,26 +143,23 @@ func (h *DashboardHandler) ResourcesStreamWS(c *websocket.Conn) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			sm, err := systemmetrics.GetSystemMetrics()
-			if err != nil {
-				h.l.Error(err, "DashboardHandler.ResourcesStreamWS.GetSystemMetrics failed")
-				continue
-			}
+	for range ticker.C {
+		sm, err := systemmetrics.GetSystemMetrics()
+		if err != nil {
+			h.l.Error(err, "DashboardHandler.ResourcesStreamWS.GetSystemMetrics failed")
+			continue
+		}
 
-			data := map[string]interface{}{
-				"cpu":    math.Round(sm.CPU*10) / 10,
-				"memory": math.Round(sm.Memory*10) / 10,
-				"disk":   math.Round(sm.Disk*10) / 10,
-				"time":   sm.At.Format("15:04:05"),
-			}
+		data := map[string]interface{}{
+			"cpu":    math.Round(sm.CPU*10) / 10,
+			"memory": math.Round(sm.Memory*10) / 10,
+			"disk":   math.Round(sm.Disk*10) / 10,
+			"time":   sm.At.Format("15:04:05"),
+		}
 
-			if err := c.WriteJSON(data); err != nil {
-				h.l.Warn("DashboardHandler.ResourcesStreamWS.WriteJSON failed: %v", err)
-				return
-			}
+		if err := c.WriteJSON(data); err != nil {
+			h.l.Warn("DashboardHandler.ResourcesStreamWS.WriteJSON failed: %v", err)
+			return
 		}
 	}
 }
