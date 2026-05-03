@@ -33,94 +33,39 @@
       </div>
     </div>
 
-    <div class="containers-grid">
-      <div
+    <div class="card-grid">
+      <ContainerCard
         v-for="container in filteredContainers"
         :key="container.id"
-        class="container-card"
-        :class="{ 'status-running': container.status === 'running' }"
-      >
-        <div class="container-header">
-          <div class="container-name">{{ container.name }}</div>
-          <div class="badge" :class="getStatusClass(container.status)">
-            {{ getStatusText(container.status) }}
-          </div>
-        </div>
-
-        <div class="container-info">
-          <div class="info-item">
-            <span class="label">{{ t('containers.image') }}</span>
-            <span class="value">{{ container.image }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">{{ t('containers.ports') }}</span>
-            <span class="value">{{ (container.ports || []).join(', ') || '-' }}</span>
-          </div>
-          <div v-if="container.machine" class="info-item">
-            <span class="label">{{ t('containers.machine') }}</span>
-            <span class="value">{{ container.machine }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">{{ t('containers.createdAt') }}</span>
-            <span class="value">{{ formatDate(container.createdAt) }}</span>
-          </div>
-        </div>
-
-        <div class="container-actions">
-          <button
-            v-if="container.status === 'stopped'"
-            @click="startContainer(container.id)"
-            class="btn btn-sm btn-secondary"
-          >
-            <Play :size="14" />
-            {{ t('containers.start') }}
-          </button>
-          <button
-            v-if="container.status === 'running'"
-            @click="stopContainer(container.id)"
-            class="btn btn-sm btn-secondary"
-          >
-            <Square :size="14" />
-            {{ t('containers.stop') }}
-          </button>
-          <button
-            v-if="container.status === 'running'"
-            @click="restartContainer(container.id)"
-            class="btn btn-sm btn-secondary"
-          >
-            <RotateCcw :size="14" />
-            {{ t('containers.restart') }}
-          </button>
-          <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
-            <FileText :size="14" />
-            {{ t('containers.logs') }}
-          </button>
-          <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
-            <Trash2 :size="14" />
-            {{ t('containers.delete') }}
-          </button>
-        </div>
-      </div>
+        :container="container"
+        @inspect="handleInspect"
+        @delete="deleteContainer"
+        @start="startContainer"
+        @stop="stopContainer"
+        @restart="restartContainer"
+        @logs="showLogs"
+      />
     </div>
+
+    <InspectModal
+      :visible="showInspect"
+      title="Container Details"
+      :fields="inspectFields"
+      @close="showInspect = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import {
-  RefreshCw,
-  Plus,
-  Play,
-  Square,
-  RotateCcw,
-  FileText,
-  Trash2
-} from 'lucide-vue-next'
+import { RefreshCw, Plus } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import api from '@/utils/api'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import ContainerCard from '@/components/container/ContainerCard.vue'
+import InspectModal from '@/components/ui/InspectModal.vue'
 
 interface Container {
   id: string
@@ -140,6 +85,31 @@ const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 
 const containers = ref<Container[]>([])
+
+const showInspect = ref(false)
+const selectedContainer = ref<Container | null>(null)
+
+const inspectFields = computed(() => {
+  const c = selectedContainer.value
+  if (!c) return []
+  return [
+    { label: 'ID', value: c.id },
+    { label: 'Name', value: c.name },
+    { label: 'Image', value: c.image },
+    { label: 'Status', value: c.status },
+    { label: 'Ports', value: (c.ports || []).join(', ') || '-' },
+    { label: 'Created At', value: c.createdAt || '-' },
+    { label: 'Machine', value: c.machine },
+  ]
+})
+
+const handleInspect = (id: string) => {
+  const c = containers.value.find(con => con.id === id)
+  if (c) {
+    selectedContainer.value = c
+    showInspect.value = true
+  }
+}
 
 const refreshContainers = async () => {
   loading.value = true
@@ -208,41 +178,6 @@ const filteredContainers = computed(() => {
   return filtered
 })
 
-const getStatusText = (status: string) => {
-  const statusMap: Record<string, string> = {
-    running: t('containers.running'),
-    stopped: t('containers.stopped'),
-    paused: t('containers.paused'),
-    restarting: t('containers.restarting'),
-    exited: t('containers.exited'),
-    created: t('containers.created')
-  }
-  return statusMap[status] || status
-}
-
-const getStatusClass = (status: string) => {
-  const classMap: Record<string, string> = {
-    running: 'badge-success',
-    stopped: 'badge-error',
-    paused: 'badge-warning',
-    restarting: 'badge-warning',
-    exited: 'badge-error',
-    created: 'badge-info'
-  }
-  return classMap[status] || ''
-}
-
-const formatDate = (date: string) => {
-  if (!date) return '-'
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return '-'
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(d)
-}
 
 const startContainer = async (id: string) => {
   const container = containers.value.find(c => c.id === id)
@@ -295,89 +230,13 @@ onMounted(() => refreshContainers())
   min-width: 140px;
 }
 
-.containers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
-  gap: var(--space-4);
-}
-
-.container-card {
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-  padding: var(--space-4);
-  border-left: 3px solid var(--color-border);
-  transition: border-color var(--transition-fast);
-}
-
-.container-card.status-running {
-  border-left-color: var(--color-success);
-}
-
-.container-card:hover {
-  border-color: var(--color-text-weaker);
-}
-
-.container-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-4);
-}
-
-.container-name {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-}
-
-.container-info {
-  margin-bottom: var(--space-4);
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-  font-size: var(--font-size-sm);
-}
-
-.info-item .label {
-  color: var(--color-text);
-}
-
-.info-item .value {
-  color: var(--color-text-strong);
-  font-weight: var(--font-weight-medium);
-}
-
-.container-actions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-weak);
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 768px) {
-  .containers-grid {
-    grid-template-columns: 1fr;
-  }
-
   .filters {
     flex-direction: column;
   }
 
-  .container-actions {
-    justify-content: center;
+  .filter-options select {
+    min-width: 100%;
   }
 }
 </style>

@@ -66,8 +66,16 @@
         :key="`${vol.machineId}:${vol.name}`"
         :volume="vol"
         @delete="handleDelete"
+        @inspect="handleInspect"
       />
     </div>
+
+    <InspectModal
+      :visible="showInspect"
+      title="Volume Details"
+      :fields="inspectFields"
+      @close="showInspect = false"
+    />
 
     <VolumeCreateModal
       v-if="machines.length > 0"
@@ -89,6 +97,7 @@ import type { Volume, RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import VolumeCard from '@/components/volume/VolumeCard.vue'
 import VolumeCreateModal from '@/components/volume/VolumeCreateModal.vue'
+import InspectModal from '@/components/ui/InspectModal.vue'
 
 interface VolumeWithMachine extends Volume {
   machineId: string
@@ -102,6 +111,31 @@ const driverFilter = ref('')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const volumes = ref<VolumeWithMachine[]>([])
+
+const showInspect = ref(false)
+const selectedVolume = ref<VolumeWithMachine | null>(null)
+
+const inspectFields = computed(() => {
+  const v = selectedVolume.value
+  if (!v) return []
+  return [
+    { label: 'Name', value: v.name },
+    { label: 'Driver', value: v.driver },
+    { label: 'Scope', value: v.scope },
+    { label: 'Mountpoint', value: v.mountpoint },
+    { label: 'Size', value: v.size !== undefined ? `${v.size} bytes` : '-' },
+    { label: 'Created At', value: v.createdAt || '-' },
+    { label: 'Machine', value: v.machine },
+  ]
+})
+
+const handleInspect = (volumeName: string) => {
+  const v = volumes.value.find(vol => vol.name === volumeName)
+  if (v) {
+    selectedVolume.value = v
+    showInspect.value = true
+  }
+}
 
 const filteredVolumes = computed(() => {
   let filtered = volumes.value

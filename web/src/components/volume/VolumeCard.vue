@@ -24,6 +24,10 @@
     </div>
 
     <div class="card-actions">
+      <button @click="emit('inspect', volume.name)" class="btn btn-sm btn-ghost">
+        <Info :size="14" />
+        Details
+      </button>
       <button @click="emit('delete', volume.name)" class="btn btn-sm btn-danger">
         <Trash2 :size="14" />
         Delete
@@ -34,7 +38,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Trash2 } from 'lucide-vue-next'
+import { Info, Trash2 } from 'lucide-vue-next'
 import type { Volume } from '@/types'
 
 const props = defineProps<{
@@ -43,6 +47,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [volumeName: string]
+  inspect: [volumeName: string]
 }>()
 
 function formatSize(bytes?: number): string {

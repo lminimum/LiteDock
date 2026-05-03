@@ -73,8 +73,16 @@
         :key="network.id"
         :network="network"
         @delete="handleDelete"
+        @inspect="handleInspect"
       />
     </div>
+
+    <InspectModal
+      :visible="showInspect"
+      title="Network Details"
+      :fields="inspectFields"
+      @close="showInspect = false"
+    />
 
     <NetworkCreateModal
       v-if="machines.length > 0"
@@ -96,6 +104,7 @@ import type { Network, RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import NetworkCard from '@/components/network/NetworkCard.vue'
 import NetworkCreateModal from '@/components/network/NetworkCreateModal.vue'
+import InspectModal from '@/components/ui/InspectModal.vue'
 
 interface NetworkWithMachine extends Network {
   machineId: string
@@ -110,6 +119,32 @@ const scopeFilter = ref('')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const networks = ref<NetworkWithMachine[]>([])
+
+const showInspect = ref(false)
+const selectedNetwork = ref<NetworkWithMachine | null>(null)
+
+const inspectFields = computed(() => {
+  const n = selectedNetwork.value
+  if (!n) return []
+  return [
+    { label: 'ID', value: n.id },
+    { label: 'Name', value: n.name },
+    { label: 'Driver', value: n.driver },
+    { label: 'Scope', value: n.scope },
+    { label: 'Internal', value: n.internal ? 'Yes' : 'No' },
+    { label: 'Attachable', value: n.attachable !== undefined ? (n.attachable ? 'Yes' : 'No') : '-' },
+    { label: 'Containers', value: String(n.containers?.length ?? 0) },
+    { label: 'Machine', value: n.machine },
+  ]
+})
+
+const handleInspect = (networkId: string) => {
+  const n = networks.value.find(net => net.id === networkId)
+  if (n) {
+    selectedNetwork.value = n
+    showInspect.value = true
+  }
+}
 
 const filteredNetworks = computed(() => {
   let filtered = networks.value

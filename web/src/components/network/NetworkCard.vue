@@ -21,6 +21,10 @@
     </div>
 
     <div class="card-actions">
+      <button @click="emit('inspect', network.id)" class="btn btn-sm btn-ghost">
+        <Info :size="14" />
+        Details
+      </button>
       <button @click="emit('delete', network.id)" class="btn btn-sm btn-danger">
         <Trash2 :size="14" />
         Delete
@@ -31,7 +35,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Trash2 } from 'lucide-vue-next'
+import { Info, Trash2 } from 'lucide-vue-next'
 import type { Network } from '@/types'
 
 const props = defineProps<{
@@ -40,6 +44,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [networkId: string]
+  inspect: [networkId: string]
 }>()
 
 const driverBadgeClass = computed(() => {
