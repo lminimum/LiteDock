@@ -19,8 +19,8 @@ export const useAuthStore = defineStore("auth", () => {
 
   const checkSetupStatus = async (): Promise<boolean> => {
     try {
-      const response = await api.get("/auth/setup-status");
-      setupComplete.value = response.data.setup_complete;
+      const data: any = await api.get("/auth/setup-status");
+      setupComplete.value = data?.setup_complete ?? false;
       return setupComplete.value;
     } catch (error) {
       console.error("Failed to check setup status:", error);
@@ -30,19 +30,15 @@ export const useAuthStore = defineStore("auth", () => {
 
   const login = async (credentials: { username: string; password: string }) => {
     try {
-      const response = await api.post("/auth/login", credentials);
-      const { token: authToken, user: userData } = response.data;
-
-      token.value = authToken;
-      user.value = userData;
-
-      localStorage.setItem("litedock-token", authToken);
-
+      const data: any = await api.post("/auth/login", credentials);
+      token.value = data.token;
+      user.value = data.user;
+      localStorage.setItem("litedock-token", data.token);
       return { success: true };
     } catch (error: any) {
       return {
         success: false,
-        message: error.response?.data?.message || t("errors.loginFailed"),
+        message: error.message || t("errors.loginFailed"),
       };
     }
   };
@@ -60,8 +56,8 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      const response = await api.get("/auth/me");
-      user.value = response.data;
+      const data: any = await api.get("/auth/me");
+      user.value = data;
       return true;
     } catch (error) {
       logout();
@@ -80,4 +76,3 @@ export const useAuthStore = defineStore("auth", () => {
     checkAuth,
   };
 });
-

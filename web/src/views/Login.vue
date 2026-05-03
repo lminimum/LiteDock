@@ -154,7 +154,7 @@ const handleLogin = async () => {
       errors.password = result.message || t('auth.loginFailed')
     }
   } catch (error: any) {
-    errors.password = error.response?.data?.message || t('auth.loginFailedRetry')
+    errors.password = error.message || t('auth.loginFailedRetry')
   } finally {
     loading.value = false
   }

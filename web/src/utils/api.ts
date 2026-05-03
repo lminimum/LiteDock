@@ -1,5 +1,11 @@
-import axios from 'axios'
+import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth'
+
+export interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
+}
 
 const api = axios.create({
   baseURL: '/v1',
@@ -9,9 +15,8 @@ const api = axios.create({
   }
 })
 
-// 请求拦截器 - 添加认证token
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore()
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
@@ -23,17 +28,22 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器 - 处理认证错误
 api.interceptors.response.use(
-  (response) => response,
+  (response: AxiosResponse<ApiResponse>) => {
+    const { data } = response
+    if (data.code >= 200 && data.code < 300) {
+      return data.data
+    }
+    return Promise.reject(new Error(data.msg || 'Request failed'))
+  },
   (error) => {
     if (error.response?.status === 401) {
       const authStore = useAuthStore()
       authStore.logout()
-      // 重定向到登录页面
       window.location.href = '/login'
     }
-    return Promise.reject(error)
+    const msg = error.response?.data?.msg || error.message
+    return Promise.reject(new Error(msg))
   }
 )
 
