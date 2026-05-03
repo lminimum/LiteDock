@@ -224,7 +224,7 @@ onMounted(() => refreshVolumes())
 
 @media (max-width: 768px) {
   .card-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .filters {
