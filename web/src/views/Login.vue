@@ -1,84 +1,82 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="logo">
-          <span class="logo-text">LiteDock</span>
-        </div>
-        <h1>{{ t('auth.welcomeBack') }}</h1>
-        <p>{{ t('auth.loginSubtitle') }}</p>
+  <AuthCard>
+    <template #header>
+      <div class="logo">
+        <span class="logo-text">LiteDock</span>
+      </div>
+      <h1>{{ t('auth.welcomeBack') }}</h1>
+      <p>{{ t('auth.loginSubtitle') }}</p>
+    </template>
+
+    <div class="success-message" v-if="showRegisteredSuccess">
+      <CheckCircle :size="16" />
+      {{ t('auth.adminCreatedSuccess') }}
+    </div>
+
+    <form @submit.prevent="handleLogin" class="auth-form">
+      <div class="form-group" :class="{ error: errors.username }">
+        <label for="username">{{ t('auth.username') }}</label>
+        <input
+          id="username"
+          v-model="credentials.username"
+          type="text"
+          autocomplete="username"
+          :placeholder="t('auth.usernamePlaceholder')"
+          :disabled="loading"
+          required
+          class="input"
+        />
+        <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
       </div>
 
-      <div class="success-message" v-if="showRegisteredSuccess">
-        <CheckCircle :size="16" />
-        {{ t('auth.adminCreatedSuccess') }}
-      </div>
-
-      <form @submit.prevent="handleLogin" class="login-form">
-        <div class="form-group" :class="{ error: errors.username }">
-          <label for="username">{{ t('auth.username') }}</label>
+      <div class="form-group" :class="{ error: errors.password }">
+        <label for="password">{{ t('auth.password') }}</label>
+        <div class="password-input">
           <input
-            id="username"
-            v-model="credentials.username"
-            type="text"
-            autocomplete="username"
-            :placeholder="t('auth.usernamePlaceholder')"
+            id="password"
+            v-model="credentials.password"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="current-password"
+            :placeholder="t('auth.passwordPlaceholder')"
             :disabled="loading"
             required
             class="input"
           />
-          <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
+          <button
+            type="button"
+            @click="showPassword = !showPassword"
+            class="password-toggle"
+          >
+            <Eye v-if="!showPassword" :size="16" />
+            <EyeOff v-else :size="16" />
+          </button>
         </div>
-
-        <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">{{ t('auth.password') }}</label>
-          <div class="password-input">
-            <input
-              id="password"
-              v-model="credentials.password"
-              :type="showPassword ? 'text' : 'password'"
-              autocomplete="current-password"
-              :placeholder="t('auth.passwordPlaceholder')"
-              :disabled="loading"
-              required
-              class="input"
-            />
-            <button
-              type="button"
-              @click="showPassword = !showPassword"
-              class="password-toggle"
-            >
-              <Eye v-if="!showPassword" :size="16" />
-              <EyeOff v-else :size="16" />
-            </button>
-          </div>
-          <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
-        </div>
-
-        <div class="form-options">
-          <label class="checkbox">
-            <input v-model="rememberMe" type="checkbox" />
-            <span>{{ t('auth.rememberMe') }}</span>
-          </label>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
-          <span v-if="!loading">{{ t('auth.login') }}</span>
-          <span v-else class="loading">
-            <Loader2 :size="16" class="spinning" />
-            {{ t('auth.loggingIn') }}
-          </span>
-        </button>
-      </form>
-
-      <div class="login-footer">
-        <p v-if="!setupComplete">
-          {{ t('auth.noAccount') }}
-          <a href="#" @click.prevent="goToSetup">{{ t('auth.createAdmin') }}</a>
-        </p>
+        <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
       </div>
-    </div>
-  </div>
+
+      <div class="form-options">
+        <label class="checkbox">
+          <input v-model="rememberMe" type="checkbox" />
+          <span>{{ t('auth.rememberMe') }}</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
+        <span v-if="!loading">{{ t('auth.login') }}</span>
+        <span v-else class="loading">
+          <Loader2 :size="16" class="spinning" />
+          {{ t('auth.loggingIn') }}
+        </span>
+      </button>
+    </form>
+
+    <template #footer>
+      <p v-if="!setupComplete">
+        {{ t('auth.noAccount') }}
+        <a href="#" @click.prevent="goToSetup">{{ t('auth.createAdmin') }}</a>
+      </p>
+    </template>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
@@ -87,6 +85,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import AuthCard from '@/components/auth/AuthCard.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,29 +165,6 @@ const goToSetup = () => {
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  background: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-
-.login-card {
-  background: var(--color-background);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-sm);
-  max-width: 380px;
-  width: 100%;
-  padding: var(--space-8);
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: var(--space-6);
-}
-
 .logo {
   margin-bottom: var(--space-4);
 }
@@ -200,14 +176,14 @@ const goToSetup = () => {
   letter-spacing: -0.02em;
 }
 
-.login-header h1 {
+h1 {
   margin: 0 0 var(--space-1) 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-strong);
 }
 
-.login-header p {
+p {
   margin: 0;
   color: var(--color-text);
   font-size: var(--font-size-sm);
@@ -219,7 +195,7 @@ const goToSetup = () => {
   justify-content: center;
   gap: var(--space-2);
   background: var(--color-success-bg);
-  border: 1px solid var(--color-border-weak);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   margin-bottom: var(--space-6);
@@ -227,7 +203,7 @@ const goToSetup = () => {
   color: var(--color-success);
 }
 
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -270,10 +246,6 @@ const goToSetup = () => {
 
 .password-toggle:hover {
   color: var(--color-text);
-}
-
-.input {
-  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .form-group.error .input {
@@ -321,25 +293,18 @@ const goToSetup = () => {
   to { transform: rotate(360deg); }
 }
 
-.login-footer {
-  margin-top: var(--space-6);
-  text-align: center;
-  padding-top: var(--space-6);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.login-footer p {
+p {
   margin: 0;
   color: var(--color-text);
   font-size: var(--font-size-sm);
 }
 
-.login-footer a {
+a {
   color: var(--color-text-strong);
   font-weight: var(--font-weight-medium);
 }
 
-.login-footer a:hover {
+a:hover {
   color: var(--color-text-weak);
 }
 </style>

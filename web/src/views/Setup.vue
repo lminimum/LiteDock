@@ -1,91 +1,89 @@
 <template>
-  <div class="setup-container">
-    <div class="setup-card">
-      <div class="setup-header">
-        <div class="logo-text">LD</div>
-        <h1>{{ t('auth.initSetup') }}</h1>
-        <p>{{ t('auth.setupDescription') }}</p>
+  <AuthCard>
+    <template #header>
+      <div class="logo-text">LD</div>
+      <h1>{{ t('auth.initSetup') }}</h1>
+      <p>{{ t('auth.setupDescription') }}</p>
+    </template>
+
+    <form @submit.prevent="handleSubmit" class="auth-form">
+      <div class="form-group" :class="{ error: errors.username }">
+        <label for="username">{{ t('auth.adminUsername') }}</label>
+        <input
+          id="username"
+          v-model="form.username"
+          type="text"
+          autocomplete="username"
+          :placeholder="t('auth.usernamePlaceholder')"
+          :disabled="loading"
+          class="input"
+        />
+        <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="setup-form">
-        <div class="form-group" :class="{ error: errors.username }">
-          <label for="username">{{ t('auth.adminUsername') }}</label>
+      <div class="form-group" :class="{ error: errors.password }">
+        <label for="password">{{ t('auth.adminPassword') }}</label>
+        <div class="password-input">
           <input
-            id="username"
-            v-model="form.username"
-            type="text"
-            autocomplete="username"
-            :placeholder="t('auth.usernamePlaceholder')"
-            :disabled="loading"
-            class="input"
-          />
-          <span class="error-text" v-if="errors.username">{{ errors.username }}</span>
-        </div>
-
-        <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">{{ t('auth.adminPassword') }}</label>
-          <div class="password-input">
-            <input
-              id="password"
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              :placeholder="t('auth.adminPasswordPlaceholder')"
-              :disabled="loading"
-              autocomplete="new-password"
-              class="input"
-            />
-            <button
-              type="button"
-              @click="showPassword = !showPassword"
-              class="password-toggle"
-            >
-              <Eye v-if="!showPassword" :size="16" />
-              <EyeOff v-else :size="16" />
-            </button>
-          </div>
-          <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
-        </div>
-
-        <div class="form-group" :class="{ error: errors.confirmPassword }">
-          <label for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
-          <input
-            id="confirmPassword"
-            v-model="form.confirmPassword"
+            id="password"
+            v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
-            :placeholder="t('auth.confirmPasswordPlaceholder')"
+            :placeholder="t('auth.adminPasswordPlaceholder')"
             :disabled="loading"
             autocomplete="new-password"
             class="input"
           />
-          <span class="error-text" v-if="errors.confirmPassword">{{ errors.confirmPassword }}</span>
+          <button
+            type="button"
+            @click="showPassword = !showPassword"
+            class="password-toggle"
+          >
+            <Eye v-if="!showPassword" :size="16" />
+            <EyeOff v-else :size="16" />
+          </button>
         </div>
+        <span class="error-text" v-if="errors.password">{{ errors.password }}</span>
+      </div>
 
-        <div class="form-group">
-          <label for="email">{{ t('auth.emailOptional') }}</label>
-          <input
-            id="email"
-            v-model="form.email"
-            type="email"
-            placeholder="admin@example.com"
-            :disabled="loading"
-            class="input"
-          />
-        </div>
+      <div class="form-group" :class="{ error: errors.confirmPassword }">
+        <label for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
+        <input
+          id="confirmPassword"
+          v-model="form.confirmPassword"
+          :type="showPassword ? 'text' : 'password'"
+          :placeholder="t('auth.confirmPasswordPlaceholder')"
+          :disabled="loading"
+          autocomplete="new-password"
+          class="input"
+        />
+        <span class="error-text" v-if="errors.confirmPassword">{{ errors.confirmPassword }}</span>
+      </div>
 
-        <div class="error-message" v-if="submitError">
-          {{ submitError }}
-        </div>
+      <div class="form-group">
+        <label for="email">{{ t('auth.emailOptional') }}</label>
+        <input
+          id="email"
+          v-model="form.email"
+          type="email"
+          placeholder="admin@example.com"
+          :disabled="loading"
+          class="input"
+        />
+      </div>
 
-        <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
-          <span v-if="!loading">{{ t('auth.createAccount') }}</span>
-          <span v-else class="loading">
-            <Loader2 :size="16" class="spinning" />
-            {{ t('auth.creating') }}
-          </span>
-        </button>
-      </form>
-    </div>
-  </div>
+      <div class="error-message" v-if="submitError">
+        {{ submitError }}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" :disabled="loading" style="width: 100%">
+        <span v-if="!loading">{{ t('auth.createAccount') }}</span>
+        <span v-else class="loading">
+          <Loader2 :size="16" class="spinning" />
+          {{ t('auth.creating') }}
+        </span>
+      </button>
+    </form>
+  </AuthCard>
 </template>
 
 <script setup lang="ts">
@@ -94,6 +92,7 @@ import { useRouter } from 'vue-router'
 import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { t } from '@/i18n'
+import AuthCard from '@/components/auth/AuthCard.vue'
 
 const router = useRouter()
 
@@ -168,29 +167,6 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.setup-container {
-  min-height: 100vh;
-  background: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-
-.setup-card {
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-  max-width: 400px;
-  width: 100%;
-  padding: var(--space-8);
-}
-
-.setup-header {
-  text-align: center;
-  margin-bottom: var(--space-6);
-}
-
 .logo-text {
   width: 56px;
   height: 56px;
@@ -206,20 +182,20 @@ const handleSubmit = async () => {
   font-family: var(--font-mono);
 }
 
-.setup-header h1 {
+h1 {
   margin: 0 0 var(--space-1) 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-strong);
 }
 
-.setup-header p {
+p {
   margin: 0;
   color: var(--color-text);
   font-size: var(--font-size-sm);
 }
 
-.setup-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -275,7 +251,7 @@ const handleSubmit = async () => {
 
 .error-message {
   background: var(--color-error-bg);
-  border: 1px solid var(--color-border-weak);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   font-size: var(--font-size-sm);
