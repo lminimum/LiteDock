@@ -196,9 +196,9 @@ const initChartLabels = () => {
 
 const loadHistory = async (): Promise<boolean> => {
   try {
-    const res = await api.get('/dashboard/resources/history?minutes=5')
-    if (res.data.success && res.data.data.length > 0) {
-      const history = res.data.data.slice(-TOTAL_POINTS)
+    const data: any = await api.get('/dashboard/resources/history?minutes=5')
+    if (data && data.length > 0) {
+      const history = data.slice(-TOTAL_POINTS)
       const cpu: number[] = []
       const memory: number[] = []
       const disk: number[] = []
@@ -271,9 +271,9 @@ const startWS = () => {
 
 const refreshStats = async () => {
   try {
-    const statsRes = await api.get('/dashboard/stats')
-    if (statsRes.data.success) {
-      const { machines, containers } = statsRes.data.data
+    const data: any = await api.get('/dashboard/stats')
+    if (data) {
+      const { machines, containers } = data
       stats.machines.total = machines.total
       if (containers) {
         stats.containers.total = containers.total || 0
@@ -598,7 +598,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-2);
   }
 

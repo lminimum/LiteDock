@@ -54,6 +54,14 @@ definitions:
     required:
     - cmd
     type: object
+  v1.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
   v1.UpdateMachineRequest:
     properties:
       auth_method:
@@ -191,16 +199,15 @@ paths:
       - auth
   /containers:
     get:
-      description: Get all Docker containers (local)
+      description: Get all Docker containers from all machines
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
-      summary: List local containers
+            $ref: '#/definitions/v1.Response'
+      summary: List all containers
       tags:
       - containers
   /containers/{id}:

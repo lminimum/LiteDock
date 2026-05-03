@@ -15,15 +15,21 @@ type ContainerHandler struct {
 }
 
 // List handles GET /v1/containers
-// @Summary List local containers
-// @Description Get all Docker containers (local)
+// @Summary List all containers
+// @Description Get all Docker containers from all machines
 // @Tags containers
 // @Produce json
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} Response
 // @Router /containers [get]
 func (h *ContainerHandler) List(c *fiber.Ctx) error {
+	containers, err := h.c.List(c.Context())
+	if err != nil {
+		h.l.Error(err, "ContainerHandler - List")
+		return errorResponse(c, fiber.StatusInternalServerError, "Failed to list containers")
+	}
+
 	return successResponse(c, fiber.Map{
-		"containers": []interface{}{},
+		"containers": containers,
 	})
 }
 
