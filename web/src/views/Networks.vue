@@ -67,7 +67,7 @@
       <p>{{ t('networks.noNetworks') }}</p>
     </div>
 
-    <div v-else class="networks-grid">
+    <div v-else class="card-grid">
       <NetworkCard
         v-for="network in filteredNetworks"
         :key="network.id"
@@ -234,22 +234,8 @@ onMounted(() => refreshNetworks())
   padding: var(--space-10) var(--space-6);
 }
 
-.networks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-4);
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 768px) {
-  .networks-grid {
+  .card-grid {
     grid-template-columns: 1fr;
   }
 

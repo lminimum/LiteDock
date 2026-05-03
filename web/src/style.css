@@ -397,6 +397,99 @@ button:disabled {
   border-color: var(--color-text-weaker);
 }
 
+/* Card component layout — shared by NetworkCard, VolumeCard */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+}
+
+.card-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+  flex-shrink: 1;
+  min-width: 0;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.card-body {
+  margin-bottom: var(--space-4);
+}
+
+.card-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  gap: var(--space-2);
+}
+
+.card-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.card-info-row .label {
+  color: var(--color-text-weak);
+  flex-shrink: 0;
+}
+
+.card-info-row .value {
+  color: var(--color-text-strong);
+  font-weight: var(--font-weight-medium);
+  text-align: right;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.card-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-weak);
+}
+
+/* Card grid — shared by Networks, Volumes pages */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+/* Spinning animation for refresh icon */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile responsiveness for cards and grid */
+@media (max-width: 767px) {
+  .card {
+    padding: var(--space-4);
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .card-header .badge {
+    font-size: var(--font-size-xs);
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================
    Buttons
    ============================================ */

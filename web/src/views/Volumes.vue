@@ -60,7 +60,7 @@
       <p>{{ t('volumes.noVolumes') }}</p>
     </div>
 
-    <div v-else class="volumes-grid">
+    <div v-else class="card-grid">
       <VolumeCard
         v-for="vol in filteredVolumes"
         :key="`${vol.machineId}:${vol.name}`"
@@ -222,22 +222,8 @@ onMounted(() => refreshVolumes())
   padding: var(--space-10) var(--space-6);
 }
 
-.volumes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-4);
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 768px) {
-  .volumes-grid {
+  .card-grid {
     grid-template-columns: 1fr;
   }
 

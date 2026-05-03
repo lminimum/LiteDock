@@ -1,29 +1,29 @@
 <template>
-  <div class="card card-hover volume-card">
-    <div class="volume-header">
-      <div class="volume-name">{{ volume.name }}</div>
-      <div class="flex items-center gap-2">
+  <div class="card card-hover">
+    <div class="card-header">
+      <div class="card-title">{{ volume.name }}</div>
+      <div class="flex items-center gap-2 flex-shrink-0">
         <span class="badge">{{ volume.driver }}</span>
         <span class="badge badge-info">{{ volume.scope }}</span>
       </div>
     </div>
 
-    <div class="volume-info">
-      <div class="info-item">
+    <div class="card-body">
+      <div class="card-info-row">
         <span class="label">Mountpoint</span>
         <span class="value truncate" :title="volume.mountpoint">{{ volume.mountpoint }}</span>
       </div>
-      <div class="info-item">
+      <div class="card-info-row">
         <span class="label">Size</span>
         <span class="value">{{ formattedSize }}</span>
       </div>
-      <div class="info-item">
+      <div class="card-info-row">
         <span class="label">Created</span>
         <span class="value">{{ volume.createdAt }}</span>
       </div>
     </div>
 
-    <div class="volume-actions">
+    <div class="card-actions">
       <button @click="emit('delete', volume.name)" class="btn btn-sm btn-danger">
         <Trash2 :size="14" />
         Delete
@@ -55,61 +55,3 @@ function formatSize(bytes?: number): string {
 
 const formattedSize = computed(() => formatSize(props.volume.size))
 </script>
-
-<style scoped>
-.volume-card {
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
-}
-
-.volume-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-border);
-}
-
-.volume-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-4);
-  gap: var(--space-3);
-}
-
-.volume-name {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-  flex-shrink: 0;
-}
-
-.volume-info {
-  margin-bottom: var(--space-4);
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-  font-size: var(--font-size-sm);
-}
-
-.info-item:last-child {
-  margin-bottom: 0;
-}
-
-.info-item .label {
-  color: var(--color-text-weak);
-}
-
-.info-item .value {
-  color: var(--color-text-strong);
-  font-weight: var(--font-weight-medium);
-}
-
-.volume-actions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-weak);
-}
-</style>
