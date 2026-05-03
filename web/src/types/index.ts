@@ -55,7 +55,7 @@ export interface Network {
   driver: string
   scope: string
   internal: boolean
-  containers: string[]
+  containers?: string[]
 }
 
 // 存储卷相关类型

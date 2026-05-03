@@ -50,15 +50,10 @@ func (h *NetworkHandler) List(c *fiber.Ctx) error {
 	networks, err := h.uc.ListNetworks(c.Context(), id)
 	if err != nil {
 		h.l.Error(err, "ListNetworks failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success":  true,
+	return successResponse(c, fiber.Map{
 		"networks": networks,
 	})
 }
@@ -80,33 +75,20 @@ func (h *NetworkHandler) Create(c *fiber.Ctx) error {
 
 	var req CreateNetworkRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Invalid request body",
-		})
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	if err := h.v.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	network, err := h.uc.CreateNetwork(c.Context(), id, req.Name, req.Driver)
 	if err != nil {
 		h.l.Error(err, "CreateNetwork failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"data":    network,
-	})
+	return createdResponse(c, network)
 }
 
 // Get - handles GET /v1/machines/:id/networks/:networkID
@@ -126,17 +108,10 @@ func (h *NetworkHandler) Get(c *fiber.Ctx) error {
 	result, err := h.uc.InspectNetwork(c.Context(), id, networkID)
 	if err != nil {
 		h.l.Error(err, "InspectNetwork failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    result,
-	})
+	return successResponse(c, result)
 }
 
 // Delete - handles DELETE /v1/machines/:id/networks/:networkID
@@ -156,15 +131,8 @@ func (h *NetworkHandler) Delete(c *fiber.Ctx) error {
 	err := h.uc.DeleteNetwork(c.Context(), id, networkID)
 	if err != nil {
 		h.l.Error(err, "DeleteNetwork failed")
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Network deleted successfully",
-	})
+	return successMessage(c, "Network deleted successfully")
 }

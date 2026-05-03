@@ -16,7 +16,7 @@
       </div>
       <div class="info-item">
         <span class="label">Containers</span>
-        <span class="value">{{ network.containers.length }}</span>
+        <span class="value">{{ network.containers?.length ?? 0 }}</span>
       </div>
     </div>
 

@@ -139,21 +139,23 @@ func testRequest(t *testing.T, app *fiber.App, method, path string, body io.Read
 	return resp
 }
 
-// decodeJSON decodes the response body into a map.
-func decodeJSON(t *testing.T, resp *http.Response) map[string]interface{} {
+// decodeJSON decodes the response body into v.
+func decodeJSON(t *testing.T, resp *http.Response, v interface{}) {
 	t.Helper()
 
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
-
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err := json.NewDecoder(resp.Body).Decode(v)
 	require.NoError(t, err)
-
-	return result
 }
 
 // --- tests ---
+
+type apiResponse struct {
+	Code float64     `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data,omitempty"`
+}
 
 // TestNetworkCreateAndList verifies that creating a network via the API
 // causes the network to appear in the list endpoint.
@@ -164,22 +166,26 @@ func TestNetworkCreateAndList(t *testing.T) {
 	resp := testRequest(t, app, http.MethodGet, "/v1/machines/local/networks", nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	body := decodeJSON(t, resp)
-	require.True(t, body["success"].(bool))
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(200), body.Code)
 
-	networks, ok := body["networks"].([]interface{})
-	require.True(t, ok, "expected 'networks' array in response")
-	require.Len(t, networks, 0, "expected empty network list initially")
+	netsData, ok := body.Data.(map[string]interface{})
+	require.True(t, ok)
+	networks, ok := netsData["networks"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, networks, 0)
 
 	// 2. Create a network
 	createBody := `{"name":"my-test-net","driver":"bridge"}`
 	resp = testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(createBody))
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	createResponse := decodeJSON(t, resp)
-	require.True(t, createResponse["success"].(bool))
+	var createResponse apiResponse
+	decodeJSON(t, resp, &createResponse)
+	require.Equal(t, float64(201), createResponse.Code)
 
-	data, ok := createResponse["data"].(map[string]interface{})
+	data, ok := createResponse.Data.(map[string]interface{})
 	require.True(t, ok)
 	require.Equal(t, "my-test-net", data["name"])
 	require.Equal(t, "bridge", data["driver"])
@@ -188,12 +194,14 @@ func TestNetworkCreateAndList(t *testing.T) {
 	resp = testRequest(t, app, http.MethodGet, "/v1/machines/local/networks", nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	body = decodeJSON(t, resp)
-	require.True(t, body["success"].(bool))
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(200), body.Code)
 
-	networks, ok = body["networks"].([]interface{})
+	netsData, ok = body.Data.(map[string]interface{})
 	require.True(t, ok)
-	require.Len(t, networks, 1, "expected 1 network in list after creation")
+	networks, ok = netsData["networks"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, networks, 1)
 	require.Equal(t, "my-test-net", networks[0].(map[string]interface{})["name"])
 }
 
@@ -203,141 +211,125 @@ func TestNetworkDeleteAndVerifyRemoval(t *testing.T) {
 	uc := newMockNetworkUseCase()
 	app := setupTestApp(uc)
 
-	// Pre-create a network via the mock so we have something to delete
 	_, err := uc.CreateNetwork(context.Background(), "local", "to-delete", "bridge")
 	require.NoError(t, err)
 
-	// 1. Verify it's in the list
 	resp := testRequest(t, app, http.MethodGet, "/v1/machines/local/networks", nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	body := decodeJSON(t, resp)
-	networks := body["networks"].([]interface{})
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+
+	netsData, _ := body.Data.(map[string]interface{})
+	networks := netsData["networks"].([]interface{})
 	require.Len(t, networks, 1)
 	require.Equal(t, "to-delete", networks[0].(map[string]interface{})["name"])
 
-	// 2. Delete the network
 	resp = testRequest(t, app, http.MethodDelete, "/v1/machines/local/networks/to-delete", nil)
-	deleteBody := decodeJSON(t, resp)
-	require.True(t, deleteBody["success"].(bool))
+	var deleteBody apiResponse
+	decodeJSON(t, resp, &deleteBody)
+	require.Equal(t, float64(200), deleteBody.Code)
+	require.Equal(t, "Network deleted successfully", deleteBody.Msg)
 
-	// 3. Verify it's gone
 	resp = testRequest(t, app, http.MethodGet, "/v1/machines/local/networks", nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	body = decodeJSON(t, resp)
-	networks = body["networks"].([]interface{})
-	require.Len(t, networks, 0, "expected empty list after deletion")
+	decodeJSON(t, resp, &body)
+	netsData, _ = body.Data.(map[string]interface{})
+	networks = netsData["networks"].([]interface{})
+	require.Len(t, networks, 0)
 }
 
-// TestDeleteBuiltInNetworkRejected verifies that attempting to delete
-// built-in Docker networks (bridge, host, none) is rejected.
 func TestDeleteBuiltInNetworkRejected(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
-	builtIns := []string{"bridge", "host", "none"}
-
-	for _, name := range builtIns {
+	for _, name := range []string{"bridge", "host", "none"} {
 		t.Run("reject_"+name, func(t *testing.T) {
 			resp := testRequest(t, app, http.MethodDelete, "/v1/machines/local/networks/"+name, nil)
-
-			body := decodeJSON(t, resp)
-			require.False(t, body["success"].(bool), "expected failure for built-in network %s", name)
-
-			msg, ok := body["message"].(string)
-			require.True(t, ok)
-			require.Contains(t, msg, "cannot delete built-in network")
-			require.Contains(t, msg, name)
+			var body apiResponse
+			decodeJSON(t, resp, &body)
+			require.Equal(t, float64(500), body.Code)
+			require.Contains(t, body.Msg, "cannot delete built-in network")
+			require.Contains(t, body.Msg, name)
 		})
 	}
 }
 
-// TestCreateNetworkInvalidBody verifies that missing required fields
-// in the request body produce a 400 validation error.
 func TestCreateNetworkInvalidBody(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
-	// Missing required 'name' field
-	body := `{"driver":"bridge"}`
-	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(body))
+	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(`{"driver":"bridge"}`))
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
-	respBody := decodeJSON(t, resp)
-	require.False(t, respBody["success"].(bool))
-	require.NotEmpty(t, respBody["message"])
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(400), body.Code)
+	require.NotEmpty(t, body.Msg)
 }
 
-// TestCreateNetworkInvalidJSON verifies that malformed JSON
-// produces a 400 error response.
 func TestCreateNetworkInvalidJSON(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
-	body := `{invalid}`
-	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(body))
+	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(`{invalid}`))
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
-	respBody := decodeJSON(t, resp)
-	require.False(t, respBody["success"].(bool))
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(400), body.Code)
 }
 
-// TestInspectNetwork returns network details for an existing network.
 func TestInspectNetwork(t *testing.T) {
 	uc := newMockNetworkUseCase()
 	app := setupTestApp(uc)
 
-	// Pre-create a network
 	_, err := uc.CreateNetwork(context.Background(), "local", "inspect-me", "overlay")
 	require.NoError(t, err)
 
 	resp := testRequest(t, app, http.MethodGet, "/v1/machines/local/networks/inspect-me", nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	body := decodeJSON(t, resp)
-	require.True(t, body["success"].(bool))
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(200), body.Code)
 
-	data, ok := body["data"].(map[string]interface{})
+	data, ok := body.Data.(map[string]interface{})
 	require.True(t, ok)
 	require.Equal(t, "inspect-me", data["name"])
 	require.Equal(t, "overlay", data["driver"])
 }
 
-// TestInspectNetworkNotFound verifies that inspecting a non-existent
-// network returns an error response.
 func TestInspectNetworkNotFound(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
 	resp := testRequest(t, app, http.MethodGet, "/v1/machines/local/networks/nonexistent", nil)
-
-	body := decodeJSON(t, resp)
-	require.False(t, body["success"].(bool))
-	require.Contains(t, body["message"].(string), "not found")
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(500), body.Code)
+	require.Contains(t, body.Msg, "not found")
 }
 
-// TestDeleteNetworkNotFound verifies error handling when deleting
-// a non-existent network.
 func TestDeleteNetworkNotFound(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
 	resp := testRequest(t, app, http.MethodDelete, "/v1/machines/local/networks/nonexistent", nil)
-
-	body := decodeJSON(t, resp)
-	require.False(t, body["success"].(bool))
-	require.Contains(t, body["message"].(string), "not found")
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(500), body.Code)
+	require.Contains(t, body.Msg, "not found")
 }
 
-// TestCreateNetworkWithDefaultDriver verifies that when no driver is specified,
-// "bridge" is used as the default.
 func TestCreateNetworkWithDefaultDriver(t *testing.T) {
 	app := setupTestApp(newMockNetworkUseCase())
 
-	createBody := `{"name":"default-driver-net"}`
-	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(createBody))
+	resp := testRequest(t, app, http.MethodPost, "/v1/machines/local/networks", strings.NewReader(`{"name":"default-driver-net"}`))
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-	createResponse := decodeJSON(t, resp)
-	require.True(t, createResponse["success"].(bool))
+	var body apiResponse
+	decodeJSON(t, resp, &body)
+	require.Equal(t, float64(201), body.Code)
 
-	data := createResponse["data"].(map[string]interface{})
+	data, ok := body.Data.(map[string]interface{})
+	require.True(t, ok)
 	require.Equal(t, "default-driver-net", data["name"])
 	require.Equal(t, "bridge", data["driver"])
 }

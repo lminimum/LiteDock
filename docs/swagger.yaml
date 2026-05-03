@@ -44,6 +44,15 @@ definitions:
     - name
     - username
     type: object
+  v1.CreateNetworkRequest:
+    properties:
+      driver:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
   v1.ExecRequest:
     properties:
       cmd:
@@ -679,6 +688,127 @@ paths:
       summary: Stop a container
       tags:
       - machines
+  /machines/{id}/networks:
+    get:
+      description: Get all Docker networks on a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List networks on a machine
+      tags:
+      - networks
+    post:
+      consumes:
+      - application/json
+      description: Create a new Docker network on a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Network creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateNetworkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new network
+      tags:
+      - networks
+  /machines/{id}/networks/{networkID}:
+    delete:
+      description: Remove a Docker network from a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Network ID
+        in: path
+        name: networkID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a network
+      tags:
+      - networks
+    get:
+      description: Get detailed information about a Docker network
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Network ID
+        in: path
+        name: networkID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Inspect a network
+      tags:
+      - networks
   /machines/{id}/test:
     post:
       description: Verify SSH and Docker connectivity to a remote host

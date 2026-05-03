@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { useViewport } from '@/composables/useViewport'
