@@ -81,6 +81,7 @@ var (
 	ErrContainerExec     = errors.New("docker: container exec failed")
 	ErrNetworkNotFound    = errors.New("docker: network not found")
 	ErrNetworkHasContainers = errors.New("docker: network has active containers")
+	ErrVolumeNotFound     = errors.New("docker: volume not found")
 )
 
 // SQL errors.
@@ -123,6 +124,7 @@ var HTTPStatusMap = map[error]int{
 	ErrDockerConnection:   http.StatusInternalServerError,
 	ErrDockerOperation:    http.StatusInternalServerError,
 	ErrContainerExec:      http.StatusInternalServerError,
+	ErrVolumeNotFound:     http.StatusNotFound,
 }
 
 // HTTPStatus returns the HTTP status code for an error.

@@ -95,6 +95,23 @@
     "created": "创建于",
     "containers": "容器"
   },
+  "volumes": {
+    "title": "存储卷管理",
+    "searchPlaceholder": "搜索存储卷...",
+    "allDrivers": "所有驱动类型",
+    "create": "创建存储卷",
+    "delete": "删除",
+    "refresh": "刷新",
+    "name": "名称",
+    "driver": "驱动类型",
+    "mountpoint": "挂载点",
+    "size": "大小",
+    "createdAt": "创建时间",
+    "confirmDelete": "确定要删除这个存储卷吗？",
+    "noVolumes": "未找到存储卷",
+    "namePlaceholder": "输入存储卷名称...",
+    "driverPlaceholder": "选择驱动类型..."
+  },
   "machines": {
     "title": "远程机器",
     "searchPlaceholder": "搜索远程机器...",

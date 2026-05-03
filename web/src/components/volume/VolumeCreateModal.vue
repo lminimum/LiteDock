@@ -1,0 +1,158 @@
+<template>
+  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+    <div class="card modal-card" @click.stop>
+      <h3 class="modal-title">Create Volume</h3>
+
+      <form @submit.prevent="handleSubmit">
+        <div class="form-field">
+          <label class="form-label">Name</label>
+          <input
+            v-model="name"
+            class="input"
+            placeholder="volume name"
+            :disabled="submitting"
+          />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Driver</label>
+          <select v-model="driver" class="input" :disabled="submitting">
+            <option v-for="d in drivers" :key="d" :value="d">{{ d }}</option>
+          </select>
+        </div>
+
+        <div v-if="error" class="form-error">{{ error }}</div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-ghost"
+            @click="$emit('close')"
+            :disabled="submitting"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="submitting || !name.trim()"
+          >
+            {{ submitting ? 'Creating...' : 'Create' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { volumeService } from '@/services/volumeService'
+import type { Volume } from '@/types'
+
+const props = defineProps<{
+  machineId: string
+  visible: boolean
+}>()
+
+const emit = defineEmits<{
+  created: [volume: Volume]
+  close: []
+}>()
+
+const drivers = ['local', 'nfs', 'cifs', 'tmpfs']
+
+const name = ref('')
+const driver = ref('local')
+const error = ref('')
+const submitting = ref(false)
+
+watch(() => props.visible, (val) => {
+  if (val) {
+    name.value = ''
+    driver.value = 'local'
+    error.value = ''
+    submitting.value = false
+  }
+})
+
+const handleSubmit = async () => {
+  if (!name.value.trim()) {
+    error.value = 'Name is required'
+    return
+  }
+
+  error.value = ''
+  submitting.value = true
+
+  try {
+    const volume = await volumeService.createVolume(props.machineId, {
+      name: name.value.trim(),
+      driver: driver.value
+    })
+    emit('created', volume)
+    emit('close')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Failed to create volume'
+    error.value = msg
+  } finally {
+    submitting.value = false
+  }
+}
+</script>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-background-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+}
+
+.modal-card {
+  max-width: 420px;
+  width: 100%;
+  padding: var(--space-6);
+}
+
+.modal-title {
+  margin-bottom: var(--space-6);
+}
+
+.form-field {
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.form-error {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-sm);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-weak);
+}
+</style>

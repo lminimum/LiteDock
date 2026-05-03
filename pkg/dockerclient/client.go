@@ -24,5 +24,9 @@ type Client interface {
 	NetworkCreate(ctx context.Context, name, driver string) (*entity.Network, error)
 	NetworkDelete(ctx context.Context, networkID string) error
 	NetworkInspect(ctx context.Context, networkID string) (*entity.Network, error)
+	VolumeList(ctx context.Context) ([]entity.Volume, error)
+	VolumeCreate(ctx context.Context, name, driver string) (*entity.Volume, error)
+	VolumeDelete(ctx context.Context, volumeID string) error
+	VolumeInspect(ctx context.Context, volumeID string) (*entity.Volume, error)
 	Close() error
 }

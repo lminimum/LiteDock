@@ -64,7 +64,9 @@ export interface Volume {
   driver: string
   mountpoint: string
   createdAt: string
+  scope: string
   size?: number
+  labels?: Record<string, string>
 }
 
 // 系统资源类型

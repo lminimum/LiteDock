@@ -61,4 +61,13 @@ type (
 		DeleteByMachine(ctx context.Context, machineID string) error
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
 	}
+
+	// VolumeRepo - manages Docker volumes with caching
+	VolumeRepo interface {
+		ListByMachine(ctx context.Context, machineID string) ([]entity.Volume, error)
+		GetByName(ctx context.Context, machineID string, name string) (*entity.Volume, error)
+		UpsertBatch(ctx context.Context, machineID string, volumes []entity.Volume) error
+		DeleteByMachine(ctx context.Context, machineID string) error
+		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+	}
 )

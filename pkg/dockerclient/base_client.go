@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lminimum/LiteDock/internal/entity"
@@ -227,6 +228,46 @@ func (c *baseClient) NetworkInspect(ctx context.Context, networkID string) (*ent
 	}
 	net := toEntity(result)
 	return &net, nil
+}
+
+func (c *baseClient) VolumeList(ctx context.Context) ([]entity.Volume, error) {
+	resp, err := c.docker.VolumeList(ctx, volume.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "VolumeList."+err.Error())
+	}
+
+	result := make([]entity.Volume, 0, len(resp.Volumes))
+	for _, v := range resp.Volumes {
+		result = append(result, volumeToEntity(*v))
+	}
+
+	return result, nil
+}
+
+func (c *baseClient) VolumeCreate(ctx context.Context, name, driver string) (*entity.Volume, error) {
+	resp, err := c.docker.VolumeCreate(ctx, volume.CreateOptions{Name: name, Driver: driver})
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "VolumeCreate."+err.Error())
+	}
+	v := volumeToEntity(resp)
+	return &v, nil
+}
+
+func (c *baseClient) VolumeDelete(ctx context.Context, volumeID string) error {
+	err := c.docker.VolumeRemove(ctx, volumeID, true)
+	if err != nil {
+		return errors.Wrap(errors.ErrVolumeNotFound, "VolumeDelete."+err.Error())
+	}
+	return nil
+}
+
+func (c *baseClient) VolumeInspect(ctx context.Context, volumeID string) (*entity.Volume, error) {
+	result, err := c.docker.VolumeInspect(ctx, volumeID)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrVolumeNotFound, "VolumeInspect."+err.Error())
+	}
+	v := volumeToEntity(result)
+	return &v, nil
 }
 
 func formatPort(p types.Port) string {

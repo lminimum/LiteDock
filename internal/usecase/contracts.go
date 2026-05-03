@@ -44,4 +44,12 @@ type (
 		DeleteNetwork(ctx context.Context, machineID string, networkName string) error
 		InspectNetwork(ctx context.Context, machineID string, networkName string) (*entity.Network, error)
 	}
+
+	// Volume -.
+	Volume interface {
+		ListVolumes(ctx context.Context, machineID string) ([]entity.Volume, error)
+		CreateVolume(ctx context.Context, machineID string, name, driver string) (*entity.Volume, error)
+		DeleteVolume(ctx context.Context, machineID string, volumeName string) error
+		InspectVolume(ctx context.Context, machineID string, volumeName string) (*entity.Volume, error)
+	}
 )
