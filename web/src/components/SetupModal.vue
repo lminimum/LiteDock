@@ -288,7 +288,7 @@ onMounted(() => {
 
 .setup-modal {
   background: var(--color-background);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   max-width: 600px;
   width: 100%;
@@ -301,7 +301,7 @@ onMounted(() => {
   background: var(--color-background-weak);
   padding: var(--space-6);
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .setup-modal-header h2 {
@@ -417,7 +417,7 @@ onMounted(() => {
 .form-group select {
   width: 100%;
   padding: var(--space-3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   transition: border-color var(--transition-fast);

@@ -298,7 +298,6 @@ const resetSettings = () => {
   font-size: var(--font-size-sm);
   color: var(--color-text-strong);
   background: var(--color-background);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   transition: border-color var(--transition-fast);
 }
