@@ -53,6 +53,15 @@ definitions:
     required:
     - name
     type: object
+  v1.CreateVolumeRequest:
+    properties:
+      driver:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
   v1.ExecRequest:
     properties:
       cmd:
@@ -834,4 +843,125 @@ paths:
       summary: Test connection to a remote machine
       tags:
       - machines
+  /machines/{id}/volumes:
+    get:
+      description: Get all Docker volumes on a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List volumes on a machine
+      tags:
+      - volumes
+    post:
+      consumes:
+      - application/json
+      description: Create a new Docker volume on a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Volume creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateVolumeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new volume
+      tags:
+      - volumes
+  /machines/{id}/volumes/{volumeName}:
+    delete:
+      description: Remove a Docker volume from a remote host
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Volume Name
+        in: path
+        name: volumeName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a volume
+      tags:
+      - volumes
+    get:
+      description: Get detailed information about a Docker volume
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Volume Name
+        in: path
+        name: volumeName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Inspect a volume
+      tags:
+      - volumes
 swagger: "2.0"
