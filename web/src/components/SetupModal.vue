@@ -465,7 +465,7 @@ onMounted(() => {
 
 .config-summary {
   background: var(--color-background-weak);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-border-weak);
   border-radius: var(--radius-sm);
   padding: var(--space-4);
   margin-top: var(--space-4);
@@ -498,7 +498,7 @@ onMounted(() => {
   gap: var(--space-3);
   margin-top: var(--space-6);
   padding-top: var(--space-5);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--color-border-weak);
 }
 
 .btn-primary,

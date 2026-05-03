@@ -1,65 +1,69 @@
 <template>
   <div class="dashboard">
     <PageHeader :title="t('dashboard.title')" />
+
+    <!-- Stats Grid -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon containers">
+        <div class="stat-accent stat-accent--info"></div>
+        <div class="stat-icon">
           <Box :size="24" />
         </div>
-        <div class="stat-content">
-          <h3>{{ stats.containers.total }}</h3>
-          <p>{{ t('dashboard.totalContainers') }}</p>
-          <div class="stat-breakdown">
-            <span class="running">{{ stats.containers.running }} {{ t('dashboard.running') }}</span>
-            <span class="stopped">{{ stats.containers.stopped }} {{ t('dashboard.stopped') }}</span>
-          </div>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.containers.total }}</span>
+          <span class="stat-label">{{ t('dashboard.totalContainers') }}</span>
+          <span class="stat-sub">
+            <span class="stat-sub--running">{{ stats.containers.running }} {{ t('dashboard.running') }}</span>
+            <span class="stat-sub--stopped">{{ stats.containers.stopped }} {{ t('dashboard.stopped') }}</span>
+          </span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon machines">
+        <div class="stat-accent stat-accent--accent"></div>
+        <div class="stat-icon">
           <Globe :size="24" />
         </div>
-        <div class="stat-content">
-          <h3>{{ stats.machines.total }}</h3>
-          <p>{{ t('nav.machines') }}</p>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.machines.total }}</span>
+          <span class="stat-label">{{ t('nav.machines') }}</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon networks">
+        <div class="stat-accent stat-accent--success"></div>
+        <div class="stat-icon">
           <Network :size="24" />
         </div>
-        <div class="stat-content">
-          <h3>{{ stats.networks.total }}</h3>
-          <p>{{ t('dashboard.totalNetworks') }}</p>
-          <div class="stat-breakdown">
-            <span>{{ stats.networks.active }} {{ t('dashboard.active') }}</span>
-          </div>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.networks.total }}</span>
+          <span class="stat-label">{{ t('dashboard.totalNetworks') }}</span>
+          <span class="stat-sub">{{ stats.networks.active }} {{ t('dashboard.active') }}</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon volumes">
+        <div class="stat-accent stat-accent--warning"></div>
+        <div class="stat-icon">
           <HardDrive :size="24" />
         </div>
-        <div class="stat-content">
-          <h3>{{ stats.volumes.total }}</h3>
-          <p>{{ t('dashboard.totalVolumes') }}</p>
-          <div class="stat-breakdown">
-            <span>{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
-          </div>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.volumes.total }}</span>
+          <span class="stat-label">{{ t('dashboard.totalVolumes') }}</span>
+          <span class="stat-sub">{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
         </div>
       </div>
     </div>
 
+    <!-- Main Content Grid: Chart as centerpiece -->
     <div class="dashboard-content">
-      <div class="dashboard-left">
-        <div class="card">
+      <!-- Left: Main area (chart + activity) -->
+      <div class="dashboard-main">
+        <div class="card card--chart">
           <div class="card-header">
             <h3>{{ t('dashboard.systemResources') }}</h3>
           </div>
-          <div class="card-content">
+          <div class="card-body">
             <SystemResourcesChart
               :labels="chartLabels"
               :cpu="chartCpu"
@@ -74,15 +78,13 @@
             <h3>{{ t('dashboard.recentActivity') }}</h3>
             <router-link to="/containers" class="view-all">{{ t('dashboard.viewAll') }}</router-link>
           </div>
-          <div class="card-content">
+          <div class="card-body">
             <div class="activity-list">
               <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-                <div class="activity-icon" :class="activity.type">
-                  <component :is="getActivityIcon(activity.type)" :size="16" />
-                </div>
+                <div class="activity-dot" :class="'activity-dot--' + activity.type"></div>
                 <div class="activity-content">
-                  <div class="activity-title">{{ activity.title }}</div>
-                  <div class="activity-time">{{ formatTime(activity.time) }}</div>
+                  <span class="activity-title">{{ activity.title }}</span>
+                  <span class="activity-time">{{ formatTime(activity.time) }}</span>
                 </div>
               </div>
             </div>
@@ -90,26 +92,27 @@
         </div>
       </div>
 
-      <div class="dashboard-right">
+      <!-- Right: Side panel -->
+      <div class="dashboard-side">
         <div class="card">
           <div class="card-header">
             <h3>{{ t('dashboard.quickActions') }}</h3>
           </div>
-          <div class="card-content">
+          <div class="card-body">
             <div class="quick-actions">
-              <button @click="createContainer" class="quick-action-btn">
+              <button class="quick-action-btn" @click="createContainer">
                 <Plus :size="18" />
                 <span>{{ t('dashboard.createContainer') }}</span>
               </button>
-              <button @click="pullImage" class="quick-action-btn">
+              <button class="quick-action-btn" @click="pullImage">
                 <Download :size="18" />
                 <span>{{ t('dashboard.pullImage') }}</span>
               </button>
-              <button @click="createNetwork" class="quick-action-btn">
+              <button class="quick-action-btn" @click="createNetwork">
                 <PlusCircle :size="18" />
                 <span>{{ t('dashboard.createNetwork') }}</span>
               </button>
-              <button @click="createVolume" class="quick-action-btn">
+              <button class="quick-action-btn" @click="createVolume">
                 <PlusCircle :size="18" />
                 <span>{{ t('dashboard.createVolume') }}</span>
               </button>
@@ -121,7 +124,7 @@
           <div class="card-header">
             <h3>{{ t('dashboard.systemStatus') }}</h3>
           </div>
-          <div class="card-content">
+          <div class="card-body">
             <div class="status-list">
               <div class="status-item">
                 <span class="status-label">{{ t('dashboard.dockerService') }}</span>
@@ -154,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, markRaw } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   Box,
   Network,
@@ -231,7 +234,6 @@ let isMounted = false
 
 const startWS = () => {
   if (!isMounted) return
-  // Use window.location to construct WebSocket URL for proper browser connection
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = import.meta.env.VITE_API_WS_HOST || `${window.location.hostname}:8080`
   const wsUrl = `${protocol}//${host}`
@@ -296,14 +298,6 @@ const recentActivities = ref([
   { id: 5, type: 'volume', title: t('dashboard.volumeDeleted', { name: 'data-volume' }), time: new Date(Date.now() - 60 * 60 * 1000) }
 ])
 
-const iconMap: Record<string, ReturnType<typeof markRaw>> = {
-  container: markRaw(Box),
-  network: markRaw(Globe),
-  volume: markRaw(HardDrive)
-}
-
-const getActivityIcon = (type: string) => iconMap[type] || markRaw(Box)
-
 const formatTime = (time: Date) => {
   const now = new Date()
   const diff = now.getTime() - time.getTime()
@@ -348,26 +342,37 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ============================================
+   Dashboard — Flat, monospace-first, warm dark
+   ============================================ */
+
 .dashboard {
-  max-width: 1400px;
+  max-width: var(--container-max);
   margin: 0 auto;
 }
 
+/* ------------------------------------------
+   Stats Grid — 4-column desktop, 2-column mobile
+   ------------------------------------------ */
+
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 
+/* Stat Card — flat, border-only, accent strip on top */
 .stat-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
   background: var(--color-background-weak);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: var(--space-5);
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
+  overflow: hidden;
   transition: border-color var(--transition-fast);
 }
 
@@ -375,54 +380,96 @@ onUnmounted(() => {
   border-color: var(--color-text-weaker);
 }
 
+/* Accent strip — thin colored bar at top of stat card */
+.stat-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.stat-accent--info    { background: var(--color-info); }
+.stat-accent--accent  { background: var(--color-accent); }
+.stat-accent--success { background: var(--color-success); }
+.stat-accent--warning { background: var(--color-warning); }
+
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
+  color: var(--color-text-weak);
+  margin-top: var(--space-1);
 }
 
-.stat-icon.containers { background: var(--color-info-bg); color: var(--color-info); }
-.stat-icon.machines { background: var(--color-info-bg); color: var(--color-info); }
-.stat-icon.networks { background: var(--color-success-bg); color: var(--color-success); }
-.stat-icon.volumes { background: var(--color-warning-bg); color: var(--color-warning); }
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
 
-.stat-content h3 {
+.stat-number {
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-strong);
-  margin: 0;
+  line-height: var(--line-height-tight);
 }
 
-.stat-content p {
+.stat-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-weak);
-  margin: var(--space-1) 0;
+  line-height: var(--line-height-tight);
 }
 
-.stat-breakdown {
+.stat-sub {
   display: flex;
   gap: var(--space-3);
   font-size: var(--font-size-xs);
+  color: var(--color-text-weaker);
+  line-height: var(--line-height-tight);
 }
 
-.stat-breakdown .running { color: var(--color-success); }
-.stat-breakdown .stopped { color: var(--color-text-weaker); }
+.stat-sub--running { color: var(--color-success); }
+.stat-sub--stopped { color: var(--color-text-weaker); }
+
+/* ------------------------------------------
+   Dashboard Content — chart-centered layout
+   ------------------------------------------ */
 
 .dashboard-content {
   display: grid;
-  grid-template-columns: 1fr 350px;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-6);
 }
+
+.dashboard-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ------------------------------------------
+   Card — flat scoped override
+   Global .card has padding; we use internal sub-layout
+   ------------------------------------------ */
 
 .card {
   background: var(--color-background-weak);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-6);
+  padding: 0;
 }
 
 .card-header {
@@ -434,102 +481,93 @@ onUnmounted(() => {
 }
 
 .card-header h3 {
-  font-size: var(--font-size-base);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-strong);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   margin: 0;
 }
 
-.card-content {
+.card-body {
   padding: var(--space-5);
 }
 
+/* Chart card — tighter padding for chart */
+.card--chart .card-body {
+  padding: var(--space-4) var(--space-3) var(--space-3);
+}
+
+/* ------------------------------------------
+   View All link
+   ------------------------------------------ */
+
 .view-all {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .view-all:hover {
   color: var(--color-accent-hover);
 }
 
-.resource-item {
-  margin-bottom: var(--space-4);
-}
-
-.resource-item:last-child {
-  margin-bottom: 0;
-}
-
-.resource-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-2);
-}
-
-.resource-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-weak);
-}
-
-.resource-value {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-strong);
-}
-
-.progress {
-  height: 6px;
-  background: var(--color-background-strong);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  background: var(--color-background-strong);
-  border-radius: var(--radius-full);
-  transition: width var(--transition-base);
-}
+/* ------------------------------------------
+   Activity List — minimal dots, no icon boxes
+   ------------------------------------------ */
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0;
 }
 
 .activity-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
+  padding: var(--space-3) 0;
 }
 
-.activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.activity-item + .activity-item {
+  border-top: 1px solid var(--color-border-weak);
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
+  margin-top: 6px;
 }
 
-.activity-icon.container { background: var(--color-info-bg); color: var(--color-info); }
-.activity-icon.image { background: var(--color-accent); color: #fdfcfc; }
-.activity-icon.network { background: var(--color-success-bg); color: var(--color-success); }
-.activity-icon.volume { background: var(--color-warning-bg); color: var(--color-warning); }
+.activity-dot--container { background: var(--color-info); }
+.activity-dot--network   { background: var(--color-success); }
+.activity-dot--volume    { background: var(--color-warning); }
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
 
 .activity-title {
   font-size: var(--font-size-sm);
   color: var(--color-text-strong);
+  line-height: var(--line-height-tight);
 }
 
 .activity-time {
   font-size: var(--font-size-xs);
   color: var(--color-text-weaker);
 }
+
+/* ------------------------------------------
+   Quick Actions
+   ------------------------------------------ */
 
 .quick-actions {
   display: grid;
@@ -541,15 +579,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-4);
+  padding: var(--space-5) var(--space-4);
+  min-height: 72px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
   color: var(--color-text-weak);
-  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .quick-action-btn:hover {
@@ -558,16 +600,29 @@ onUnmounted(() => {
   background: var(--color-info-bg);
 }
 
+.quick-action-btn:active {
+  border-color: var(--color-accent);
+}
+
+/* ------------------------------------------
+   System Status
+   ------------------------------------------ */
+
 .status-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0;
 }
 
 .status-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--space-3) 0;
+}
+
+.status-item + .status-item {
+  border-top: 1px solid var(--color-border-weak);
 }
 
 .status-label {
@@ -575,72 +630,78 @@ onUnmounted(() => {
   color: var(--color-text-weak);
 }
 
-.badge {
-  font-size: var(--font-size-xs);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  font-weight: var(--font-weight-medium);
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+/* ------------------------------------------
+   Responsive: Tablet (≤1024px)
+   ------------------------------------------ */
 
 @media (max-width: 1024px) {
   .dashboard-content {
     grid-template-columns: 1fr;
   }
+
+  /* Side-by-side layout for side cards on tablet */
+  .dashboard-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
 }
 
-@media (max-width: 768px) {
+/* ------------------------------------------
+   Responsive: Mobile (≤767px)
+   ------------------------------------------ */
+
+@media (max-width: 767px) {
+  /* 2-column stat grid */
   .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-2);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
   }
 
   .stat-card {
+    padding: var(--space-4);
     flex-direction: column;
-    justify-content: center;
-    text-align: center;
-    gap: var(--space-1);
-    padding: var(--space-2) var(--space-1);
+    gap: var(--space-2);
   }
 
   .stat-icon {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    margin-top: 0;
+    color: var(--color-text-weaker);
   }
 
-  .stat-icon svg {
-    width: 14px !important;
-    height: 14px !important;
+  .stat-icon :deep(svg) {
+    width: 20px;
+    height: 20px;
   }
 
-  .stat-content h3 {
-    font-size: var(--font-size-sm);
+  .stat-number {
+    font-size: var(--font-size-xl);
   }
 
-  .stat-content p {
-    font-size: 9px;
-    margin: 0;
-    line-height: 1.2;
+  .stat-label {
+    font-size: var(--font-size-xs);
   }
 
-  .stat-breakdown {
-    display: none;
+  .stat-sub {
+    flex-wrap: wrap;
+    font-size: 11px;
   }
 
   .dashboard-content {
     grid-template-columns: 1fr;
-    gap: var(--space-3);
+    gap: var(--space-4);
   }
 
-  .card {
-    margin-bottom: var(--space-3);
+  .dashboard-main {
+    gap: var(--space-4);
+  }
+
+  .dashboard-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
   .card-header {
@@ -648,13 +709,18 @@ onUnmounted(() => {
   }
 
   .card-header h3 {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
   }
 
-  .card-content {
-    padding: var(--space-3);
+  .card-body {
+    padding: var(--space-4);
   }
 
+  .card--chart .card-body {
+    padding: var(--space-3) var(--space-2) var(--space-2);
+  }
+
+  /* Horizontal quick actions for better touch targets */
   .quick-actions {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
@@ -662,13 +728,23 @@ onUnmounted(() => {
 
   .quick-action-btn {
     flex-direction: row;
-    padding: var(--space-3);
-    gap: var(--space-2);
-    font-size: var(--font-size-xs);
+    justify-content: flex-start;
+    padding: var(--space-3) var(--space-4);
+    min-height: var(--space-12);
+    gap: var(--space-3);
+    font-size: var(--font-size-sm);
+  }
+
+  .status-item {
+    padding: var(--space-2) 0;
   }
 
   .status-label {
     font-size: var(--font-size-xs);
+  }
+
+  .activity-item {
+    padding: var(--space-2) 0;
   }
 
   .activity-title {
@@ -677,6 +753,32 @@ onUnmounted(() => {
 
   .view-all {
     font-size: var(--font-size-xs);
+  }
+}
+
+/* ------------------------------------------
+   Responsive: Small mobile (≤400px)
+   ------------------------------------------ */
+
+@media (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .stat-card {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .stat-body {
+    gap: var(--space-1);
+  }
+
+  .stat-sub {
+    display: none;
   }
 }
 </style>

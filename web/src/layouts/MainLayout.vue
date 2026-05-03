@@ -33,6 +33,11 @@ import { useViewport } from '@/composables/useViewport'
 const { isMobile } = useViewport()
 const mobileSidebarOpen = ref(false)
 const isClosing = ref(false)
+let closeTimeout: ReturnType<typeof setTimeout> | null = null
+
+onUnmounted(() => {
+  if (closeTimeout) clearTimeout(closeTimeout)
+})
 
 const toggleMobileSidebar = () => {
   if (mobileSidebarOpen.value) {
@@ -45,9 +50,11 @@ const toggleMobileSidebar = () => {
 const closeMobileSidebar = () => {
   if (!mobileSidebarOpen.value) return
   isClosing.value = true
-  setTimeout(() => {
+  if (closeTimeout) clearTimeout(closeTimeout)
+  closeTimeout = setTimeout(() => {
     mobileSidebarOpen.value = false
     isClosing.value = false
+    closeTimeout = null
   }, 350)
 }
 
@@ -57,6 +64,17 @@ const handleSidebarToggle = () => {
     closeMobileSidebar()
   }
 }
+
+// Watch for rapid open/close to reset closing state
+watch(mobileSidebarOpen, (open) => {
+  if (open && isClosing.value) {
+    isClosing.value = false
+    if (closeTimeout) {
+      clearTimeout(closeTimeout)
+      closeTimeout = null
+    }
+  }
+})
 </script>
 
 <style scoped>
