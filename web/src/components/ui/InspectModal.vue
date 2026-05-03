@@ -28,7 +28,7 @@ defineProps<{
   visible: boolean
   title: string
   fields: Array<{ label: string; value: string }>
-  entityId: string
+  entityId?: string
 }>()
 
 const emit = defineEmits<{
