@@ -139,9 +139,9 @@ const systemNavItems = computed<NavItemDef[]>(() => [
 onMounted(async () => {
   try {
     const { default: api } = await import('@/utils/api')
-    const res = await api.get('/dashboard/stats')
-    if (res.data.success && res.data.data.containers) {
-      containerCount.value = String(res.data.data.containers.total || 0)
+    const data: any = await api.get('/dashboard/stats')
+    if (data?.containers) {
+      containerCount.value = String(data.containers.total || 0)
     }
   } catch (e) {
     console.error('Failed to fetch container count:', e)

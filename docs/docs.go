@@ -174,20 +174,19 @@ const docTemplate = `{
         },
         "/containers": {
             "get": {
-                "description": "Get all Docker containers (local)",
+                "description": "Get all Docker containers from all machines",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "containers"
                 ],
-                "summary": "List local containers",
+                "summary": "List all containers",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/v1.Response"
                         }
                     }
                 }
@@ -995,6 +994,18 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "v1.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
                 }
             }
         },

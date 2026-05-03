@@ -2,30 +2,41 @@ package v1
 
 import "github.com/gofiber/fiber/v2"
 
-func errorResponse(c *fiber.Ctx, status int, message string) error {
-	return c.Status(status).JSON(fiber.Map{
-		"success": false,
-		"message": message,
+// Response is the unified API response structure
+type Response struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data,omitempty"`
+}
+
+func errorResponse(c *fiber.Ctx, httpStatus int, message string) error {
+	return c.Status(httpStatus).JSON(Response{
+		Code: httpStatus,
+		Msg:  message,
+		Data: nil,
 	})
 }
 
 func successResponse(c *fiber.Ctx, data interface{}) error {
-	return c.JSON(fiber.Map{
-		"success": true,
-		"data":    data,
+	return c.JSON(Response{
+		Code: fiber.StatusOK,
+		Msg:  "success",
+		Data: data,
 	})
 }
 
 func successMessage(c *fiber.Ctx, message string) error {
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": message,
+	return c.JSON(Response{
+		Code: fiber.StatusOK,
+		Msg:  message,
+		Data: nil,
 	})
 }
 
 func createdResponse(c *fiber.Ctx, data interface{}) error {
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"data":    data,
+	return c.Status(fiber.StatusCreated).JSON(Response{
+		Code: fiber.StatusCreated,
+		Msg:  "created",
+		Data: data,
 	})
 }

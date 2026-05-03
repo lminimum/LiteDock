@@ -160,7 +160,7 @@ const handleSubmit = async () => {
 
     router.push('/login?registered=true')
   } catch (error: any) {
-    submitError.value = error.response?.data?.error || t('auth.createFailed')
+    submitError.value = error.message || t('auth.createFailed')
   } finally {
     loading.value = false
   }

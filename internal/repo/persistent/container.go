@@ -20,8 +20,61 @@ func NewContainerRepo(db database.DB) *ContainerRepo {
 	return &ContainerRepo{db: db}
 }
 
-func (r *ContainerRepo) List(_ context.Context) ([]entity.Container, error) {
-	return []entity.Container{}, nil
+func (r *ContainerRepo) List(ctx context.Context) ([]entity.Container, error) {
+	query := `
+		SELECT id, machine_id, name, image, status, ports, created_at, cached_at
+		FROM containers ORDER BY cached_at DESC`
+
+	rowsInterface, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, errors.Wrap(err, "ContainerRepo.List.Query")
+	}
+
+	scanner, ok := rowsInterface.(interface {
+		Next() bool
+		Scan(...any) error
+		Close() error
+		Err() error
+	})
+	if !ok {
+		return nil, stdErrors.New("ContainerRepo.List: rows does not implement scanner interface")
+	}
+	defer scanner.Close()
+
+	containers := make([]entity.Container, 0)
+
+	for scanner.Next() {
+		var c entity.Container
+		var portsJSON []byte
+
+		err := scanRow(scanner,
+			&c.ID,
+			&c.MachineID,
+			&c.Name,
+			&c.Image,
+			&c.Status,
+			&portsJSON,
+			&c.Created,
+			&c.CachedAt,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "ContainerRepo.List.scanRow")
+		}
+
+		if portsJSON != nil {
+			if err := json.Unmarshal(portsJSON, &c.Ports); err != nil {
+				return nil, errors.Wrap(err, "ContainerRepo.List.UnmarshalPorts")
+			}
+		}
+
+		containers = append(containers, c)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, errors.Wrap(err, "ContainerRepo.List.rowsErr")
+	}
+
+	return containers, nil
 }
 
 func (r *ContainerRepo) Get(_ context.Context, id string) (*entity.Container, error) {

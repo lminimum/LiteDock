@@ -117,6 +117,7 @@ import {
   Trash2
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import api from '@/utils/api'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -143,16 +144,30 @@ const containers = ref<Container[]>([])
 const refreshContainers = async () => {
   loading.value = true
   try {
+    // Fetch local containers from /v1/containers
+    const localData: any = await api.get('/containers')
+    const localContainers: Container[] = (localData?.containers || []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      image: c.image,
+      status: c.status,
+      ports: c.ports || [],
+      createdAt: c.created_at || c.cached_at,
+      machine: 'Local',
+      machineId: 'local'
+    }))
+
+    // Fetch remote machine containers
     const allMachines = await remoteMachineService.list()
     machines.value = allMachines
 
-    const allContainers: Container[] = []
+    const remoteContainers: Container[] = []
     await Promise.all(
       allMachines.map(async (m) => {
         try {
-          const remoteContainers = await remoteMachineService.listContainers(m.id)
-          for (const c of remoteContainers) {
-            allContainers.push({ ...c, machine: m.name, machineId: m.id })
+          const containers = await remoteMachineService.listContainers(m.id)
+          for (const c of containers) {
+            remoteContainers.push({ ...c, machine: m.name, machineId: m.id })
           }
         } catch (e) {
           // machine offline or unreachable
@@ -160,7 +175,8 @@ const refreshContainers = async () => {
       })
     )
 
-    // Sort by machine name, then by container name
+    // Merge and sort
+    const allContainers = [...localContainers, ...remoteContainers]
     allContainers.sort((a, b) => {
       if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
       return a.name.localeCompare(b.name)
@@ -281,7 +297,7 @@ onMounted(() => refreshContainers())
 
 .containers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
   gap: var(--space-4);
 }
 
