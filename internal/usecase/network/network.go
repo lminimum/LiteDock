@@ -25,9 +25,6 @@ var builtInNetworks = map[string]bool{
 	"none":   true,
 }
 
-// ErrCannotDeleteBuiltInNetwork is returned when attempting to delete a built-in network.
-var ErrCannotDeleteBuiltInNetwork = errors.ErrInvalidInput
-
 // NetworkUseCase implements usecase.Network for Docker network management.
 type NetworkUseCase struct {
 	networkRepo       repo.NetworkRepo
@@ -97,7 +94,7 @@ func (uc *NetworkUseCase) CreateNetwork(ctx context.Context, machineID string, n
 // Built-in networks (bridge, host, none) cannot be deleted.
 func (uc *NetworkUseCase) DeleteNetwork(ctx context.Context, machineID string, networkName string) error {
 	if builtInNetworks[networkName] {
-		return errors.Wrap(ErrCannotDeleteBuiltInNetwork, "NetworkUseCase.DeleteNetwork: cannot delete built-in network "+networkName)
+		return errors.Wrap(errors.ErrInvalidInput, "NetworkUseCase.DeleteNetwork: cannot delete built-in network "+networkName)
 	}
 
 	cli, err := uc.getDockerClient(ctx, machineID)
@@ -150,7 +147,6 @@ func (uc *NetworkUseCase) getDockerClient(ctx context.Context, machineID string)
 		if err != nil {
 			return nil, errors.Wrap(err, "NetworkUseCase.getDockerClient.NewLocalClient")
 		}
-		uc.l.Debug("NetworkUseCase.getDockerClient: using local Docker socket for machine %s", machineID)
 		return cli, nil
 	}
 
@@ -224,11 +220,8 @@ func (uc *NetworkUseCase) fetchNetworksFromDocker(ctx context.Context, machineID
 func (uc *NetworkUseCase) refreshNetworks(machineID string) {
 	ctx := context.Background()
 
-	networks, err := uc.fetchNetworksFromDocker(ctx, machineID)
+	_, err := uc.fetchNetworksFromDocker(ctx, machineID)
 	if err != nil {
 		uc.l.Warn("NetworkUseCase.refreshNetworks: %v", err)
-		return
 	}
-
-	uc.l.Debug("NetworkUseCase.refreshNetworks: refreshed %d networks for machine %s", len(networks), machineID)
 }

@@ -49,7 +49,6 @@ func (h *VolumeHandler) List(c *fiber.Ctx) error {
 
 	volumes, err := h.uc.ListVolumes(c.Context(), id)
 	if err != nil {
-		h.l.Error(err, "ListVolumes failed")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -84,7 +83,6 @@ func (h *VolumeHandler) Create(c *fiber.Ctx) error {
 
 	volume, err := h.uc.CreateVolume(c.Context(), id, req.Name, req.Driver)
 	if err != nil {
-		h.l.Error(err, "CreateVolume failed")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -107,7 +105,6 @@ func (h *VolumeHandler) Get(c *fiber.Ctx) error {
 
 	result, err := h.uc.InspectVolume(c.Context(), id, volumeName)
 	if err != nil {
-		h.l.Error(err, "InspectVolume failed")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -130,7 +127,6 @@ func (h *VolumeHandler) Delete(c *fiber.Ctx) error {
 
 	err := h.uc.DeleteVolume(c.Context(), id, volumeName)
 	if err != nil {
-		h.l.Error(err, "DeleteVolume failed")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 

@@ -135,7 +135,6 @@ func (uc *VolumeUseCase) getDockerClient(ctx context.Context, machineID string) 
 		if err != nil {
 			return nil, errors.Wrap(err, "VolumeUseCase.getDockerClient.NewLocalClient")
 		}
-		uc.l.Debug("VolumeUseCase.getDockerClient: using local Docker socket for machine %s", machineID)
 		return cli, nil
 	}
 
@@ -209,11 +208,8 @@ func (uc *VolumeUseCase) fetchVolumesFromDocker(ctx context.Context, machineID s
 func (uc *VolumeUseCase) refreshVolumes(machineID string) {
 	ctx := context.Background()
 
-	volumes, err := uc.fetchVolumesFromDocker(ctx, machineID)
+	_, err := uc.fetchVolumesFromDocker(ctx, machineID)
 	if err != nil {
 		uc.l.Warn("VolumeUseCase.refreshVolumes: %v", err)
-		return
 	}
-
-	uc.l.Debug("VolumeUseCase.refreshVolumes: refreshed %d volumes for machine %s", len(volumes), machineID)
 }
