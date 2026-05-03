@@ -68,10 +68,6 @@ func (l *Logger) Warn(message string, args ...interface{}) {
 
 // Error logs a message at error level.
 func (l *Logger) Error(message interface{}, args ...interface{}) {
-	if l.logger.GetLevel() == zerolog.DebugLevel {
-		l.Debug(message, args...)
-	}
-
 	l.msg(zerolog.ErrorLevel, message, args...)
 }
 
