@@ -7,61 +7,61 @@ import type {
 } from '@/types'
 
 export const remoteMachineService = {
-  list(): Promise<RemoteMachine[]> {
-    return api.get('/machines')
+  async list(): Promise<RemoteMachine[]> {
+    return await api.get('/machines')
   },
 
-  get(id: string): Promise<RemoteMachine> {
-    return api.get(`/machines/${id}`)
+  async get(id: string): Promise<RemoteMachine> {
+    return await api.get(`/machines/${id}`)
   },
 
-  create(data: CreateMachineRequest): Promise<RemoteMachine> {
-    return api.post('/machines', data)
+  async create(data: CreateMachineRequest): Promise<RemoteMachine> {
+    return await api.post('/machines', data)
   },
 
-  update(id: string, data: UpdateMachineRequest): Promise<RemoteMachine> {
-    return api.put(`/machines/${id}`, data)
+  async update(id: string, data: UpdateMachineRequest): Promise<RemoteMachine> {
+    return await api.put(`/machines/${id}`, data)
   },
 
-  delete(id: string): Promise<void> {
-    return api.delete(`/machines/${id}`)
+  async delete(id: string): Promise<void> {
+    await api.delete(`/machines/${id}`)
   },
 
-  testConnection(id: string): Promise<void> {
-    return api.post(`/machines/${id}/test`)
+  async testConnection(id: string): Promise<void> {
+    await api.post(`/machines/${id}/test`)
   },
 
-  listContainers(machineId: string): Promise<RemoteContainer[]> {
-    return api.get(`/machines/${machineId}/containers`)
+  async listContainers(machineId: string): Promise<RemoteContainer[]> {
+    return await api.get(`/machines/${machineId}/containers`)
   },
 
-  getContainerLogs(machineId: string, containerId: string, tail = '100'): Promise<string> {
-    return api.get(`/machines/${machineId}/containers/${containerId}/logs`, {
+  async getContainerLogs(machineId: string, containerId: string, tail = '100'): Promise<string> {
+    return await api.get(`/machines/${machineId}/containers/${containerId}/logs`, {
       params: { tail }
     })
   },
 
-  execContainer(machineId: string, containerId: string, cmd: string[]): Promise<string> {
-    return api.post(`/machines/${machineId}/containers/${containerId}/exec`, { cmd })
+  async execContainer(machineId: string, containerId: string, cmd: string[]): Promise<string> {
+    return await api.post(`/machines/${machineId}/containers/${containerId}/exec`, { cmd })
   },
 
-  startContainer(machineId: string, containerId: string): Promise<void> {
-    return api.post(`/machines/${machineId}/containers/${containerId}/start`)
+  async startContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/start`)
   },
 
-  stopContainer(machineId: string, containerId: string): Promise<void> {
-    return api.post(`/machines/${machineId}/containers/${containerId}/stop`)
+  async stopContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/stop`)
   },
 
-  restartContainer(machineId: string, containerId: string): Promise<void> {
-    return api.post(`/machines/${machineId}/containers/${containerId}/restart`)
+  async restartContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/restart`)
   },
 
-  removeContainer(machineId: string, containerId: string, force = false): Promise<void> {
-    return api.delete(`/machines/${machineId}/containers/${containerId}`, { params: { force } })
+  async removeContainer(machineId: string, containerId: string, force = false): Promise<void> {
+    await api.delete(`/machines/${machineId}/containers/${containerId}`, { params: { force } })
   },
 
-  inspectContainer(machineId: string, containerId: string): Promise<any> {
-    return api.get(`/machines/${machineId}/containers/${containerId}`)
+  async inspectContainer(machineId: string, containerId: string): Promise<any> {
+    return await api.get(`/machines/${machineId}/containers/${containerId}`)
   }
 }
