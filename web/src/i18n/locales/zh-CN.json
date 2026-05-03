@@ -73,7 +73,8 @@
     "ports": "端口:",
     "machine": "所属机器:",
     "createdAt": "创建时间:",
-    "confirmDelete": "确定要删除这个容器吗？"
+    "confirmDelete": "确定要删除这个容器吗？",
+    "noContainers": "未找到容器"
   },
   "networks": {
     "title": "网络管理",

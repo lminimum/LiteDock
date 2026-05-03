@@ -11,7 +11,7 @@
       </button>
     </PageHeader>
 
-    <div class="filters">
+    <div v-if="!loading && !error && containers.length > 0" class="filters">
       <div class="search-box">
         <input
           v-model="searchQuery"
@@ -33,7 +33,25 @@
       </div>
     </div>
 
-    <div class="card-grid">
+    <div v-if="loading" class="loading-state">
+      <RefreshCw :size="24" class="spinning" />
+      <span>{{ t('containers.refresh') }}...</span>
+    </div>
+
+    <div v-else-if="error" class="error-state card text-center">
+      <p class="mb-4">{{ error }}</p>
+      <button @click="refreshContainers" class="btn btn-secondary">{{ t('common.refresh') }}</button>
+    </div>
+
+    <div v-else-if="containers.length === 0" class="empty-state card text-center">
+      <p class="mb-4">{{ t('containers.noContainers') }}</p>
+    </div>
+
+    <div v-else-if="filteredContainers.length === 0" class="empty-state card text-center">
+      <p>{{ t('containers.noContainers') }}</p>
+    </div>
+
+    <div v-else class="card-grid">
       <ContainerCard
         v-for="container in filteredContainers"
         :key="container.id"
@@ -79,6 +97,7 @@ interface Container {
 }
 
 const loading = ref(false)
+const error = ref('')
 const searchQuery = ref('')
 const statusFilter = ref('')
 const showCreateModal = ref(false)
@@ -113,6 +132,7 @@ const handleInspect = (id: string) => {
 
 const refreshContainers = async () => {
   loading.value = true
+  error.value = ''
   try {
     // Fetch local containers from /v1/containers
     const localData: any = await api.get('/containers')
@@ -154,7 +174,7 @@ const refreshContainers = async () => {
 
     containers.value = allContainers
   } catch (e) {
-    console.error('Failed to load containers:', e)
+    error.value = e instanceof Error ? e.message : t('errors.loginFailed')
   } finally {
     loading.value = false
   }
@@ -210,6 +230,24 @@ onMounted(() => refreshContainers())
 .containers-page {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-16) 0;
+  color: var(--color-text-weak);
+  font-size: var(--font-size-sm);
+}
+
+.error-state {
+  padding: var(--space-10) var(--space-6);
+}
+
+.empty-state {
+  padding: var(--space-10) var(--space-6);
 }
 
 .filters {
