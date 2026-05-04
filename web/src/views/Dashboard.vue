@@ -53,6 +53,18 @@
           <span class="stat-sub">{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-accent stat-accent--success"></div>
+        <div class="stat-icon">
+          <Image :size="24" />
+        </div>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.images.total }}</span>
+          <span class="stat-label">{{ t('dashboard.totalImages') }}</span>
+          <span class="stat-sub">{{ stats.images.size }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content Grid: Chart as centerpiece -->
@@ -158,6 +170,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   Box,
   Network,
@@ -165,18 +178,21 @@ import {
   Plus,
   Download,
   PlusCircle,
-  Globe
+  Globe,
+  Image
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
+import { imageService } from '@/services/imageService'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
   networks: { total: 0, active: 0 },
   volumes: { total: 0, size: '0 GB' },
-  machines: { total: 0 }
+  machines: { total: 0 },
+  images: { total: 0, size: '0 GB' }
 })
 
 const TOTAL_POINTS = 60
@@ -286,6 +302,24 @@ const refreshStats = async () => {
   } catch (e) {
     console.error('Failed to fetch stats:', e)
   }
+
+  // Load image stats
+  try {
+    const images = await imageService.list('local')
+    stats.images.total = images.length
+    const totalSize = images.reduce((sum, img) => sum + (img.size || 0), 0)
+    stats.images.size = formatSize(totalSize)
+  } catch (e) {
+    console.error('Failed to fetch image stats:', e)
+  }
+}
+
+const formatSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
@@ -314,7 +348,8 @@ const formatTime = (time: Date) => {
 }
 
 const createContainer = () => console.log('createContainer')
-const pullImage = () => console.log('pullImage')
+const router = useRouter()
+const pullImage = () => router.push('/images')
 const createNetwork = () => console.log('createNetwork')
 const createVolume = () => console.log('createVolume')
 
