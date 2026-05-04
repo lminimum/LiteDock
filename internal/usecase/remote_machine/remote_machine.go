@@ -20,8 +20,8 @@ const LocalMachineHost = "localhost"
 const LocalMachineID = "local"
 
 type UseCase struct {
-	repo           repo.RemoteMachineRepo
-	containerRepo  repo.ContainerRepo
+	repo          repo.RemoteMachineRepo
+	containerRepo repo.ContainerRepo
 	cacheMaxAge   time.Duration
 	l             logger.Interface
 }

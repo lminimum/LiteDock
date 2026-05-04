@@ -21,7 +21,7 @@ import (
 // --- mockVolumeUseCase ---
 
 type mockVolumeUseCase struct {
-	mu     sync.RWMutex
+	mu      sync.RWMutex
 	volumes map[string]*entity.Volume // key: "machineID:name"
 }
 
@@ -97,15 +97,15 @@ var _ usecase.Volume = (*mockVolumeUseCase)(nil)
 // --- helpers ---
 
 type volumeResponse struct {
-	Code int              `json:"code"`
-	Msg  string           `json:"msg"`
-	Data *volumeData      `json:"data"`
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data *volumeData `json:"data"`
 }
 
 type volumeData struct {
-	Volume  *entity.Volume   `json:"volume"`
-	Volumes []entity.Volume  `json:"volumes"`
-	Message string           `json:"message"`
+	Volume  *entity.Volume  `json:"volume"`
+	Volumes []entity.Volume `json:"volumes"`
+	Message string          `json:"message"`
 }
 
 func volumeListResponse(t *testing.T, body io.Reader) (int, string, []entity.Volume) {
@@ -156,8 +156,8 @@ func volumeDeleteResponse(t *testing.T, body io.Reader) (int, string) {
 func volumeErrorResponse(t *testing.T, body io.Reader) (int, string) {
 	t.Helper()
 	var raw struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
+		Code int       `json:"code"`
+		Msg  string    `json:"msg"`
 		Data *struct{} `json:"data"`
 	}
 	require.NoError(t, json.NewDecoder(body).Decode(&raw))

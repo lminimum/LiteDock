@@ -5,7 +5,6 @@ import (
 	"context"
 
 	dockerImage "github.com/docker/docker/api/types/image"
-
 	"github.com/lminimum/LiteDock/internal/entity"
 )
 
@@ -42,17 +41,17 @@ type (
 	// Network -.
 	Network interface {
 		ListNetworks(ctx context.Context, machineID string) ([]entity.Network, error)
-		CreateNetwork(ctx context.Context, machineID string, name, driver string) (*entity.Network, error)
-		DeleteNetwork(ctx context.Context, machineID string, networkName string) error
-		InspectNetwork(ctx context.Context, machineID string, networkName string) (*entity.Network, error)
+		CreateNetwork(ctx context.Context, machineID, name, driver string) (*entity.Network, error)
+		DeleteNetwork(ctx context.Context, machineID, networkName string) error
+		InspectNetwork(ctx context.Context, machineID, networkName string) (*entity.Network, error)
 	}
 
 	// Volume -.
 	Volume interface {
 		ListVolumes(ctx context.Context, machineID string) ([]entity.Volume, error)
-		CreateVolume(ctx context.Context, machineID string, name, driver string) (*entity.Volume, error)
-		DeleteVolume(ctx context.Context, machineID string, volumeName string) error
-		InspectVolume(ctx context.Context, machineID string, volumeName string) (*entity.Volume, error)
+		CreateVolume(ctx context.Context, machineID, name, driver string) (*entity.Volume, error)
+		DeleteVolume(ctx context.Context, machineID, volumeName string) error
+		InspectVolume(ctx context.Context, machineID, volumeName string) (*entity.Volume, error)
 	}
 
 	// Image -.

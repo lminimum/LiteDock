@@ -73,7 +73,7 @@ func (uc *NetworkUseCase) ListNetworks(ctx context.Context, machineID string) ([
 }
 
 // CreateNetwork creates a Docker network on the specified machine.
-func (uc *NetworkUseCase) CreateNetwork(ctx context.Context, machineID string, name, driver string) (*entity.Network, error) {
+func (uc *NetworkUseCase) CreateNetwork(ctx context.Context, machineID, name, driver string) (*entity.Network, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, errors.Wrap(err, "NetworkUseCase.CreateNetwork.getDockerClient")
@@ -92,7 +92,7 @@ func (uc *NetworkUseCase) CreateNetwork(ctx context.Context, machineID string, n
 
 // DeleteNetwork deletes a Docker network on the specified machine.
 // Built-in networks (bridge, host, none) cannot be deleted.
-func (uc *NetworkUseCase) DeleteNetwork(ctx context.Context, machineID string, networkName string) error {
+func (uc *NetworkUseCase) DeleteNetwork(ctx context.Context, machineID, networkName string) error {
 	if builtInNetworks[networkName] {
 		return errors.Wrap(errors.ErrInvalidInput, "NetworkUseCase.DeleteNetwork: cannot delete built-in network "+networkName)
 	}
@@ -114,7 +114,7 @@ func (uc *NetworkUseCase) DeleteNetwork(ctx context.Context, machineID string, n
 }
 
 // InspectNetwork returns detailed information about a Docker network.
-func (uc *NetworkUseCase) InspectNetwork(ctx context.Context, machineID string, networkName string) (*entity.Network, error) {
+func (uc *NetworkUseCase) InspectNetwork(ctx context.Context, machineID, networkName string) (*entity.Network, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, errors.Wrap(err, "NetworkUseCase.InspectNetwork.getDockerClient")

@@ -56,7 +56,7 @@ type (
 	// NetworkRepo - manages Docker networks with caching
 	NetworkRepo interface {
 		ListByMachine(ctx context.Context, machineID string) ([]entity.Network, error)
-		GetByName(ctx context.Context, machineID string, name string) (*entity.Network, error)
+		GetByName(ctx context.Context, machineID, name string) (*entity.Network, error)
 		UpsertBatch(ctx context.Context, machineID string, networks []entity.Network) error
 		DeleteByMachine(ctx context.Context, machineID string) error
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
@@ -65,7 +65,7 @@ type (
 	// VolumeRepo - manages Docker volumes with caching
 	VolumeRepo interface {
 		ListByMachine(ctx context.Context, machineID string) ([]entity.Volume, error)
-		GetByName(ctx context.Context, machineID string, name string) (*entity.Volume, error)
+		GetByName(ctx context.Context, machineID, name string) (*entity.Volume, error)
 		UpsertBatch(ctx context.Context, machineID string, volumes []entity.Volume) error
 		DeleteByMachine(ctx context.Context, machineID string) error
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)

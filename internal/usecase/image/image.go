@@ -69,7 +69,7 @@ func (uc *ImageUseCase) List(ctx context.Context, machineID string) ([]entity.Im
 }
 
 // Inspect returns detailed information about a Docker image.
-func (uc *ImageUseCase) Inspect(ctx context.Context, machineID string, imageID string) (*entity.Image, error) {
+func (uc *ImageUseCase) Inspect(ctx context.Context, machineID, imageID string) (*entity.Image, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, fmt.Errorf("ImageUseCase.Inspect - getDockerClient: %w", err)
@@ -86,7 +86,7 @@ func (uc *ImageUseCase) Inspect(ctx context.Context, machineID string, imageID s
 }
 
 // Pull pulls a Docker image on the specified machine.
-func (uc *ImageUseCase) Pull(ctx context.Context, machineID string, repository string, tag string) (*entity.Image, error) {
+func (uc *ImageUseCase) Pull(ctx context.Context, machineID, repository, tag string) (*entity.Image, error) {
 	if repository == "" {
 		return nil, fmt.Errorf("ImageUseCase.Pull - repository is required")
 	}
@@ -119,7 +119,7 @@ func (uc *ImageUseCase) Pull(ctx context.Context, machineID string, repository s
 }
 
 // Delete removes a Docker image on the specified machine.
-func (uc *ImageUseCase) Delete(ctx context.Context, machineID string, imageID string) ([]dockerImage.DeleteResponse, error) {
+func (uc *ImageUseCase) Delete(ctx context.Context, machineID, imageID string) ([]dockerImage.DeleteResponse, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, fmt.Errorf("ImageUseCase.Delete - getDockerClient: %w", err)

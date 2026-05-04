@@ -78,7 +78,7 @@ func (r *VolumeRepo) ListByMachine(ctx context.Context, machineID string) ([]ent
 	return volumes, nil
 }
 
-func (r *VolumeRepo) GetByName(ctx context.Context, machineID string, name string) (*entity.Volume, error) {
+func (r *VolumeRepo) GetByName(ctx context.Context, machineID, name string) (*entity.Volume, error) {
 	query := `
 		SELECT name, machine_id, driver, mountpoint, created_at, scope, labels, size, cached_at
 		FROM volumes WHERE machine_id = ? AND name = ?`

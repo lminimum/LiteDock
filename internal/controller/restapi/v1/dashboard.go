@@ -181,4 +181,3 @@ func (h *DashboardHandler) CloseAllConnections() {
 	})
 	h.l.Info("DashboardHandler: closed all active WebSocket connections")
 }
-

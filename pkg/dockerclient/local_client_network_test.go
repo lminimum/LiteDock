@@ -86,10 +86,10 @@ func TestInspectToEntity_LocalClient(t *testing.T) {
 
 // mockDockerClient implements the docker client methods for network testing
 type mockDockerClient struct {
-	networkList       func(ctx context.Context, options network.ListOptions) ([]network.Summary, error)
-	networkCreate     func(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)
-	networkRemove     func(ctx context.Context, networkID string) error
-	networkInspect    func(ctx context.Context, networkID string, options network.InspectOptions) (network.Inspect, error)
+	networkList    func(ctx context.Context, options network.ListOptions) ([]network.Summary, error)
+	networkCreate  func(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)
+	networkRemove  func(ctx context.Context, networkID string) error
+	networkInspect func(ctx context.Context, networkID string, options network.InspectOptions) (network.Inspect, error)
 }
 
 func (m *mockDockerClient) NetworkList(ctx context.Context, options network.ListOptions) ([]network.Summary, error) {

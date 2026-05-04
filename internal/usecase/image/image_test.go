@@ -29,13 +29,13 @@ func (m *mockLogger) Fatal(_ interface{}, _ ...interface{}) {}
 // --- mockImageRepo ---
 
 type mockImageRepo struct {
-	listByMachineFn func(ctx context.Context, machineID string) ([]entity.Image, error)
-	getByIDFn       func(ctx context.Context, machineID, imageID string) (*entity.Image, error)
-	upsertBatchFn   func(ctx context.Context, machineID string, images []entity.Image) error
+	listByMachineFn   func(ctx context.Context, machineID string) ([]entity.Image, error)
+	getByIDFn         func(ctx context.Context, machineID, imageID string) (*entity.Image, error)
+	upsertBatchFn     func(ctx context.Context, machineID string, images []entity.Image) error
 	deleteByMachineFn func(ctx context.Context, machineID string) error
-	deleteByIDFn    func(ctx context.Context, machineID, imageID string) error
-	isCacheValidFn  func(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
-	countAllFn      func(ctx context.Context) (int64, error)
+	deleteByIDFn      func(ctx context.Context, machineID, imageID string) error
+	isCacheValidFn    func(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+	countAllFn        func(ctx context.Context) (int64, error)
 }
 
 func (m *mockImageRepo) ListByMachine(ctx context.Context, machineID string) ([]entity.Image, error) {
@@ -103,7 +103,9 @@ func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity
 }
 
 func (m *mockRemoteMachineRepo) Create(_ context.Context, _ *entity.RemoteMachine) error { return nil }
-func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error)  { return nil, nil }
+func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error) {
+	return nil, nil
+}
 func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error)                  { return 0, nil }
 func (m *mockRemoteMachineRepo) Update(_ context.Context, _ *entity.RemoteMachine) error { return nil }
 func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error                { return nil }
@@ -128,12 +130,19 @@ func (m *mockDockerClient) Ping(_ context.Context) error { return nil }
 func (m *mockDockerClient) ContainerList(_ context.Context) ([]entity.Container, error) {
 	return nil, nil
 }
-func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) { return "", nil }
+
+func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *mockDockerClient) ContainerExec(_ context.Context, _ string, _ []string) (string, error) {
 	return "", nil
 }
-func (m *mockDockerClient) ContainerStart(_ context.Context, _ string) error               { return nil }
-func (m *mockDockerClient) ContainerStop(_ context.Context, _ string, _ time.Duration) error  { return nil }
+func (m *mockDockerClient) ContainerStart(_ context.Context, _ string) error { return nil }
+func (m *mockDockerClient) ContainerStop(_ context.Context, _ string, _ time.Duration) error {
+	return nil
+}
+
 func (m *mockDockerClient) ContainerRestart(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
@@ -157,36 +166,42 @@ func (m *mockDockerClient) VolumeDelete(_ context.Context, _ string) error { ret
 func (m *mockDockerClient) VolumeInspect(_ context.Context, _ string) (*entity.Volume, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) ImageList(ctx context.Context, opts dockerImage.ListOptions) ([]entity.Image, error) {
 	if m.imageListFn != nil {
 		return m.imageListFn(ctx, opts)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) ImagePull(ctx context.Context, ref string, opts dockerImage.PullOptions) error {
 	if m.imagePullFn != nil {
 		return m.imagePullFn(ctx, ref, opts)
 	}
 	return nil
 }
+
 func (m *mockDockerClient) ImageRemove(ctx context.Context, id string, opts dockerImage.RemoveOptions) ([]dockerImage.DeleteResponse, error) {
 	if m.imageRemoveFn != nil {
 		return m.imageRemoveFn(ctx, id, opts)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) ImageInspect(ctx context.Context, id string) (dockerImage.InspectResponse, error) {
 	if m.imageInspectFn != nil {
 		return m.imageInspectFn(ctx, id)
 	}
 	return dockerImage.InspectResponse{}, nil
 }
+
 func (m *mockDockerClient) ImagePrune(ctx context.Context, opts filters.Args) (dockerImage.PruneReport, error) {
 	if m.imagePruneFn != nil {
 		return m.imagePruneFn(ctx, opts)
 	}
 	return dockerImage.PruneReport{}, nil
 }
+
 func (m *mockDockerClient) Close() error {
 	if m.closeFn != nil {
 		return m.closeFn()
@@ -238,7 +253,7 @@ func makeInspectResponse(id, created string, repoTags []string) dockerImage.Insp
 
 func TestList_CacheHit(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		cachedImages []entity.Image
 	}{
 		{
@@ -444,7 +459,7 @@ func TestDelete_ImageInUse(t *testing.T) {
 	}
 
 	mockImgRepo := &mockImageRepo{
-		deleteByMachineFn: func(_ context.Context, machineID string) error {
+		deleteByMachineFn: func(_ context.Context, _ string) error {
 			cacheInvalidated = true
 			return nil
 		},
@@ -509,7 +524,7 @@ func TestInspect_Success(t *testing.T) {
 	img, err := uc.Inspect(context.Background(), "local", "abc123")
 	require.NoError(t, err)
 	require.NotNil(t, img)
-	require.Equal(t, "abc123def456", img.ID)            // sha256: stripped, first 12 chars
+	require.Equal(t, "abc123def456", img.ID) // sha256: stripped, first 12 chars
 	require.Equal(t, "nginx:latest", img.RepoTags[0])
 	require.Equal(t, "test", img.Labels["maintainer"])
 	require.False(t, img.CreatedAt.IsZero())
@@ -581,11 +596,11 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestList_StaleCache_IsCacheValidError(t *testing.T) {
-	dockerCalled := false
+	dockerCalled := make(chan struct{}, 1)
 
 	mockCli := &mockDockerClient{
 		imageListFn: func(_ context.Context, _ dockerImage.ListOptions) ([]entity.Image, error) {
-			dockerCalled = true
+			dockerCalled <- struct{}{}
 			return []entity.Image{
 				makeTestImage("abc123", "local", []string{"nginx:latest"}),
 			}, nil
@@ -619,8 +634,11 @@ func TestList_StaleCache_IsCacheValidError(t *testing.T) {
 	require.Equal(t, "nginx:old", images[0].RepoTags[0])
 
 	// Wait for background refresh
-	time.Sleep(100 * time.Millisecond)
-	require.True(t, dockerCalled, "expected Docker to be called in background refresh")
+	select {
+	case <-dockerCalled:
+	case <-time.After(2 * time.Second):
+		t.Fatal("refresh goroutine did not call Docker ImageList within 2s")
+	}
 }
 
 func TestPrune_DockerError(t *testing.T) {
@@ -716,11 +734,11 @@ func TestNewImageUseCase(t *testing.T) {
 
 func TestInspectToEntity(t *testing.T) {
 	tests := []struct {
-		name     string
-		resp     dockerImage.InspectResponse
+		name      string
+		resp      dockerImage.InspectResponse
 		machineID string
-		wantID   string
-		wantTags []string
+		wantID    string
+		wantTags  []string
 	}{
 		{
 			name: "normal response with sha256 prefix",
@@ -736,9 +754,9 @@ func TestInspectToEntity(t *testing.T) {
 		{
 			name: "bad created time falls back to zero",
 			resp: dockerImage.InspectResponse{
-				ID:      "sha256:abcdef123456",
-				Created: "not-a-valid-timestamp",
-				Size:    50 * 1024 * 1024,
+				ID:       "sha256:abcdef123456",
+				Created:  "not-a-valid-timestamp",
+				Size:     50 * 1024 * 1024,
 				RepoTags: []string{"busybox:latest"},
 			},
 			machineID: "remote-1",
@@ -748,11 +766,11 @@ func TestInspectToEntity(t *testing.T) {
 		{
 			name: "nil repoTags handled",
 			resp: dockerImage.InspectResponse{
-				ID:        "sha256:abcdef123456",
-				RepoTags:  nil,
-				Size:      1024,
-				Created:   "2024-01-01T00:00:00.000000000Z",
-				Config:    &container.Config{Labels: nil},
+				ID:       "sha256:abcdef123456",
+				RepoTags: nil,
+				Size:     1024,
+				Created:  "2024-01-01T00:00:00.000000000Z",
+				Config:   &container.Config{Labels: nil},
 			},
 			machineID: "local",
 			wantID:    "abcdef123456",
@@ -772,11 +790,11 @@ func TestInspectToEntity(t *testing.T) {
 		{
 			name: "nil config defaults labels to empty map",
 			resp: dockerImage.InspectResponse{
-				ID:      "sha256:abcdef123456",
-				Size:    4096,
-				Created: "2024-01-01T00:00:00.000000000Z",
+				ID:       "sha256:abcdef123456",
+				Size:     4096,
+				Created:  "2024-01-01T00:00:00.000000000Z",
 				RepoTags: []string{"test:latest"},
-				Config:    nil,
+				Config:   nil,
 			},
 			machineID: "local",
 			wantID:    "abcdef123456",

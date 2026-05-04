@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
@@ -78,7 +80,9 @@ func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity
 }
 
 func (m *mockRemoteMachineRepo) Create(_ context.Context, _ *entity.RemoteMachine) error { return nil }
-func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error)  { return nil, nil }
+func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error) {
+	return nil, nil
+}
 func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error)                  { return 0, nil }
 func (m *mockRemoteMachineRepo) Update(_ context.Context, _ *entity.RemoteMachine) error { return nil }
 func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error                { return nil }
@@ -102,7 +106,11 @@ func (m *mockDockerClient) Ping(_ context.Context) error { return nil }
 func (m *mockDockerClient) ContainerList(_ context.Context) ([]entity.Container, error) {
 	return nil, nil
 }
-func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) { return "", nil }
+
+func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *mockDockerClient) ContainerExec(_ context.Context, _ string, _ []string) (string, error) {
 	return "", nil
 }
@@ -115,24 +123,28 @@ func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ bool) 
 func (m *mockDockerClient) ContainerInspect(_ context.Context, _ string) (*container.InspectResponse, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) NetworkList(ctx context.Context) ([]entity.Network, error) {
 	if m.networkListFn != nil {
 		return m.networkListFn(ctx)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) NetworkCreate(ctx context.Context, name, driver string) (*entity.Network, error) {
 	if m.networkCreateFn != nil {
 		return m.networkCreateFn(ctx, name, driver)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) NetworkDelete(ctx context.Context, networkID string) error {
 	if m.networkDeleteFn != nil {
 		return m.networkDeleteFn(ctx, networkID)
 	}
 	return nil
 }
+
 func (m *mockDockerClient) NetworkInspect(ctx context.Context, networkID string) (*entity.Network, error) {
 	if m.networkInspectFn != nil {
 		return m.networkInspectFn(ctx, networkID)
@@ -147,6 +159,26 @@ func (m *mockDockerClient) VolumeDelete(_ context.Context, _ string) error { ret
 func (m *mockDockerClient) VolumeInspect(_ context.Context, _ string) (*entity.Volume, error) {
 	return nil, nil
 }
+func (m *mockDockerClient) ImageList(_ context.Context, _ dockerImage.ListOptions) ([]entity.Image, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ImagePull(_ context.Context, _ string, _ dockerImage.PullOptions) error {
+	return nil
+}
+
+func (m *mockDockerClient) ImageRemove(_ context.Context, _ string, _ dockerImage.RemoveOptions) ([]dockerImage.DeleteResponse, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ImageInspect(_ context.Context, _ string) (dockerImage.InspectResponse, error) {
+	return dockerImage.InspectResponse{}, nil
+}
+
+func (m *mockDockerClient) ImagePrune(_ context.Context, _ filters.Args) (dockerImage.PruneReport, error) {
+	return dockerImage.PruneReport{}, nil
+}
+
 func (m *mockDockerClient) Close() error {
 	if m.closeFn != nil {
 		return m.closeFn()

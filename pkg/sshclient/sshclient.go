@@ -300,7 +300,7 @@ func (c *Client) Execute(ctx context.Context, cmd string) ([]byte, error) {
 
 	if err := session.Run(cmd); err != nil {
 		if ctx.Err() != nil {
-			return nil, fmt.Errorf("sshclient.Client.Execute: context cancelled: %w", ctx.Err())
+			return nil, fmt.Errorf("sshclient.Client.Execute: context canceled: %w", ctx.Err())
 		}
 
 		return nil, fmt.Errorf("sshclient.Client.Execute: run %q: %w", cmd, err)
