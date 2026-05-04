@@ -19,18 +19,28 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const token = ref<string | null>(localStorage.getItem("litedock-token"));
   const setupComplete = ref(false);
+  let setupStatusChecked = false;
 
   const isAuthenticated = computed(() => !!token.value && !!user.value);
 
   const checkSetupStatus = async (): Promise<boolean> => {
+    if (setupStatusChecked) {
+      return setupComplete.value;
+    }
+    setupStatusChecked = true;
     try {
       const data = await api.get<SetupStatusResponse>("/auth/setup-status");
       setupComplete.value = data?.setup_complete ?? false;
-      return setupComplete.value;
     } catch (error) {
       console.error("Failed to check setup status:", error);
-      return false;
+      setupComplete.value = false;
     }
+    return setupComplete.value;
+  };
+
+  const refreshSetupStatus = async (): Promise<boolean> => {
+    setupStatusChecked = false;
+    return checkSetupStatus();
   };
 
   const login = async (credentials: { username: string; password: string }) => {
@@ -77,6 +87,7 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     setupComplete,
     checkSetupStatus,
+    refreshSetupStatus,
     login,
     logout,
     checkAuth,

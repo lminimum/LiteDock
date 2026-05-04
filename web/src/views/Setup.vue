@@ -93,8 +93,10 @@ import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { t } from '@/i18n'
 import AuthCard from '@/components/auth/AuthCard.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const form = reactive({
   username: '',
@@ -157,6 +159,7 @@ const handleSubmit = async () => {
       role: 'admin'
     })
 
+    await authStore.refreshSetupStatus()
     router.push('/login?registered=true')
   } catch (error: any) {
     submitError.value = error.message || t('auth.createFailed')
