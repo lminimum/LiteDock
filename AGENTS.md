@@ -193,6 +193,45 @@ make compose-down      # Stop all containers
 - Exported functions/types need godoc comments
 - Swagger annotations for REST endpoints
 
+### Mock Generation
+- Use `make mock` to generate mocks via mockgen (gomock)
+- Generated mocks are placed in `internal/usecase/` with `mocks_*_test.go` naming
+- **Existing hand-written mocks** (e.g., in test files like `volume_test.go`) **must NOT be regenerated**
+- Use mockgen **only for NEW interfaces** that don't yet have hand-written mocks
+
+#### When to Use mockgen vs Hand-written Mocks
+| Scenario | Approach |
+|----------|----------|
+| New interface, simple or few methods | Hand-written mock (easier to control) |
+| New interface, complex or many methods | mockgen |
+| Existing hand-written mock | Keep as-is, do not regenerate |
+| Generated mock needed for new interface | `make mock` or `mockgen -source=...` |
+
+#### mockgen Command Examples
+```bash
+# Generate from source interface
+mockgen -source=./pkg/dockerclient/client.go -destination=internal/usecase/mocks_dockerclient_test.go -package=usecase_test
+
+# Generate from contracts file (as in Makefile)
+mockgen -source=./internal/repo/contracts.go -package=usecase_test > ./internal/usecase/mocks_repo_test.go
+mockgen -source=./internal/usecase/contracts.go -package=usecase_test > ./internal/usecase/mocks_usecase_test.go
+```
+
+#### Hand-written Mock Pattern
+Hand-written mocks in test files use function pointers for configurable behavior:
+```go
+type mockVolumeRepo struct {
+    listByMachineFn func(ctx context.Context, machineID string) ([]entity.Volume, error)
+    // ...
+}
+
+func (m *mockVolumeRepo) ListByMachine(ctx context.Context, machineID string) ([]entity.Volume, error) {
+    return m.listByMachineFn(ctx, machineID)
+}
+
+var _ repo.VolumeRepo = (*mockVolumeRepo)(nil) // compile-time interface check
+```
+
 ### Testing Guidelines
 - Table-driven tests for multiple scenarios
 - Test files: `*_test.go`

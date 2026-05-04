@@ -49,6 +49,7 @@ func (h *NetworkHandler) List(c *fiber.Ctx) error {
 
 	networks, err := h.uc.ListNetworks(c.Context(), id)
 	if err != nil {
+		h.l.Error(err, "NetworkHandler - List")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -83,6 +84,7 @@ func (h *NetworkHandler) Create(c *fiber.Ctx) error {
 
 	network, err := h.uc.CreateNetwork(c.Context(), id, req.Name, req.Driver)
 	if err != nil {
+		h.l.Error(err, "NetworkHandler - Create")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -105,6 +107,7 @@ func (h *NetworkHandler) Get(c *fiber.Ctx) error {
 
 	result, err := h.uc.InspectNetwork(c.Context(), id, networkID)
 	if err != nil {
+		h.l.Error(err, "NetworkHandler - Get")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -127,6 +130,7 @@ func (h *NetworkHandler) Delete(c *fiber.Ctx) error {
 
 	err := h.uc.DeleteNetwork(c.Context(), id, networkID)
 	if err != nil {
+		h.l.Error(err, "NetworkHandler - Delete")
 		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
