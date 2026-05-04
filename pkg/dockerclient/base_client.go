@@ -10,6 +10,8 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -268,6 +270,51 @@ func (c *baseClient) VolumeInspect(ctx context.Context, volumeID string) (*entit
 	}
 	v := volumeToEntity(result)
 	return &v, nil
+}
+
+func (c *baseClient) ImageList(ctx context.Context, opts image.ListOptions) ([]entity.Image, error) {
+	images, err := c.docker.ImageList(ctx, opts)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "ImageList."+err.Error())
+	}
+	return toImageEntityList(images, ""), nil
+}
+
+func (c *baseClient) ImagePull(ctx context.Context, ref string, opts image.PullOptions) error {
+	reader, err := c.docker.ImagePull(ctx, ref, opts)
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "ImagePull."+err.Error())
+	}
+	defer reader.Close()
+	_, err = io.Copy(io.Discard, reader)
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "ImagePull.ReadStream."+err.Error())
+	}
+	return nil
+}
+
+func (c *baseClient) ImageRemove(ctx context.Context, id string, opts image.RemoveOptions) ([]image.DeleteResponse, error) {
+	resp, err := c.docker.ImageRemove(ctx, id, opts)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "ImageRemove."+err.Error())
+	}
+	return resp, nil
+}
+
+func (c *baseClient) ImageInspect(ctx context.Context, id string) (image.InspectResponse, error) {
+	resp, _, err := c.docker.ImageInspectWithRaw(ctx, id)
+	if err != nil {
+		return resp, errors.Wrap(errors.ErrDockerOperation, "ImageInspect."+err.Error())
+	}
+	return resp, nil
+}
+
+func (c *baseClient) ImagePrune(ctx context.Context, opts filters.Args) (image.PruneReport, error) {
+	report, err := c.docker.ImagesPrune(ctx, opts)
+	if err != nil {
+		return report, errors.Wrap(errors.ErrDockerOperation, "ImagePrune."+err.Error())
+	}
+	return report, nil
 }
 
 func formatPort(p types.Port) string {

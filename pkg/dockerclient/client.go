@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/lminimum/LiteDock/internal/entity"
 )
 
@@ -28,5 +30,10 @@ type Client interface {
 	VolumeCreate(ctx context.Context, name, driver string) (*entity.Volume, error)
 	VolumeDelete(ctx context.Context, volumeID string) error
 	VolumeInspect(ctx context.Context, volumeID string) (*entity.Volume, error)
+	ImageList(ctx context.Context, opts image.ListOptions) ([]entity.Image, error)
+	ImagePull(ctx context.Context, ref string, opts image.PullOptions) error
+	ImageRemove(ctx context.Context, id string, opts image.RemoveOptions) ([]image.DeleteResponse, error)
+	ImageInspect(ctx context.Context, id string) (image.InspectResponse, error)
+	ImagePrune(ctx context.Context, opts filters.Args) (image.PruneReport, error)
 	Close() error
 }

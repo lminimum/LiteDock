@@ -50,6 +50,7 @@ type (
 
 	Cache struct {
 		ContainerTTL time.Duration `env:"CACHE_CONTAINER_TTL" envDefault:"30s"`
+		ImageTTL     time.Duration `env:"CACHE_IMAGE_TTL" envDefault:"30s"`
 	}
 
 	Auth struct {
