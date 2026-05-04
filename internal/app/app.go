@@ -18,6 +18,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/usecase/container"
 	"github.com/lminimum/LiteDock/internal/usecase/network"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
+	"github.com/lminimum/LiteDock/internal/usecase/image"
 	"github.com/lminimum/LiteDock/internal/usecase/volume"
 	"github.com/lminimum/LiteDock/pkg/collector"
 	"github.com/lminimum/LiteDock/pkg/database"
@@ -64,6 +65,10 @@ func Run(cfg *config.Config) {
 	volumeRepo := persistent.NewVolumeRepo(db)
 	volumeUseCase := volume.New(volumeRepo, remoteMachineRepo, cfg.Cache.ContainerTTL, l)
 
+	// Image UseCase
+	imageRepo := persistent.NewImageRepo(db)
+	imageUseCase := image.NewImageUseCase(imageRepo, remoteMachineRepo, cfg.Cache.ContainerTTL, l)
+
 	// RemoteMachine UseCase
 	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
 
@@ -72,7 +77,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, l)
 
 	// Start servers
 	httpServer.Start()

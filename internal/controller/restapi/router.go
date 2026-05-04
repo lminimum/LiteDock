@@ -24,7 +24,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, l logger.Interface) *v1.DashboardHandler {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, imageUseCase usecase.Image, l logger.Interface) *v1.DashboardHandler {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -63,6 +63,7 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 		v1.NewContainerRoutes(protected, container, l)
 		v1.NewNetworkRoutes(protected, networkUseCase, l)
 		v1.NewVolumeRoutes(protected, volumeUseCase, l)
+		v1.NewImageRoutes(protected, imageUseCase, l)
 		v1.NewRemoteMachineRoutes(protected, remoteMachine, l)
 		dashboardHandler = v1.NewDashboardRoutes(protected, remoteMachine, container, metricsRepo, l)
 	}
