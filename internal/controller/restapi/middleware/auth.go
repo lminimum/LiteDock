@@ -14,6 +14,11 @@ import (
 // and stores user information in the Fiber context locals.
 func AuthRequired(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// Skip WebSocket upgrade requests — they don't support custom headers
+		if c.Get("Upgrade") == "websocket" {
+			return c.Next()
+		}
+
 		// Extract token from Authorization: Bearer <token>
 		authHeader := c.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {

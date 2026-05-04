@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
         '/v1': {
           target,
           changeOrigin: true,
+          ws: true,
         },
       },
     },

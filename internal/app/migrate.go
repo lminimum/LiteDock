@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,7 +32,12 @@ func AutoMigrate(cfg *config.Config) error {
 		return err
 	}
 
-	m, err := migrate.New("file://migrations", databaseURL)
+	migrationsPath, err := filepath.Abs("migrations")
+	if err != nil {
+		return fmt.Errorf("AutoMigrate resolve migrations path: %w", err)
+	}
+
+	m, err := migrate.New("file://"+migrationsPath, databaseURL)
 	if err != nil {
 		return fmt.Errorf("AutoMigrate connect: %w", err)
 	}
