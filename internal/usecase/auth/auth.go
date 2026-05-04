@@ -14,14 +14,15 @@ import (
 )
 
 type UseCase struct {
-	repo   repo.UserRepo
-	logger logger.Interface
+	repo     repo.UserRepo
+	logger   logger.Interface
+	jwtSecret string
 }
 
 var _ UseCaseInterface = (*UseCase)(nil)
 
-func New(userRepo repo.UserRepo, l logger.Interface) *UseCase {
-	return &UseCase{repo: userRepo, logger: l}
+func New(userRepo repo.UserRepo, l logger.Interface, jwtSecret string) *UseCase {
+	return &UseCase{repo: userRepo, logger: l, jwtSecret: jwtSecret}
 }
 
 const _tokenExpiryHours = 24
@@ -48,7 +49,7 @@ func (uc *UseCase) Login(ctx context.Context, username, password string) (string
 		"iat":      time.Now().Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte("secret-key"))
+	tokenString, err := token.SignedString([]byte(uc.jwtSecret))
 	if err != nil {
 		return "", nil, errors.Wrap(err, "Auth.Login.SignedString")
 	}
@@ -99,7 +100,7 @@ func (uc *UseCase) GetCurrentUser(ctx context.Context, tokenString string) (*ent
 			return nil, errors.Wrap(errors.ErrUnexpectedSignMethod, "Auth.GetCurrentUser.UnexpectedSigningMethod")
 		}
 
-		return []byte("secret-key"), nil
+		return []byte(uc.jwtSecret), nil
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Auth.GetCurrentUser.Parse")
@@ -128,7 +129,7 @@ func (uc *UseCase) RefreshToken(ctx context.Context, refreshToken string) (strin
 			return nil, errors.Wrap(errors.ErrUnexpectedSignMethod, "Auth.RefreshToken.UnexpectedSigningMethod")
 		}
 
-		return []byte("secret-key"), nil
+		return []byte(uc.jwtSecret), nil
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "Auth.RefreshToken.Parse")
@@ -152,7 +153,7 @@ func (uc *UseCase) RefreshToken(ctx context.Context, refreshToken string) (strin
 			"iat":      time.Now().Unix(),
 		})
 
-		newTokenString, err := newToken.SignedString([]byte("secret-key"))
+		newTokenString, err := newToken.SignedString([]byte(uc.jwtSecret))
 		if err != nil {
 			return "", errors.Wrap(err, "Auth.RefreshToken.SignedString")
 		}

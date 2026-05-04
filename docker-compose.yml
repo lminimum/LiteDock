@@ -11,6 +11,8 @@ x-backend-app-environment: &x-backend-app-environment
   DB_TYPE: ${DB_TYPE:-sqlite}
   DB_POOL_MAX: ${DB_POOL_MAX:-1}
   DB_URL: ${DB_URL:-/data/litedock.db}
+  # Auth
+  AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
   # Metrics
   METRICS_ENABLED: ${METRICS_ENABLED:-true}
   # Swagger

@@ -16,6 +16,7 @@ type (
 		Metrics Metrics
 		Swagger Swagger
 		Cache   Cache
+		Auth    Auth
 	}
 
 	App struct {
@@ -49,6 +50,10 @@ type (
 
 	Cache struct {
 		ContainerTTL time.Duration `env:"CACHE_CONTAINER_TTL" envDefault:"30s"`
+	}
+
+	Auth struct {
+		JWTSecret string `env:"AUTH_JWT_SECRET,required"`
 	}
 )
 

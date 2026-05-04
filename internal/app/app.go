@@ -51,7 +51,7 @@ func Run(cfg *config.Config) {
 	initLocalMachine(l, remoteMachineRepo)
 
 	// Auth UseCase
-	authUseCase := auth.New(userRepo, l)
+	authUseCase := auth.New(userRepo, l, cfg.Auth.JWTSecret)
 
 	// Container UseCase (placeholder for Docker management)
 	containerUseCase := container.New(containerRepo, l)
