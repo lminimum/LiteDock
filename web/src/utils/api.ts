@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { redirectToLogin } from '@/utils/redirect'
 
 export interface ApiResponse<T = any> {
   code: number
@@ -40,7 +41,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const authStore = useAuthStore()
       authStore.logout()
-      window.location.href = '/login'
+      redirectToLogin()
     }
     const msg = error.response?.data?.msg || error.message
     return Promise.reject(new Error(msg))
