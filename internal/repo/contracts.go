@@ -70,4 +70,15 @@ type (
 		DeleteByMachine(ctx context.Context, machineID string) error
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
 	}
+
+	// ImageRepo - manages Docker images with caching
+	ImageRepo interface {
+		ListByMachine(ctx context.Context, machineID string) ([]entity.Image, error)
+		GetByID(ctx context.Context, machineID, imageID string) (*entity.Image, error)
+		UpsertBatch(ctx context.Context, machineID string, images []entity.Image) error
+		DeleteByMachine(ctx context.Context, machineID string) error
+		DeleteByID(ctx context.Context, machineID, imageID string) error
+		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+		CountAll(ctx context.Context) (int64, error)
+	}
 )
