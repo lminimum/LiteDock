@@ -52,6 +52,11 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 
 	var dashboardHandler *v1.DashboardHandler
 
+	// Public routes FIRST — prevents protected group middleware from intercepting auth paths
+	{
+		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
+	}
+
 	// Protected routes (require authentication)
 	protected := apiV1Group.Group("", authMiddleware)
 	{
@@ -60,11 +65,6 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 		v1.NewVolumeRoutes(protected, volumeUseCase, l)
 		v1.NewRemoteMachineRoutes(protected, remoteMachine, l)
 		dashboardHandler = v1.NewDashboardRoutes(protected, remoteMachine, container, metricsRepo, l)
-	}
-
-	// Public routes (no authentication required)
-	{
-		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
 	}
 
 	return dashboardHandler
