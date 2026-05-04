@@ -1,32 +1,32 @@
 <template>
-  <div class="container-card" :class="{ 'status-running': container.status === 'running' }">
-    <div class="container-header">
-      <div class="container-name">{{ container.name }}</div>
+  <div class="card card-hover" :class="{ 'status-running': container.status === 'running' }">
+    <div class="card-header">
+      <div class="card-title">{{ container.name }}</div>
       <div class="badge" :class="statusClass">
         {{ statusText }}
       </div>
     </div>
 
-    <div class="container-info">
-      <div class="info-item">
+    <div class="card-body">
+      <div class="card-info-row">
         <span class="label">Image</span>
         <span class="value">{{ container.image }}</span>
       </div>
-      <div class="info-item">
+      <div class="card-info-row">
         <span class="label">Ports</span>
         <span class="value">{{ (container.ports || []).join(', ') || '-' }}</span>
       </div>
-      <div v-if="container.machine" class="info-item">
+      <div v-if="container.machine" class="card-info-row">
         <span class="label">Machine</span>
         <span class="value">{{ container.machine }}</span>
       </div>
-      <div class="info-item">
+      <div class="card-info-row">
         <span class="label">Created</span>
         <span class="value">{{ formatDate(container.createdAt) }}</span>
       </div>
     </div>
 
-    <div class="container-actions">
+    <div class="card-actions">
       <button @click="emit('inspect', container.id)" class="btn btn-sm btn-ghost">
         <Info :size="14" />
         Details
@@ -133,70 +133,11 @@ function formatDate(date: string): string {
 </script>
 
 <style scoped>
-.container-card {
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-5);
-  transition: border-color var(--transition-fast);
+.card {
   border-left: 3px solid var(--color-border);
 }
 
-.container-card:hover {
-  border-color: var(--color-text-weaker);
-}
-
-.container-card.status-running {
+.status-running {
   border-left-color: var(--color-success);
-}
-
-.container-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-3);
-  gap: var(--space-3);
-}
-
-.container-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-  font-size: var(--font-size-base);
-}
-
-.container-info {
-  margin-bottom: var(--space-3);
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--space-1);
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.info-item .label {
-  color: var(--color-text-weak);
-  flex-shrink: 0;
-}
-
-.info-item .value {
-  color: var(--color-text-strong);
-  font-weight: var(--font-weight-medium);
-  text-align: right;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.container-actions {
-  display: flex;
-  gap: var(--space-1);
-  flex-wrap: wrap;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-weak);
 }
 </style>
