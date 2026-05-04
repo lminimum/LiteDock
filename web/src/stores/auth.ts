@@ -2,6 +2,11 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/utils/api";
 import { t } from "@/i18n";
+import type {
+  SetupStatusResponse,
+  LoginResponse,
+  GetMeResponse,
+} from "@/types";
 
 export interface User {
   id: string;
@@ -19,7 +24,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const checkSetupStatus = async (): Promise<boolean> => {
     try {
-      const data: any = await api.get("/auth/setup-status");
+      const data = await api.get<SetupStatusResponse>("/auth/setup-status");
       setupComplete.value = data?.setup_complete ?? false;
       return setupComplete.value;
     } catch (error) {
@@ -30,15 +35,16 @@ export const useAuthStore = defineStore("auth", () => {
 
   const login = async (credentials: { username: string; password: string }) => {
     try {
-      const data: any = await api.post("/auth/login", credentials);
+      const data = await api.post<LoginResponse>("/auth/login", credentials);
       token.value = data.token;
       user.value = data.user;
       localStorage.setItem("litedock-token", data.token);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : t("errors.loginFailed");
       return {
         success: false,
-        message: error.message || t("errors.loginFailed"),
+        message,
       };
     }
   };
@@ -56,7 +62,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      const data: any = await api.get("/auth/me");
+      const data = await api.get<GetMeResponse>("/auth/me");
       user.value = data;
       return true;
     } catch (error) {

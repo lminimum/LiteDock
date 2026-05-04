@@ -2,7 +2,7 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axio
 import { useAuthStore } from '@/stores/auth'
 import { redirectToLogin } from '@/utils/redirect'
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   msg: string
   data: T

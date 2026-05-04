@@ -108,6 +108,10 @@ export interface User {
 }
 
 // 认证相关类型
+export interface SetupStatusResponse {
+  setup_complete: boolean
+}
+
 export interface LoginRequest {
   username: string
   password: string
@@ -116,7 +120,14 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string
   user: User
-  expiresIn: number
+  expiresIn?: number
+}
+
+export interface GetMeResponse {
+  id: string
+  username: string
+  email?: string
+  role: string
 }
 
 export type AuthMethod = 'password' | 'key'
