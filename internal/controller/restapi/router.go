@@ -44,16 +44,27 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 	// K8s probe
 	app.Get("/healthz", func(ctx *fiber.Ctx) error { return ctx.SendStatus(http.StatusOK) })
 
-	// Routers
+	// Auth middleware for protected routes
+	authMiddleware := middleware.AuthRequired(cfg)
+
+	// Base v1 group
 	apiV1Group := app.Group("/v1")
+
 	var dashboardHandler *v1.DashboardHandler
+
+	// Protected routes (require authentication)
+	protected := apiV1Group.Group("", authMiddleware)
 	{
-		v1.NewContainerRoutes(apiV1Group, container, l)
-		v1.NewNetworkRoutes(apiV1Group, networkUseCase, l)
-		v1.NewVolumeRoutes(apiV1Group, volumeUseCase, l)
+		v1.NewContainerRoutes(protected, container, l)
+		v1.NewNetworkRoutes(protected, networkUseCase, l)
+		v1.NewVolumeRoutes(protected, volumeUseCase, l)
+		v1.NewRemoteMachineRoutes(protected, remoteMachine, l)
+		dashboardHandler = v1.NewDashboardRoutes(protected, remoteMachine, container, metricsRepo, l)
+	}
+
+	// Public routes (no authentication required)
+	{
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
-		v1.NewRemoteMachineRoutes(apiV1Group, remoteMachine, l)
-		dashboardHandler = v1.NewDashboardRoutes(apiV1Group, remoteMachine, container, metricsRepo, l)
 	}
 
 	return dashboardHandler
