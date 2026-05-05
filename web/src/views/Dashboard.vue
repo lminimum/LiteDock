@@ -186,6 +186,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
 import { imageService } from '@/services/imageService'
+import { formatSize } from '@/utils/format'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
@@ -312,14 +313,6 @@ const refreshStats = async () => {
   } catch (e) {
     console.error('Failed to fetch image stats:', e)
   }
-}
-
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
