@@ -10,13 +10,13 @@ import (
 )
 
 type mockRemoteMachineRepo struct {
-	getByIDFn  func(ctx context.Context, id string) (*entity.RemoteMachine, error)
-	listFn     func(ctx context.Context) ([]entity.RemoteMachine, error)
-	createFn   func(ctx context.Context, m *entity.RemoteMachine) error
-	updateFn   func(ctx context.Context, m *entity.RemoteMachine) error
-	deleteFn   func(ctx context.Context, id string) error
+	getByIDFn   func(ctx context.Context, id string) (*entity.RemoteMachine, error)
+	listFn      func(ctx context.Context) ([]entity.RemoteMachine, error)
+	createFn    func(ctx context.Context, m *entity.RemoteMachine) error
+	updateFn    func(ctx context.Context, m *entity.RemoteMachine) error
+	deleteFn    func(ctx context.Context, id string) error
 	getByHostFn func(ctx context.Context, host string) (*entity.RemoteMachine, error)
-	countFn    func(ctx context.Context) (int64, error)
+	countFn     func(ctx context.Context) (int64, error)
 }
 
 func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity.RemoteMachine, error) {

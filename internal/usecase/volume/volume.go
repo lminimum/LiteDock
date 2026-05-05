@@ -66,7 +66,7 @@ func (uc *VolumeUseCase) ListVolumes(ctx context.Context, machineID string) ([]e
 }
 
 // CreateVolume creates a Docker volume on the specified machine.
-func (uc *VolumeUseCase) CreateVolume(ctx context.Context, machineID string, name, driver string) (*entity.Volume, error) {
+func (uc *VolumeUseCase) CreateVolume(ctx context.Context, machineID, name, driver string) (*entity.Volume, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, errors.Wrap(err, "VolumeUseCase.CreateVolume.getDockerClient")
@@ -84,7 +84,7 @@ func (uc *VolumeUseCase) CreateVolume(ctx context.Context, machineID string, nam
 }
 
 // DeleteVolume deletes a Docker volume on the specified machine.
-func (uc *VolumeUseCase) DeleteVolume(ctx context.Context, machineID string, volumeName string) error {
+func (uc *VolumeUseCase) DeleteVolume(ctx context.Context, machineID, volumeName string) error {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return errors.Wrap(err, "VolumeUseCase.DeleteVolume.getDockerClient")
@@ -102,7 +102,7 @@ func (uc *VolumeUseCase) DeleteVolume(ctx context.Context, machineID string, vol
 }
 
 // InspectVolume returns detailed information about a Docker volume.
-func (uc *VolumeUseCase) InspectVolume(ctx context.Context, machineID string, volumeName string) (*entity.Volume, error) {
+func (uc *VolumeUseCase) InspectVolume(ctx context.Context, machineID, volumeName string) (*entity.Volume, error) {
 	cli, err := uc.getDockerClient(ctx, machineID)
 	if err != nil {
 		return nil, errors.Wrap(err, "VolumeUseCase.InspectVolume.getDockerClient")

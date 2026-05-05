@@ -75,13 +75,13 @@ var (
 
 // Docker errors.
 var (
-	ErrDockerConnection  = errors.New("docker: connection failed")
-	ErrDockerOperation   = errors.New("docker: operation failed")
-	ErrContainerNotFound = errors.New("docker: container not found")
-	ErrContainerExec     = errors.New("docker: container exec failed")
-	ErrNetworkNotFound    = errors.New("docker: network not found")
+	ErrDockerConnection     = errors.New("docker: connection failed")
+	ErrDockerOperation      = errors.New("docker: operation failed")
+	ErrContainerNotFound    = errors.New("docker: container not found")
+	ErrContainerExec        = errors.New("docker: container exec failed")
+	ErrNetworkNotFound      = errors.New("docker: network not found")
 	ErrNetworkHasContainers = errors.New("docker: network has active containers")
-	ErrVolumeNotFound     = errors.New("docker: volume not found")
+	ErrVolumeNotFound       = errors.New("docker: volume not found")
 )
 
 // SQL errors.
@@ -110,9 +110,9 @@ var HTTPStatusMap = map[error]int{
 	ErrInvalidInput: http.StatusBadRequest,
 
 	// Conflict errors -> 409
-	ErrUsernameExists:     http.StatusConflict,
+	ErrUsernameExists:      http.StatusConflict,
 	ErrRemoteMachineExists: http.StatusConflict,
-	ErrAlreadyExists:      http.StatusConflict,
+	ErrAlreadyExists:       http.StatusConflict,
 
 	// Internal server errors -> 500
 	ErrDBURLRequired:      http.StatusInternalServerError,

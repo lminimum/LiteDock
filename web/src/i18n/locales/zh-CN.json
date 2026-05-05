@@ -263,13 +263,39 @@
   "pages": {
     "images": {
       "title": "镜像管理",
-      "description": "Docker 镜像管理功能正在开发中...",
-      "features": "即将支持的功能:",
-      "list": "镜像列表和搜索",
-      "pull": "拉取和推送镜像",
-      "build": "镜像构建管理",
-      "config": "镜像仓库配置",
-      "cleanup": "镜像清理和优化"
+      "description": "管理 Docker 机器上的镜像",
+      "pullImage": "拉取镜像",
+      "pruneImages": "清理未使用的镜像",
+      "noImages": "暂无镜像",
+      "pull": {
+        "title": "拉取镜像",
+        "repository": "仓库",
+        "tag": "标签",
+        "tagPlaceholder": "latest",
+        "pullButton": "拉取",
+        "pulling": "正在拉取...",
+        "success": "镜像拉取成功",
+        "error": "镜像拉取失败"
+      },
+      "delete": {
+        "confirm": "确定要删除此镜像吗？",
+        "success": "镜像已删除",
+        "error": "镜像删除失败"
+      },
+      "prune": {
+        "confirm": "删除所有未使用的镜像？此操作无法撤销。",
+        "success": "已清理 {count} 个镜像，释放 {space} 空间",
+        "error": "清理失败",
+        "noImages": "没有需要清理的镜像"
+      },
+      "inspect": {
+        "id": "镜像 ID",
+        "size": "大小",
+        "created": "创建时间",
+        "cachedAt": "缓存时间",
+        "tags": "标签",
+        "digests": "摘要"
+      }
     },
     "networks": {
       "title": "网络管理",
@@ -319,7 +345,8 @@
     "cancel": "取消",
     "confirm": "确认",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "searchPlaceholder": "搜索..."
   },
   "errors": {
     "loginFailed": "登录失败"

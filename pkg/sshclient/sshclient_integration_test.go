@@ -1,3 +1,4 @@
+//go:build integration_test
 // +build integration_test
 
 package sshclient
@@ -103,9 +104,9 @@ func TestPoolKey(t *testing.T) {
 	key2 := poolKey(cfg2)
 	key3 := poolKey(cfg3)
 
-	require.Equal(t, key1, poolKey(cfg1))  // same config = same key
-	require.NotEqual(t, key1, key2)         // different port = different key
-	require.NotEqual(t, key1, key3)         // different host = different key
+	require.Equal(t, key1, poolKey(cfg1)) // same config = same key
+	require.NotEqual(t, key1, key2)       // different port = different key
+	require.NotEqual(t, key1, key3)       // different host = different key
 }
 
 // TestPoolConcurrency tests concurrent access to the pool.

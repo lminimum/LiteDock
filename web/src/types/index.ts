@@ -42,10 +42,13 @@ export interface Container {
 // 镜像相关类型
 export interface Image {
   id: string
-  repository: string
-  tag: string
+  machineId: string
+  repoTags: string[]
+  repoDigests: string[]
   size: number
   createdAt: string
+  cachedAt: string
+  labels: Record<string, string>
 }
 
 // 网络相关类型

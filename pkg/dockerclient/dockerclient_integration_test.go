@@ -1,3 +1,4 @@
+//go:build integration_test
 // +build integration_test
 
 package dockerclient
@@ -89,5 +90,3 @@ func TestRemoteClientClose(t *testing.T) {
 	err = rc.Close()
 	require.NoError(t, err)
 }
-
-

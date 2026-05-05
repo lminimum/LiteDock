@@ -80,7 +80,7 @@ func (r *NetworkRepo) ListByMachine(ctx context.Context, machineID string) ([]en
 	return networks, nil
 }
 
-func (r *NetworkRepo) GetByName(ctx context.Context, machineID string, name string) (*entity.Network, error) {
+func (r *NetworkRepo) GetByName(ctx context.Context, machineID, name string) (*entity.Network, error) {
 	query := `
 		SELECT id, machine_id, name, driver, scope, internal, attachable, enable_ipv6, created, labels, cached_at
 		FROM networks WHERE machine_id = ? AND name = ?`

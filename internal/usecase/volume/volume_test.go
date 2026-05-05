@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
@@ -26,11 +28,11 @@ func (m *mockLogger) Fatal(_ interface{}, _ ...interface{}) {}
 // --- mockVolumeRepo ---
 
 type mockVolumeRepo struct {
-	listByMachineFn  func(ctx context.Context, machineID string) ([]entity.Volume, error)
-	getByNameFn      func(ctx context.Context, machineID, name string) (*entity.Volume, error)
-	upsertBatchFn    func(ctx context.Context, machineID string, volumes []entity.Volume) error
+	listByMachineFn   func(ctx context.Context, machineID string) ([]entity.Volume, error)
+	getByNameFn       func(ctx context.Context, machineID, name string) (*entity.Volume, error)
+	upsertBatchFn     func(ctx context.Context, machineID string, volumes []entity.Volume) error
 	deleteByMachineFn func(ctx context.Context, machineID string) error
-	isCacheValidFn   func(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+	isCacheValidFn    func(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
 }
 
 func (m *mockVolumeRepo) ListByMachine(ctx context.Context, machineID string) ([]entity.Volume, error) {
@@ -78,7 +80,9 @@ func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity
 }
 
 func (m *mockRemoteMachineRepo) Create(_ context.Context, _ *entity.RemoteMachine) error { return nil }
-func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error)  { return nil, nil }
+func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error) {
+	return nil, nil
+}
 func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error)                  { return 0, nil }
 func (m *mockRemoteMachineRepo) Update(_ context.Context, _ *entity.RemoteMachine) error { return nil }
 func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error                { return nil }
@@ -91,9 +95,9 @@ var _ repo.RemoteMachineRepo = (*mockRemoteMachineRepo)(nil)
 // --- mockDockerClient ---
 
 type mockDockerClient struct {
-	volumeListFn   func(ctx context.Context) ([]entity.Volume, error)
-	volumeCreateFn func(ctx context.Context, name, driver string) (*entity.Volume, error)
-	volumeDeleteFn func(ctx context.Context, volumeID string) error
+	volumeListFn    func(ctx context.Context) ([]entity.Volume, error)
+	volumeCreateFn  func(ctx context.Context, name, driver string) (*entity.Volume, error)
+	volumeDeleteFn  func(ctx context.Context, volumeID string) error
 	volumeInspectFn func(ctx context.Context, volumeID string) (*entity.Volume, error)
 	closeFn         func() error
 }
@@ -102,12 +106,19 @@ func (m *mockDockerClient) Ping(_ context.Context) error { return nil }
 func (m *mockDockerClient) ContainerList(_ context.Context) ([]entity.Container, error) {
 	return nil, nil
 }
-func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) { return "", nil }
+
+func (m *mockDockerClient) ContainerLogs(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *mockDockerClient) ContainerExec(_ context.Context, _ string, _ []string) (string, error) {
 	return "", nil
 }
-func (m *mockDockerClient) ContainerStart(_ context.Context, _ string) error              { return nil }
-func (m *mockDockerClient) ContainerStop(_ context.Context, _ string, _ time.Duration) error  { return nil }
+func (m *mockDockerClient) ContainerStart(_ context.Context, _ string) error { return nil }
+func (m *mockDockerClient) ContainerStop(_ context.Context, _ string, _ time.Duration) error {
+	return nil
+}
+
 func (m *mockDockerClient) ContainerRestart(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
@@ -123,30 +134,55 @@ func (m *mockDockerClient) NetworkDelete(_ context.Context, _ string) error { re
 func (m *mockDockerClient) NetworkInspect(_ context.Context, _ string) (*entity.Network, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) VolumeList(ctx context.Context) ([]entity.Volume, error) {
 	if m.volumeListFn != nil {
 		return m.volumeListFn(ctx)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) VolumeCreate(ctx context.Context, name, driver string) (*entity.Volume, error) {
 	if m.volumeCreateFn != nil {
 		return m.volumeCreateFn(ctx, name, driver)
 	}
 	return nil, nil
 }
+
 func (m *mockDockerClient) VolumeDelete(ctx context.Context, volumeID string) error {
 	if m.volumeDeleteFn != nil {
 		return m.volumeDeleteFn(ctx, volumeID)
 	}
 	return nil
 }
+
 func (m *mockDockerClient) VolumeInspect(ctx context.Context, volumeID string) (*entity.Volume, error) {
 	if m.volumeInspectFn != nil {
 		return m.volumeInspectFn(ctx, volumeID)
 	}
 	return nil, nil
 }
+
+func (m *mockDockerClient) ImageList(_ context.Context, _ dockerImage.ListOptions) ([]entity.Image, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ImagePull(_ context.Context, _ string, _ dockerImage.PullOptions) error {
+	return nil
+}
+
+func (m *mockDockerClient) ImageRemove(_ context.Context, _ string, _ dockerImage.RemoveOptions) ([]dockerImage.DeleteResponse, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ImageInspect(_ context.Context, _ string) (dockerImage.InspectResponse, error) {
+	return dockerImage.InspectResponse{}, nil
+}
+
+func (m *mockDockerClient) ImagePrune(_ context.Context, _ filters.Args) (dockerImage.PruneReport, error) {
+	return dockerImage.PruneReport{}, nil
+}
+
 func (m *mockDockerClient) Close() error {
 	if m.closeFn != nil {
 		return m.closeFn()

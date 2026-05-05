@@ -40,6 +40,7 @@
 import { computed } from 'vue'
 import { Info, Trash2 } from 'lucide-vue-next'
 import type { Volume } from '@/types'
+import { formatSize } from '@/utils/format'
 
 const props = defineProps<{
   volume: Volume
@@ -49,14 +50,6 @@ const emit = defineEmits<{
   delete: [volumeName: string]
   inspect: [volumeName: string]
 }>()
-
-function formatSize(bytes?: number): string {
-  if (bytes === undefined || bytes === null) return '-'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
 
 const formattedSize = computed(() => formatSize(props.volume.size))
 </script>
