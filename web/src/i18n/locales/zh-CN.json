@@ -292,6 +292,7 @@
         "id": "镜像 ID",
         "size": "大小",
         "created": "创建时间",
+        "cachedAt": "缓存时间",
         "tags": "标签",
         "digests": "摘要"
       }
@@ -344,7 +345,8 @@
     "cancel": "取消",
     "confirm": "确认",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "searchPlaceholder": "搜索..."
   },
   "errors": {
     "loginFailed": "登录失败"

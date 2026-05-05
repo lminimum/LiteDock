@@ -43,12 +43,11 @@ export interface Container {
 export interface Image {
   id: string
   machineId: string
-  repository: string
-  tag: string
   repoTags: string[]
   repoDigests: string[]
   size: number
   createdAt: string
+  cachedAt: string
   labels: Record<string, string>
 }
 

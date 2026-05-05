@@ -11,24 +11,41 @@ export interface PruneResponse {
   spaceReclaimed: number
 }
 
+function snakeToCamelImage(raw: any): Image {
+  return {
+    id: raw.id ?? '',
+    machineId: raw.machine_id || raw.machineId || '',
+    repoTags: raw.repo_tags || raw.repoTags || [],
+    repoDigests: raw.repo_digests || raw.repoDigests || [],
+    size: raw.size ?? 0,
+    createdAt: raw.created_at || raw.createdAt || '',
+    cachedAt: raw.cached_at || raw.cachedAt || '',
+    labels: raw.labels ?? {},
+  }
+}
+
 export const imageService = {
-  list(machineId: string): Promise<Image[]> {
-    return api.get(`/machines/${machineId}/images`).then(r => r.images ?? [])
+  async list(machineId: string): Promise<Image[]> {
+    const r: any = await api.get(`/machines/${machineId}/images`)
+    return (r.images ?? []).map(snakeToCamelImage)
   },
 
-  inspect(machineId: string, imageId: string): Promise<Image> {
-    return api.get(`/machines/${machineId}/images/${imageId}`)
+  async inspect(machineId: string, imageId: string): Promise<Image> {
+    const r: any = await api.get(`/machines/${machineId}/images/${imageId}`)
+    return snakeToCamelImage(r)
   },
 
-  pull(machineId: string, data: PullImageRequest): Promise<Image> {
-    return api.post(`/machines/${machineId}/images/pull`, data)
+  async pull(machineId: string, data: PullImageRequest): Promise<Image> {
+    const r: any = await api.post(`/machines/${machineId}/images/pull`, data)
+    return snakeToCamelImage(r)
   },
 
-  delete(machineId: string, imageId: string): Promise<void> {
-    return api.delete(`/machines/${machineId}/images/${imageId}`).then(() => {})
+  async delete(machineId: string, imageId: string): Promise<void> {
+    await api.delete(`/machines/${machineId}/images/${imageId}`)
   },
 
-  prune(machineId: string): Promise<PruneResponse> {
-    return api.post(`/machines/${machineId}/images/prune`)
+  async prune(machineId: string): Promise<PruneResponse> {
+    const r: any = await api.post(`/machines/${machineId}/images/prune`)
+    return r
   },
 }

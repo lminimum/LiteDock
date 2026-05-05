@@ -22,14 +22,14 @@
       <div class="card-info-row">
         <span class="label">Tags</span>
         <span class="value">
-          <span v-if="image.repoTags.length === 0" class="text-muted">untagged</span>
+          <span v-if="(image.repoTags?.length || 0) === 0" class="text-muted">untagged</span>
           <span v-else class="flex flex-wrap gap-1 justify-end">
             <span
-              v-for="tag in image.repoTags.slice(0, 3)"
+              v-for="tag in (image.repoTags || []).slice(0, 3)"
               :key="tag"
               class="badge badge-info"
             >{{ tag }}</span>
-            <span v-if="image.repoTags.length > 3" class="text-xs text-muted">+{{ image.repoTags.length - 3 }} more</span>
+            <span v-if="(image.repoTags?.length || 0) > 3" class="text-xs text-muted">+{{ (image.repoTags?.length || 0) - 3 }} more</span>
           </span>
         </span>
       </div>
@@ -60,6 +60,7 @@
 import { computed } from 'vue'
 import { Box, Eye, Trash2 } from 'lucide-vue-next'
 import type { Image } from '@/types'
+import { formatSize, formatDate } from '@/utils/format'
 
 const props = defineProps<{
   image: Image
@@ -77,26 +78,11 @@ const shortId = computed(() => {
   return id.slice(0, 12)
 })
 
+
+
 const tagCount = computed(() => props.image.repoTags?.length || 0)
 
 const labelCount = computed(() => Object.keys(props.image.labels || {}).length)
-
-function formatSize(bytes?: number): string {
-  if (bytes === undefined || bytes === null) return '-'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '-'
-  try {
-    return new Date(dateStr).toLocaleDateString()
-  } catch {
-    return dateStr
-  }
-}
 
 const formattedSize = computed(() => formatSize(props.image.size))
 

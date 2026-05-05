@@ -1,16 +1,18 @@
 <template>
   <div class="images-page">
     <PageHeader :title="t('pages.images.title')">
-      <template #actions>
-        <button @click="handlePrune" class="btn btn-secondary" :disabled="pruning || machines.length === 0">
-          <Trash2 :size="16" />
-          {{ pruning ? 'Pruning...' : t('pages.images.pruneImages') }}
-        </button>
-        <button @click="showPullModal = true" class="btn btn-primary" :disabled="machines.length === 0">
-          <Download :size="16" />
-          {{ t('pages.images.pullImage') }}
-        </button>
-      </template>
+      <button @click="fetchImages" class="btn btn-secondary" :disabled="loading">
+        <RefreshCw :size="16" :class="{ 'spinning': loading }" />
+        {{ t('common.refresh') }}
+      </button>
+      <button @click="handlePrune" class="btn btn-secondary" :disabled="pruning || machines.length === 0">
+        <Trash2 :size="16" />
+        {{ pruning ? 'Pruning...' : t('pages.images.pruneImages') }}
+      </button>
+      <button @click="showPullModal = true" class="btn btn-primary" :disabled="machines.length === 0">
+        <Download :size="16" />
+        {{ t('pages.images.pullImage') }}
+      </button>
     </PageHeader>
 
     <div v-if="!loading && !error && images.length > 0" class="filters">
@@ -69,7 +71,7 @@
     <ImagePullModal
       v-if="machines.length > 0"
       :show="showPullModal"
-      :machine-id="machines[0].id"
+      :machine-id="machines[0]?.id ?? ''"
       @close="showPullModal = false"
       @pulled="onImagePulled"
     />
@@ -87,6 +89,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import ImageCard from '@/components/image/ImageCard.vue'
 import ImagePullModal from '@/components/image/ImagePullModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import { formatSize, formatDate } from '@/utils/format'
 
 interface ImageWithMachine extends Image {
   machine: string
@@ -103,13 +106,7 @@ const images = ref<ImageWithMachine[]>([])
 const showInspect = ref(false)
 const selectedImage = ref<ImageWithMachine | null>(null)
 
-function formatSize(bytes?: number): string {
-  if (bytes === undefined || bytes === null) return '-'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
+const formatDateTime = formatDate
 
 const inspectImage = computed(() => selectedImage.value)
 
@@ -121,7 +118,8 @@ const inspectFields = computed(() => {
     { label: t('pages.images.inspect.tags'), value: img.repoTags?.join(', ') || '-' },
     { label: t('pages.images.inspect.digests'), value: img.repoDigests?.join(', ') || '-' },
     { label: t('pages.images.inspect.size'), value: formatSize(img.size) },
-    { label: t('pages.images.inspect.created'), value: img.createdAt || '-' },
+    { label: t('pages.images.inspect.created'), value: formatDateTime(img.createdAt) },
+    { label: t('pages.images.inspect.cachedAt'), value: formatDateTime(img.cachedAt) },
     { label: 'Labels', value: Object.keys(img.labels || {}).join(', ') || '-' },
     { label: 'Machine', value: img.machine },
   ]
