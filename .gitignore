@@ -48,3 +48,4 @@ coverage.txt
 # Worktrees
 .worktrees/
 *.db-journal
+.docx/
