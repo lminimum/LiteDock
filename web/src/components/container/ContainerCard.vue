@@ -1,5 +1,5 @@
 <template>
-  <div class="card card-hover" :class="{ 'status-running': container.status === 'running' }">
+  <div class="card card-hover" :class="statusBorderClass">
     <div class="card-header">
       <div class="card-title">{{ container.name }}</div>
       <div class="badge" :class="statusClass">
@@ -107,6 +107,18 @@ const statusText = computed(() => {
   return map[props.container.status] || props.container.status
 })
 
+const statusBorderClass = computed(() => {
+  const map: Record<string, string> = {
+    running: 'status-running',
+    stopped: 'status-stopped',
+    paused: 'status-paused',
+    restarting: 'status-restarting',
+    exited: 'status-exited',
+    created: '',
+  }
+  return map[props.container.status] || ''
+})
+
 const statusClass = computed(() => {
   const map: Record<string, string> = {
     running: 'badge-success',
@@ -133,11 +145,17 @@ function formatDate(date: string): string {
 </script>
 
 <style scoped>
-.card {
-  border-left: 3px solid var(--color-border);
+.status-running {
+  border-color: var(--color-success);
 }
 
-.status-running {
-  border-left-color: var(--color-success);
+.status-stopped,
+.status-exited {
+  border-color: var(--color-error);
+}
+
+.status-paused,
+.status-restarting {
+  border-color: var(--color-warning);
 }
 </style>
