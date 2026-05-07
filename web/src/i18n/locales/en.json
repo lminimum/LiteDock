@@ -78,7 +78,26 @@
     "machine": "Machine:",
     "createdAt": "Created:",
     "confirmDelete": "Are you sure you want to delete this container?",
-    "noContainers": "No containers found"
+    "noContainers": "No containers found",
+    "createModal": {
+      "title": "Create Container",
+      "name": "Name",
+      "image": "Image",
+      "cmd": "Command",
+      "cmdPlaceholder": "e.g. sleep infinity",
+      "env": "Environment (key=value)",
+      "envPlaceholder": "NODE_ENV=production\nPORT=8080",
+      "ports": "Ports (host:container)",
+      "portsPlaceholder": "8080:80\n443:443",
+      "volumes": "Volumes (host:container)",
+      "volumesPlaceholder": "/host/path:/container/path",
+      "network": "Network",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating...",
+      "imageRequired": "Image is required",
+      "createError": "Failed to create container"
+    }
   },
   "networks": {
     "title": "Network Management",

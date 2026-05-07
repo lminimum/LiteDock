@@ -40,6 +40,7 @@ type Client interface {
 	ContainerStop(ctx context.Context, containerID string, timeout time.Duration) error
 	ContainerRestart(ctx context.Context, containerID string, timeout time.Duration) error
 	ContainerRemove(ctx context.Context, containerID string, force bool) error
+	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, containerName string) (*container.CreateResponse, error)
 	ContainerInspect(ctx context.Context, containerID string) (*container.InspectResponse, error)
 	NetworkList(ctx context.Context) ([]entity.Network, error)
 	NetworkCreate(ctx context.Context, name, driver string) (*entity.Network, error)
