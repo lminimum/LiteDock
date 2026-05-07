@@ -81,4 +81,17 @@ type (
 		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
 		CountAll(ctx context.Context) (int64, error)
 	}
+
+	// ComposeRepo - manages Docker Compose files with caching
+	ComposeRepo interface {
+		ListByMachine(ctx context.Context, machineID string) ([]entity.ComposeFile, error)
+		GetByID(ctx context.Context, machineID, id string) (*entity.ComposeFile, error)
+		GetByProjectName(ctx context.Context, machineID, projectName string) (*entity.ComposeFile, error)
+		Create(ctx context.Context, composeFile *entity.ComposeFile) error
+		Update(ctx context.Context, composeFile *entity.ComposeFile) error
+		DeleteByMachine(ctx context.Context, machineID string) error
+		DeleteByID(ctx context.Context, machineID, id string) error
+		IsCacheValid(ctx context.Context, machineID string, maxAge time.Duration) (bool, error)
+		UpsertBatch(ctx context.Context, composeFiles []entity.ComposeFile) error
+	}
 )

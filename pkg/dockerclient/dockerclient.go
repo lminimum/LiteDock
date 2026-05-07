@@ -42,7 +42,7 @@ func NewRemoteClient(sshClient *sshclient.Client, dockerSock string) (*RemoteCli
 	}
 
 	return &RemoteClient{
-		baseClient: baseClient{docker: cli},
+		baseClient: baseClient{docker: cli, composeClient: NewRemoteComposeClient(sshClient)},
 		ssh:        sshClient,
 		sock:       dockerSock,
 	}, nil

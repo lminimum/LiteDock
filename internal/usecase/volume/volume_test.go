@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -80,12 +81,17 @@ func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity
 }
 
 func (m *mockRemoteMachineRepo) Create(_ context.Context, _ *entity.RemoteMachine) error { return nil }
+
 func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error) {
 	return nil, nil
 }
-func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error)                  { return 0, nil }
+
+func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error) { return 0, nil }
+
 func (m *mockRemoteMachineRepo) Update(_ context.Context, _ *entity.RemoteMachine) error { return nil }
-func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error                { return nil }
+
+func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error { return nil }
+
 func (m *mockRemoteMachineRepo) GetByHost(_ context.Context, _ string) (*entity.RemoteMachine, error) {
 	return nil, nil
 }
@@ -126,7 +132,9 @@ func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ bool) 
 func (m *mockDockerClient) ContainerInspect(_ context.Context, _ string) (*container.InspectResponse, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) NetworkList(_ context.Context) ([]entity.Network, error) { return nil, nil }
+
 func (m *mockDockerClient) NetworkCreate(_ context.Context, _, _ string) (*entity.Network, error) {
 	return nil, nil
 }
@@ -181,6 +189,30 @@ func (m *mockDockerClient) ImageInspect(_ context.Context, _ string) (dockerImag
 
 func (m *mockDockerClient) ImagePrune(_ context.Context, _ filters.Args) (dockerImage.PruneReport, error) {
 	return dockerImage.PruneReport{}, nil
+}
+
+func (m *mockDockerClient) ComposeUp(_ context.Context, _, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeDown(_ context.Context, _, _ string, _ bool) error {
+	return nil
+}
+
+func (m *mockDockerClient) ComposeBuild(_ context.Context, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeStart(_ context.Context, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeStop(_ context.Context, _, _ string) error  { return nil }
+func (m *mockDockerClient) ComposeRestart(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *mockDockerClient) ComposePs(_ context.Context, _, _ string) ([]dockerclient.ComposeServiceStatus, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ComposeLogs(_ context.Context, _, _ string) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ComposeConfig(_ context.Context, _, _ string) (string, error) {
+	return "", nil
 }
 
 func (m *mockDockerClient) Close() error {

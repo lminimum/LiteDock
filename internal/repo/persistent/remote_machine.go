@@ -29,7 +29,8 @@ func (r *RemoteMachineRepo) Create(ctx context.Context, m *entity.RemoteMachine)
 		INSERT INTO remote_machines (id, name, host, port, username, auth_method, password, ssh_key_path, ssh_key, docker_host, status, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	err := r.db.Exec(ctx, query,
+	err := r.db.Exec(
+		ctx, query,
 		m.ID,
 		m.Name,
 		m.Host,
@@ -60,7 +61,8 @@ func (r *RemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity.Rem
 
 	row := r.db.QueryRow(ctx, query, id)
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&m.ID,
 		&m.Name,
 		&m.Host,
@@ -110,7 +112,8 @@ func (r *RemoteMachineRepo) List(ctx context.Context) ([]entity.RemoteMachine, e
 
 	for scanner.Next() {
 		var m entity.RemoteMachine
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&m.ID,
 			&m.Name,
 			&m.Host,
@@ -144,7 +147,8 @@ func (r *RemoteMachineRepo) Update(ctx context.Context, m *entity.RemoteMachine)
 		SET name=?, host=?, port=?, username=?, auth_method=?, password=?, ssh_key_path=?, ssh_key=?, docker_host=?, status=?, updated_at=?
 		WHERE id=?`
 
-	err := r.db.Exec(ctx, query,
+	err := r.db.Exec(
+		ctx, query,
 		m.Name,
 		m.Host,
 		m.Port,
@@ -185,7 +189,8 @@ func (r *RemoteMachineRepo) GetByHost(ctx context.Context, host string) (*entity
 
 	row := r.db.QueryRow(ctx, query, host)
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&m.ID,
 		&m.Name,
 		&m.Host,

@@ -779,6 +779,18 @@ button:disabled {
   border-color: var(--color-error-hover);
 }
 
+/* Warning — Apple HIG orange */
+.btn-warning {
+  background: var(--color-warning);
+  color: #fdfcfc;
+  border-color: var(--color-warning);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--color-warning-hover);
+  border-color: var(--color-warning-hover);
+}
+
 /* Sizes */
 .btn-sm {
   padding: var(--space-1) var(--space-2);

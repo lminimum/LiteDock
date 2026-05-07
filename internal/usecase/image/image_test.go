@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
+	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,12 +106,17 @@ func (m *mockRemoteMachineRepo) GetByID(ctx context.Context, id string) (*entity
 }
 
 func (m *mockRemoteMachineRepo) Create(_ context.Context, _ *entity.RemoteMachine) error { return nil }
+
 func (m *mockRemoteMachineRepo) List(_ context.Context) ([]entity.RemoteMachine, error) {
 	return nil, nil
 }
-func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error)                  { return 0, nil }
+
+func (m *mockRemoteMachineRepo) Count(_ context.Context) (int64, error) { return 0, nil }
+
 func (m *mockRemoteMachineRepo) Update(_ context.Context, _ *entity.RemoteMachine) error { return nil }
-func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error                { return nil }
+
+func (m *mockRemoteMachineRepo) Delete(_ context.Context, _ string) error { return nil }
+
 func (m *mockRemoteMachineRepo) GetByHost(_ context.Context, _ string) (*entity.RemoteMachine, error) {
 	return nil, nil
 }
@@ -150,7 +158,9 @@ func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ bool) 
 func (m *mockDockerClient) ContainerInspect(_ context.Context, _ string) (*container.InspectResponse, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) NetworkList(_ context.Context) ([]entity.Network, error) { return nil, nil }
+
 func (m *mockDockerClient) NetworkCreate(_ context.Context, _, _ string) (*entity.Network, error) {
 	return nil, nil
 }
@@ -158,7 +168,9 @@ func (m *mockDockerClient) NetworkDelete(_ context.Context, _ string) error { re
 func (m *mockDockerClient) NetworkInspect(_ context.Context, _ string) (*entity.Network, error) {
 	return nil, nil
 }
+
 func (m *mockDockerClient) VolumeList(_ context.Context) ([]entity.Volume, error) { return nil, nil }
+
 func (m *mockDockerClient) VolumeCreate(_ context.Context, _, _ string) (*entity.Volume, error) {
 	return nil, nil
 }
@@ -202,6 +214,30 @@ func (m *mockDockerClient) ImagePrune(ctx context.Context, opts filters.Args) (d
 	return dockerImage.PruneReport{}, nil
 }
 
+func (m *mockDockerClient) ComposeUp(_ context.Context, _, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeDown(_ context.Context, _, _ string, _ bool) error {
+	return nil
+}
+
+func (m *mockDockerClient) ComposeBuild(_ context.Context, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeStart(_ context.Context, _, _ string) error { return nil }
+func (m *mockDockerClient) ComposeStop(_ context.Context, _, _ string) error  { return nil }
+func (m *mockDockerClient) ComposeRestart(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *mockDockerClient) ComposePs(_ context.Context, _, _ string) ([]dockerclient.ComposeServiceStatus, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ComposeLogs(_ context.Context, _, _ string) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ComposeConfig(_ context.Context, _, _ string) (string, error) {
+	return "", nil
+}
+
 func (m *mockDockerClient) Close() error {
 	if m.closeFn != nil {
 		return m.closeFn()
@@ -243,8 +279,10 @@ func makeInspectResponse(id, created string, repoTags []string) dockerImage.Insp
 		RepoDigests: []string{},
 		Size:        100 * 1024 * 1024,
 		Created:     created,
-		Config: &container.Config{
-			Labels: map[string]string{"maintainer": "test"},
+		Config: &dockerspec.DockerOCIImageConfig{
+			ImageConfig: ocispec.ImageConfig{
+				Labels: map[string]string{"maintainer": "test"},
+			},
 		},
 	}
 }
@@ -770,7 +808,7 @@ func TestInspectToEntity(t *testing.T) {
 				RepoTags: nil,
 				Size:     1024,
 				Created:  "2024-01-01T00:00:00.000000000Z",
-				Config:   &container.Config{Labels: nil},
+				Config:   &dockerspec.DockerOCIImageConfig{ImageConfig: ocispec.ImageConfig{Labels: nil}},
 			},
 			machineID: "local",
 			wantID:    "abcdef123456",

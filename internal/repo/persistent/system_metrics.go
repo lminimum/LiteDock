@@ -63,7 +63,8 @@ func (r *SystemMetricsRepo) GetHistory(ctx context.Context, since time.Time) ([]
 
 	for scanner.Next() {
 		var m entity.SystemMetric
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&m.ID,
 			&m.RecordedAt,
 			&m.CPUPercent,

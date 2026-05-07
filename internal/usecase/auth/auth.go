@@ -14,8 +14,8 @@ import (
 )
 
 type UseCase struct {
-	repo     repo.UserRepo
-	logger   logger.Interface
+	repo      repo.UserRepo
+	logger    logger.Interface
 	jwtSecret string
 }
 

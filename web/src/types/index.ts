@@ -51,6 +51,43 @@ export interface Image {
   labels: Record<string, string>
 }
 
+// Compose 相关类型
+export interface ComposeProject {
+  id: string
+  machineId: string
+  name: string
+  filePath: string
+  projectName: string
+  status: string
+  services: ComposeService[]
+  createdAt: string
+  updatedAt: string
+  cachedAt: string
+}
+
+export interface ComposeService {
+  name: string
+  serviceName: string
+  image: string
+  status: string
+  health: string
+  replicas: number
+  publishers: ComposePortPublish[]
+}
+
+export interface ComposePortPublish {
+  url: string
+  targetPort: number
+  publishedPort: number
+}
+
+export interface ComposeTemplate {
+  name: string
+  description: string
+  category: string
+  content: string
+}
+
 // 网络相关类型
 export interface Network {
   id: string

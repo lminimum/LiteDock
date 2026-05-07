@@ -60,7 +60,8 @@ func (r *ImageRepo) ListByMachine(ctx context.Context, machineID string) ([]enti
 		var img entity.Image
 		var repoTagsJSON, repoDigestsJSON, labelsJSON []byte
 
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&img.ID,
 			&img.MachineID,
 			&repoTagsJSON,
@@ -112,7 +113,8 @@ func (r *ImageRepo) GetByID(ctx context.Context, machineID, imageID string) (*en
 	var img entity.Image
 	var repoTagsJSON, repoDigestsJSON, labelsJSON []byte
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&img.ID,
 		&img.MachineID,
 		&repoTagsJSON,
@@ -183,7 +185,8 @@ func (r *ImageRepo) UpsertBatch(ctx context.Context, machineID string, images []
 			return errors.Wrap(err, "ImageRepo.UpsertBatch.MarshalLabels")
 		}
 
-		err = r.db.Exec(ctx, insertQuery,
+		err = r.db.Exec(
+			ctx, insertQuery,
 			img.ID,
 			machineID,
 			repoTagsJSON,

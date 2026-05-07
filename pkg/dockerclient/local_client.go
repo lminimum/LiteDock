@@ -17,5 +17,5 @@ func NewLocalClient() (*LocalClient, error) {
 	if err != nil {
 		return nil, errors.Wrap(errors.ErrDockerConnection, "NewLocalClient."+err.Error())
 	}
-	return &LocalClient{baseClient: baseClient{docker: cli}}, nil
+	return &LocalClient{baseClient: baseClient{docker: cli, composeClient: NewLocalComposeClient()}}, nil
 }
