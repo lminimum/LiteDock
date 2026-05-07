@@ -47,7 +47,8 @@ func (r *ContainerRepo) List(ctx context.Context) ([]entity.Container, error) {
 		var c entity.Container
 		var portsJSON []byte
 
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&c.ID,
 			&c.MachineID,
 			&c.Name,
@@ -108,7 +109,8 @@ func (r *ContainerRepo) ListByMachine(ctx context.Context, machineID string) ([]
 		var c entity.Container
 		var portsJSON []byte
 
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&c.ID,
 			&c.MachineID,
 			&c.Name,
@@ -161,7 +163,8 @@ func (r *ContainerRepo) UpsertBatch(ctx context.Context, machineID string, conta
 			return errors.Wrap(err, "ContainerRepo.UpsertBatch.MarshalPorts")
 		}
 
-		err = r.db.Exec(ctx, insertQuery,
+		err = r.db.Exec(
+			ctx, insertQuery,
 			c.ID,
 			machineID,
 			c.Name,
