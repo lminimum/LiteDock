@@ -65,6 +65,18 @@
           <span class="stat-sub">{{ stats.images.size }}</span>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--color-accent);"></div>
+        <div class="stat-icon">
+          <Layers :size="24" />
+        </div>
+        <div class="stat-body">
+          <span class="stat-number">{{ stats.compose.total }}</span>
+          <span class="stat-label">{{ t('dashboard.stats.compose') }}</span>
+          <span class="stat-sub">{{ stats.compose.running }} {{ t('dashboard.running') }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content Grid: Chart as centerpiece -->
@@ -128,6 +140,10 @@
                 <PlusCircle :size="18" />
                 <span>{{ t('dashboard.createVolume') }}</span>
               </button>
+              <button class="quick-action-btn" @click="goToOrchestration">
+                <Layers :size="18" />
+                <span>{{ t('dashboard.composeProjects') }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -179,13 +195,16 @@ import {
   Download,
   PlusCircle,
   Globe,
-  Image
+  Image,
+  Layers
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
 import api from '@/utils/api'
 import { imageService } from '@/services/imageService'
+import { composeService } from '@/services/composeService'
+import { remoteMachineService } from '@/services/remoteMachineService'
 import { formatSize } from '@/utils/format'
 
 const stats = reactive({
@@ -193,7 +212,8 @@ const stats = reactive({
   networks: { total: 0, active: 0 },
   volumes: { total: 0, size: '0 GB' },
   machines: { total: 0 },
-  images: { total: 0, size: '0 GB' }
+  images: { total: 0, size: '0 GB' },
+  compose: { total: 0, running: 0 }
 })
 
 const TOTAL_POINTS = 60
@@ -313,6 +333,22 @@ const refreshStats = async () => {
   } catch (e) {
     console.error('Failed to fetch image stats:', e)
   }
+
+  // Load compose stats
+  try {
+    const compMachines = await remoteMachineService.list()
+    let totalProjs = 0
+    let runningProjs = 0
+    await Promise.all(compMachines.map(async (m) => {
+      const projs = await composeService.listProjects(m.id)
+      totalProjs += projs.length
+      runningProjs += projs.filter(p => p.status === 'running').length
+    }))
+    stats.compose.total = totalProjs
+    stats.compose.running = runningProjs
+  } catch (e) {
+    console.warn('Failed to load compose stats:', e)
+  }
 }
 
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
@@ -345,6 +381,7 @@ const router = useRouter()
 const pullImage = () => router.push('/images')
 const createNetwork = () => console.log('createNetwork')
 const createVolume = () => console.log('createVolume')
+const goToOrchestration = () => router.push('/orchestration')
 
 onMounted(async () => {
   isMounted = true
