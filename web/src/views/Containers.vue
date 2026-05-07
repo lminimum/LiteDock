@@ -71,6 +71,13 @@
       :fields="inspectFields"
       @close="showInspect = false"
     />
+
+    <ContainerCreateModal
+      :visible="showCreateModal"
+      :machine-id="selectedMachineId"
+      @close="showCreateModal = false"
+      @created="onContainerCreated"
+    />
   </div>
 </template>
 
@@ -83,6 +90,7 @@ import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ContainerCard from '@/components/container/ContainerCard.vue'
+import ContainerCreateModal from '@/components/container/ContainerCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 
 interface Container {
@@ -102,6 +110,8 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
+
+const selectedMachineId = ref('local')
 
 const containers = ref<Container[]>([])
 
@@ -221,6 +231,11 @@ const deleteContainer = async (id: string) => {
   if (confirm(t('containers.confirmDelete'))) {
     containers.value = containers.value.filter(c => c.id !== id)
   }
+}
+
+const onContainerCreated = (container: { id: string; name: string; image: string; machineId: string }) => {
+  showCreateModal.value = false
+  refreshContainers()
 }
 
 onMounted(() => refreshContainers())

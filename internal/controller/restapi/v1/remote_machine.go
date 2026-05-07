@@ -1,6 +1,11 @@
 package v1
 
 import (
+	"strconv"
+	"strings"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/internal/entity"
@@ -38,6 +43,7 @@ func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseIn
 		machineGroup.Post("/:id/containers/:containerId/restart", h.RestartContainer)
 		machineGroup.Delete("/:id/containers/:containerId", h.RemoveContainer)
 		machineGroup.Get("/:id/containers/:containerId", h.InspectContainer)
+		machineGroup.Post("/:id/containers/create", h.CreateContainer)
 	}
 }
 
@@ -465,4 +471,101 @@ func (h *RemoteMachineHandler) InspectContainer(c *fiber.Ctx) error {
 	return successResponse(c, fiber.Map{
 		"container": result,
 	})
+}
+
+// CreateContainer - handles POST /v1/machines/:id/containers/create
+// @Summary Create a container on a machine
+// @Description Create a new Docker container using the Docker SDK directly
+// @Tags machines
+// @Accept json
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param request body CreateContainerRequest true "Container creation request"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/create [post]
+func (h *RemoteMachineHandler) CreateContainer(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	var req CreateContainerRequest
+	if err := c.BodyParser(&req); err != nil {
+		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	if err := h.v.Struct(req); err != nil {
+		return errorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+
+	cfg := &container.Config{
+		Image:  req.Image,
+		Env:    req.Env,
+		Cmd:    req.Cmd,
+		Labels: req.Labels,
+	}
+
+	if cfg.Labels == nil {
+		cfg.Labels = make(map[string]string)
+	}
+
+	hostCfg := &container.HostConfig{
+		NetworkMode: container.NetworkMode(req.Network),
+	}
+
+	if len(req.Ports) > 0 {
+		portBindings := nat.PortMap{}
+		exposedPorts := nat.PortSet{}
+		for _, portSpec := range req.Ports {
+			parts := strings.Split(portSpec, ":")
+			if len(parts) == 2 {
+				hostPort, err := strconv.Atoi(parts[0])
+				if err != nil {
+					return errorResponse(c, fiber.StatusBadRequest, "Invalid port mapping: "+portSpec)
+				}
+				containerPort := parts[1]
+				natPort, err := nat.NewPort("tcp", containerPort)
+				if err != nil {
+					return errorResponse(c, fiber.StatusBadRequest, "Invalid container port: "+containerPort)
+				}
+				portBindings[natPort] = []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: strconv.Itoa(hostPort)}}
+				exposedPorts[natPort] = struct{}{}
+			}
+		}
+		hostCfg.PortBindings = portBindings
+		cfg.ExposedPorts = exposedPorts
+	}
+
+	if len(req.Volumes) > 0 {
+		var binds []string
+		for _, volSpec := range req.Volumes {
+			parts := strings.Split(volSpec, ":")
+			if len(parts) == 2 {
+				binds = append(binds, parts[0]+":"+parts[1])
+			}
+		}
+		hostCfg.Binds = binds
+	}
+
+	result, err := h.uc.CreateContainer(c.Context(), id, cfg, hostCfg, req.Name)
+	if err != nil {
+		h.l.Error(err, "CreateContainer failed")
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return createdResponse(c, fiber.Map{
+		"id":       result.ID,
+		"warnings": result.Warnings,
+	})
+}
+
+// CreateContainerRequest defines the request body for container creation
+type CreateContainerRequest struct {
+	Name    string            `json:"name"`
+	Image   string            `json:"image" validate:"required"`
+	Env     []string          `json:"env"`
+	Ports   []string          `json:"ports"`
+	Volumes []string          `json:"volumes"`
+	Network string            `json:"network"`
+	Cmd     []string          `json:"cmd"`
+	Labels  map[string]string `json:"labels"`
 }
