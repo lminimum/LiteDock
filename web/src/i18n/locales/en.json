@@ -49,7 +49,11 @@
     "imagePulled": "Image {name} pulled",
     "containerStopped": "Container {name} stopped",
     "networkCreated": "Network {name} created",
-    "volumeDeleted": "Volume {name} deleted"
+    "volumeDeleted": "Volume {name} deleted",
+    "stats": {
+      "compose": "Compose Projects"
+    },
+    "composeProjects": "Compose Projects"
   },
   "containers": {
     "title": "Containers",
@@ -319,13 +323,60 @@
     },
     "orchestration": {
       "title": "Orchestration",
-      "description": "Docker Compose and Kubernetes orchestration is under development...",
-      "features": "Upcoming Features:",
-      "compose": "Docker Compose project management",
-      "multiContainer": "Multi-container service orchestration",
-      "kubernetes": "Kubernetes cluster integration",
-      "discovery": "Service discovery and load balancing",
-      "config": "Configuration and secrets management"
+      "description": "Manage Docker Compose projects",
+      "actions": {
+        "create": "New Project",
+        "refresh": "Refresh",
+        "save": "Save",
+        "saveAs": "Save As",
+        "format": "Format",
+        "up": "Up",
+        "down": "Down",
+        "build": "Build",
+        "start": "Start",
+        "stop": "Stop",
+        "restart": "Restart",
+        "logs": "Logs"
+      },
+      "editor": {
+        "title": "YAML Editor",
+        "unsavedChanges": "You have unsaved changes",
+        "saveSuccess": "Saved successfully",
+        "saveError": "Failed to save"
+      },
+      "templates": {
+        "title": "Templates",
+        "fromTemplate": "From Template",
+        "blank": "Blank Project",
+        "wordpress": "WordPress",
+        "nginxPhp": "Nginx + PHP-FPM",
+        "nodeRedis": "Node.js + Redis",
+        "postgres": "PostgreSQL",
+        "lamp": "LAMP Stack"
+      },
+      "status": {
+        "running": "Running",
+        "stopped": "Stopped",
+        "failed": "Failed",
+        "partial": "Partial"
+      },
+      "confirm": {
+        "down": "Are you sure you want to stop this project?",
+        "downVolumes": "This will also remove named volumes. Continue?",
+        "delete": "Delete this project? This cannot be undone."
+      },
+      "empty": {
+        "title": "No Compose Projects",
+        "description": "Create your first project from a template or start from scratch.",
+        "createAction": "Create Project"
+      },
+      "inspect": {
+        "projectName": "Project Name",
+        "services": "Services",
+        "filePath": "File Path",
+        "updatedAt": "Updated",
+        "status": "Status"
+      }
     },
     "notFound": {
       "title": "Page Not Found",
