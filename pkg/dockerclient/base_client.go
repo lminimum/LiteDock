@@ -21,7 +21,8 @@ import (
 )
 
 type baseClient struct {
-	docker *client.Client
+	docker        *client.Client
+	composeClient DockerComposeClient
 }
 
 func (c *baseClient) Ping(ctx context.Context) error {
@@ -186,6 +187,42 @@ func (c *baseClient) ContainerInspect(ctx context.Context, containerID string) (
 		return nil, errors.Wrap(errors.ErrContainerNotFound, "ContainerInspect."+err.Error())
 	}
 	return &result, nil
+}
+
+func (c *baseClient) ComposeUp(ctx context.Context, machineID, projectName, composeFilePath string) error {
+	return c.composeClient.ComposeUp(ctx, machineID, projectName, composeFilePath)
+}
+
+func (c *baseClient) ComposeDown(ctx context.Context, machineID, projectName string, volumes bool) error {
+	return c.composeClient.ComposeDown(ctx, machineID, projectName, volumes)
+}
+
+func (c *baseClient) ComposeBuild(ctx context.Context, machineID, composeFilePath string) error {
+	return c.composeClient.ComposeBuild(ctx, machineID, composeFilePath)
+}
+
+func (c *baseClient) ComposeStart(ctx context.Context, machineID, projectName string) error {
+	return c.composeClient.ComposeStart(ctx, machineID, projectName)
+}
+
+func (c *baseClient) ComposeStop(ctx context.Context, machineID, projectName string) error {
+	return c.composeClient.ComposeStop(ctx, machineID, projectName)
+}
+
+func (c *baseClient) ComposeRestart(ctx context.Context, machineID, projectName string) error {
+	return c.composeClient.ComposeRestart(ctx, machineID, projectName)
+}
+
+func (c *baseClient) ComposePs(ctx context.Context, machineID, projectName string) ([]ComposeServiceStatus, error) {
+	return c.composeClient.ComposePs(ctx, machineID, projectName)
+}
+
+func (c *baseClient) ComposeLogs(ctx context.Context, machineID, projectName string) (io.ReadCloser, error) {
+	return c.composeClient.ComposeLogs(ctx, machineID, projectName)
+}
+
+func (c *baseClient) ComposeConfig(ctx context.Context, machineID, composeFilePath string) (string, error) {
+	return c.composeClient.ComposeConfig(ctx, machineID, composeFilePath)
 }
 
 func (c *baseClient) Close() error {

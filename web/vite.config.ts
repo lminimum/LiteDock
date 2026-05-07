@@ -10,6 +10,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    optimizeDeps: {
+      include: ['monaco-editor'],
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'monaco-editor': ['monaco-editor'],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),

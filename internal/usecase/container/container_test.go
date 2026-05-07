@@ -77,7 +77,7 @@ func newUseCaseForTest(repo *mockContainerRepo) *UseCase {
 
 func TestList_Success(t *testing.T) {
 	tests := []struct {
-		name    string
+		name       string
 		containers []entity.Container
 	}{
 		{
@@ -162,8 +162,8 @@ func TestGet_Success(t *testing.T) {
 
 func TestGet_NotFound(t *testing.T) {
 	tests := []struct {
-		name    string
-		getFn   func(ctx context.Context, id string) (*entity.Container, error)
+		name  string
+		getFn func(ctx context.Context, id string) (*entity.Container, error)
 	}{
 		{
 			name: "returns nil",

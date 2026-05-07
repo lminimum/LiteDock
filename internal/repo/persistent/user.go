@@ -90,7 +90,8 @@ func (r *UserRepo) CreateUser(ctx context.Context, user *entity.User) error {
 	user.ID = uuid.New().String()
 	now := time.Now()
 
-	err = r.db.Exec(ctx, query,
+	err = r.db.Exec(
+		ctx, query,
 		user.ID,
 		user.Username,
 		user.Email,
@@ -114,7 +115,8 @@ func (r *UserRepo) queryUserBy(ctx context.Context, column string, value interfa
 
 	row := r.db.QueryRow(ctx, query, value)
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -149,7 +151,8 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*entity.Us
 func (r *UserRepo) UpdateUser(ctx context.Context, user *entity.User) error {
 	query := `UPDATE users SET username=?, email=?, role=?, updated_at=? WHERE id=?`
 
-	err := r.db.Exec(ctx, query,
+	err := r.db.Exec(
+		ctx, query,
 		user.Username,
 		user.Email,
 		user.Role,
@@ -205,7 +208,8 @@ func (r *UserRepo) UpdatePassword(ctx context.Context, userID, newPassword strin
 		return errors.Wrap(err, "UserRepo.UpdatePassword.Bcrypt")
 	}
 
-	err = r.db.Exec(ctx, query,
+	err = r.db.Exec(
+		ctx, query,
 		string(hashedPassword),
 		time.Now(),
 		userID,

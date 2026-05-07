@@ -20,8 +20,9 @@ type (
 	}
 
 	App struct {
-		Name    string `env:"APP_NAME,required"`
-		Version string `env:"APP_VERSION,required"`
+		Name       string `env:"APP_NAME,required"`
+		Version    string `env:"APP_VERSION,required"`
+		ComposeDir string `env:"COMPOSE_DIR" envDefault:"~/.litdock/compose/"`
 	}
 
 	HTTP struct {

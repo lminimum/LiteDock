@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo/persistent"
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
+	composeUseCase "github.com/lminimum/LiteDock/internal/usecase/compose"
 	"github.com/lminimum/LiteDock/internal/usecase/container"
 	"github.com/lminimum/LiteDock/internal/usecase/image"
 	"github.com/lminimum/LiteDock/internal/usecase/network"
@@ -69,6 +72,16 @@ func Run(cfg *config.Config) {
 	imageRepo := persistent.NewImageRepo(db)
 	imageUseCase := image.NewImageUseCase(imageRepo, remoteMachineRepo, cfg.Cache.ContainerTTL, l)
 
+	// Compose UseCase
+	composeRepo := persistent.NewComposeRepo(db)
+	composeDir := cfg.App.ComposeDir
+	if strings.HasPrefix(composeDir, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			composeDir = filepath.Join(home, composeDir[2:])
+		}
+	}
+	composeUseCase := composeUseCase.NewComposeUseCase(composeRepo, remoteMachineRepo, cfg.Cache.ContainerTTL, composeDir, l)
+
 	// RemoteMachine UseCase
 	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
 
@@ -77,7 +90,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, l)
 
 	// Start servers
 	httpServer.Start()

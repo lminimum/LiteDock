@@ -1,0 +1,177 @@
+/*
+ * LiteDock Dark Theme — OpenCode Warm Dark
+ * Current design IS the dark theme
+ */
+
+[data-theme="dark"] {
+  /* Primary Palette */
+  --color-background: #201d1d;
+  --color-background-weak: #302c2c;
+  --color-background-strong: #302c2c;
+  --color-text: #9a9898;
+  --color-text-strong: #fdfcfc;
+  --color-text-weak: #6e6e73;
+  --color-text-weaker: #646262;
+  --color-border: rgba(15, 0, 0, 0.12);
+  --color-border-weak: rgba(15, 0, 0, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.12);
+  --color-background-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Accent */
+  --color-accent: #007aff;
+  --color-accent-hover: #0056b3;
+  --color-accent-active: #004085;
+
+  /* Interactive */
+  --color-background-interactive: #007aff;
+  --color-background-interactive-weaker: rgba(0, 122, 255, 0.15);
+
+  /* Semantic (Apple HIG) */
+  --color-success: #30d158;
+  --color-success-bg: rgba(48, 209, 88, 0.15);
+  --color-warning: #ff9f0a;
+  --color-warning-hover: #cc7f08;
+  --color-warning-active: #995f06;
+  --color-warning-bg: rgba(255, 159, 10, 0.15);
+  --color-error: #ff3b30;
+  --color-error-hover: #d70015;
+  --color-error-active: #a50011;
+  --color-error-bg: rgba(255, 59, 48, 0.15);
+  --color-info: #007aff;
+  --color-info-bg: rgba(0, 122, 255, 0.15);
+
+  /* Terminal / Logs */
+  --color-terminal-bg: #151313;
+  --color-terminal-text: #30d158;
+
+  /* ============================================
+     Shared Tokens (identical across themes)
+     ============================================ */
+
+  /* Typography — Berkeley Mono · IBM Plex Mono fallback */
+  --font-mono: 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.375rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.00;
+  --line-height-normal: 1.50;
+  --line-height-relaxed: 2.00;
+
+  /* Spacing — 8px grid */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Border Radius — flat, utilitarian */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-full: 9999px;
+
+  /* Shadows — none (OpenCode is flat) */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Layout */
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 56px;
+  --header-height: 56px;
+  --container-max: 67.5rem;
+  --content-padding: var(--space-6);
+
+  /* ============================================
+     Setup Modal
+     ============================================ */
+
+  --setup-overlay-bg: hsla(0, 0%, 0%, 0.5);
+  --setup-modal-shadow: 0 10px 25px hsla(0, 0%, 0%, 0.2);
+  --setup-modal-bg: #ffffff;
+  --setup-modal-border: #e2e8f0;
+  --setup-modal-header-bg: #f8fafc;
+  --setup-modal-header-border: #e2e8f0;
+  --setup-modal-text: #1e293b;
+  --setup-modal-text-secondary: #64748b;
+  --setup-modal-text-on-dark: #f1f5f9;
+  --setup-step-line: #e2e8f0;
+  --setup-step-number-bg: #e2e8f0;
+  --setup-step-number-text: #64748b;
+  --setup-step-active-bg: #667eea;
+  --setup-step-active-text: #ffffff;
+  --setup-step-completed-bg: #10b981;
+  --setup-step-completed-text: #ffffff;
+  --setup-step-title: #64748b;
+  --setup-form-label: #374151;
+  --setup-input-bg: #ffffff;
+  --setup-input-border: #d1d5db;
+  --setup-input-text: #111827;
+  --setup-focus-border: #667eea;
+  --setup-focus-shadow: 0 0 0 3px hsla(262, 83%, 58%, 0.1);
+  --setup-success-bg: #10b981;
+  --setup-success-text: #ffffff;
+  --setup-config-summary-bg: #f8fafc;
+  --setup-btn-primary-bg: #667eea;
+  --setup-btn-primary-hover: #5a67d8;
+  --setup-btn-primary-text: #ffffff;
+  --setup-btn-secondary-bg: #f8fafc;
+  --setup-btn-secondary-border: #d1d5db;
+  --setup-btn-secondary-text: #64748b;
+  --setup-btn-secondary-hover: #f1f5f9;
+
+  /* ============================================
+     Dropdown / Select
+     ============================================ */
+
+  --dropdown-bg: var(--color-background-elevated);
+  --dropdown-border: var(--color-border);
+  --dropdown-hover-bg: var(--interactive-bg-hover);
+  --dropdown-active-bg: var(--interactive-bg-active);
+  --dropdown-text: var(--color-text);
+  --dropdown-text-hover: var(--color-text-strong);
+  --dropdown-text-active: var(--interactive-text);
+}
+
+/* OS-level dark mode preference as fallback */
+@media (prefers-color-scheme: dark) {
+  [data-theme="dark"] {
+    --color-background: #201d1d;
+    --color-background-weak: #302c2c;
+    --color-background-strong: #302c2c;
+    --color-text: #9a9898;
+    --color-text-strong: #fdfcfc;
+    --color-text-weak: #6e6e73;
+    --color-text-weaker: #646262;
+    --color-border: rgba(15, 0, 0, 0.12);
+    --color-border-weak: rgba(15, 0, 0, 0.08);
+
+    --color-success-bg: rgba(48, 209, 88, 0.15);
+    --color-warning-bg: rgba(255, 159, 10, 0.15);
+    --color-error-bg: rgba(255, 59, 48, 0.15);
+    --color-info-bg: rgba(0, 122, 255, 0.15);
+
+    --color-terminal-bg: #151313;
+    --color-terminal-text: #30d158;
+  }
+}

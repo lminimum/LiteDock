@@ -47,7 +47,8 @@ func (r *VolumeRepo) ListByMachine(ctx context.Context, machineID string) ([]ent
 		var v entity.Volume
 		var labelsJSON []byte
 
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&v.Name,
 			&v.MachineID,
 			&v.Driver,
@@ -88,7 +89,8 @@ func (r *VolumeRepo) GetByName(ctx context.Context, machineID, name string) (*en
 	var v entity.Volume
 	var labelsJSON []byte
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&v.Name,
 		&v.MachineID,
 		&v.Driver,
@@ -138,7 +140,8 @@ func (r *VolumeRepo) UpsertBatch(ctx context.Context, machineID string, volumes 
 			return errors.Wrap(err, "VolumeRepo.UpsertBatch.MarshalLabels")
 		}
 
-		err = r.db.Exec(ctx, insertQuery,
+		err = r.db.Exec(
+			ctx, insertQuery,
 			v.Name,
 			machineID,
 			v.Driver,

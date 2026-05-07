@@ -47,7 +47,8 @@ func (r *NetworkRepo) ListByMachine(ctx context.Context, machineID string) ([]en
 		var n entity.Network
 		var labelsJSON []byte
 
-		err := scanRow(scanner,
+		err := scanRow(
+			scanner,
 			&n.ID,
 			&n.MachineID,
 			&n.Name,
@@ -90,7 +91,8 @@ func (r *NetworkRepo) GetByName(ctx context.Context, machineID, name string) (*e
 	var n entity.Network
 	var labelsJSON []byte
 
-	err := scanRow(row,
+	err := scanRow(
+		row,
 		&n.ID,
 		&n.MachineID,
 		&n.Name,
@@ -142,7 +144,8 @@ func (r *NetworkRepo) UpsertBatch(ctx context.Context, machineID string, network
 			return errors.Wrap(err, "NetworkRepo.UpsertBatch.MarshalLabels")
 		}
 
-		err = r.db.Exec(ctx, insertQuery,
+		err = r.db.Exec(
+			ctx, insertQuery,
 			n.ID,
 			machineID,
 			n.Name,

@@ -62,4 +62,21 @@ type (
 		Delete(ctx context.Context, machineID, imageID string) ([]dockerImage.DeleteResponse, error)
 		Prune(ctx context.Context, machineID string) (*dockerImage.PruneReport, error)
 	}
+
+	// Compose -.
+	Compose interface {
+		List(ctx context.Context, machineID string) ([]entity.ComposeFile, error)
+		Get(ctx context.Context, machineID, projectName string) (*entity.ComposeFile, error)
+		Create(ctx context.Context, machineID, name, yamlContent, filePath string) (*entity.ComposeFile, error)
+		Update(ctx context.Context, machineID, projectName, yamlContent string) error
+		Delete(ctx context.Context, machineID, projectName string) error
+		Up(ctx context.Context, machineID, projectName string) error
+		Down(ctx context.Context, machineID, projectName string, volumes bool) error
+		Build(ctx context.Context, machineID, projectName string) error
+		Start(ctx context.Context, machineID, projectName string) error
+		Stop(ctx context.Context, machineID, projectName string) error
+		Restart(ctx context.Context, machineID, projectName string) error
+		Logs(ctx context.Context, machineID, projectName string) (string, error)
+		Ps(ctx context.Context, machineID, projectName string) ([]entity.ComposeService, error)
+	}
 )

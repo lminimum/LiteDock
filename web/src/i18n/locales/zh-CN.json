@@ -49,7 +49,11 @@
     "imagePulled": "镜像 {name} 已拉取",
     "containerStopped": "容器 {name} 已停止",
     "networkCreated": "网络 {name} 已创建",
-    "volumeDeleted": "存储卷 {name} 已删除"
+    "volumeDeleted": "存储卷 {name} 已删除",
+    "stats": {
+      "compose": "编排项目"
+    },
+    "composeProjects": "编排项目"
   },
   "containers": {
     "title": "容器管理",
@@ -187,6 +191,11 @@
     "saved": "设置已保存",
     "confirmReset": "确定要重置所有设置为默认值吗？"
   },
+  "theme": {
+    "light": "浅色",
+    "dark": "深色",
+    "toggle": "切换主题"
+  },
   "auth": {
     "welcomeBack": "欢迎回来",
     "loginSubtitle": "登录到 LiteDock 管理平台",
@@ -319,13 +328,60 @@
     },
     "orchestration": {
       "title": "编排管理",
-      "description": "Docker Compose 和 Kubernetes 编排管理功能正在开发中...",
-      "features": "即将支持的功能:",
-      "compose": "Docker Compose 项目管理",
-      "multiContainer": "多容器服务编排",
-      "kubernetes": "Kubernetes 集群集成",
-      "discovery": "服务发现和负载均衡",
-      "config": "配置管理和密钥管理"
+      "description": "管理 Docker Compose 项目",
+      "actions": {
+        "create": "新建项目",
+        "refresh": "刷新",
+        "save": "保存",
+        "saveAs": "另存为",
+        "format": "格式化",
+        "up": "启动",
+        "down": "停止",
+        "build": "构建",
+        "start": "开始",
+        "stop": "暂停",
+        "restart": "重启",
+        "logs": "日志"
+      },
+      "editor": {
+        "title": "YAML 编辑器",
+        "unsavedChanges": "你有未保存的更改",
+        "saveSuccess": "保存成功",
+        "saveError": "保存失败"
+      },
+      "templates": {
+        "title": "模板",
+        "fromTemplate": "从模板创建",
+        "blank": "空白项目",
+        "wordpress": "WordPress",
+        "nginxPhp": "Nginx + PHP-FPM",
+        "nodeRedis": "Node.js + Redis",
+        "postgres": "PostgreSQL",
+        "lamp": "LAMP 栈"
+      },
+      "status": {
+        "running": "运行中",
+        "stopped": "已停止",
+        "failed": "失败",
+        "partial": "部分运行"
+      },
+      "confirm": {
+        "down": "确定要停止此项目吗？",
+        "downVolumes": "这将同时移除命名卷。是否继续？",
+        "delete": "删除此项目？此操作不可撤销。"
+      },
+      "empty": {
+        "title": "没有 Compose 项目",
+        "description": "从模板创建第一个项目，或从空白开始。",
+        "createAction": "创建项目"
+      },
+      "inspect": {
+        "projectName": "项目名称",
+        "services": "服务",
+        "filePath": "文件路径",
+        "updatedAt": "更新于",
+        "status": "状态"
+      }
     },
     "notFound": {
       "title": "页面未找到",

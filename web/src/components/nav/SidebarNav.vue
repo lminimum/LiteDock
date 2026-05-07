@@ -40,6 +40,18 @@
         @toggle-children="toggleMenu(item.name)"
       />
     </div>
+
+    <div class="nav-section theme-section">
+      <button
+        class="nav-item theme-toggle"
+        :class="{ collapsed, 'mobile-mode': isMobile }"
+        @click="toggleTheme"
+        :title="t('theme.toggle')"
+      >
+        <component :is="themeIcon" :size="20" class="nav-icon" />
+        <span class="nav-text">{{ themeLabel }}</span>
+      </button>
+    </div>
   </nav>
 </template>
 
@@ -58,7 +70,10 @@ import {
   Image as ImageIcon,
   HardDrive,
   Globe,
+  Sun,
+  Moon,
 } from 'lucide-vue-next'
+import { useTheme } from '@/themes'
 
 import type { Component } from 'vue'
 
@@ -89,8 +104,18 @@ defineEmits<{
 
 const route = useRoute()
 const containerCount = ref<string | undefined>(undefined)
+const { currentTheme, toggleTheme: toggleThemeFn } = useTheme()
 
 const currentRouteName = computed(() => route.name)
+
+const themeIcon = computed(() => (currentTheme.value === 'light' ? Moon : Sun))
+const themeLabel = computed(() =>
+  currentTheme.value === 'light' ? t('theme.light') : t('theme.dark'),
+)
+
+const toggleTheme = () => {
+  toggleThemeFn()
+}
 
 // Track which menus are expanded
 const expandedMenus = ref<Record<string, boolean>>({})
@@ -199,5 +224,61 @@ onMounted(async () => {
   .sidebar-nav.mobile-mode .nav-section:first-child {
     margin-top: var(--space-4);
   }
+}
+
+/* Theme toggle */
+.theme-section {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-weak);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-weak);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 2px solid transparent;
+  border-left-width: 0;
+  border-right-width: 0;
+  font-family: inherit;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  margin: 1px 0;
+  box-sizing: border-box;
+}
+
+.theme-toggle:hover {
+  color: var(--color-text-strong);
+  background: var(--color-background-weak);
+}
+
+.theme-toggle.collapsed {
+  justify-content: center;
+  padding: var(--space-2);
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+}
+
+.theme-toggle.collapsed .nav-text {
+  display: none;
+}
+
+.theme-toggle.mobile-mode {
+  justify-content: flex-start;
+  padding: var(--space-3) var(--space-6);
+  margin: var(--space-1) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: none;
+}
+
+.theme-toggle.mobile-mode:hover {
+  background: var(--color-background-weak);
 }
 </style>
