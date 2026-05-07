@@ -13,9 +13,9 @@
   --color-text-strong: #1d1d1d;
   --color-text-weak: #999999;
   --color-text-weaker: #bbbbbb;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-weak: rgba(0, 0, 0, 0.04);
-  --color-border-subtle: rgba(0, 0, 0, 0.06);
+  --color-border: rgba(0, 0, 0, 0.25);
+  --color-border-weak: rgba(0, 0, 0, 0.15);
+  --color-border-subtle: rgba(0, 0, 0, 0.18);
   --color-background-overlay: rgba(0, 0, 0, 0.3);
 
   /* Accent */
