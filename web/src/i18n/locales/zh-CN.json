@@ -191,6 +191,11 @@
     "saved": "设置已保存",
     "confirmReset": "确定要重置所有设置为默认值吗？"
   },
+  "theme": {
+    "light": "浅色",
+    "dark": "深色",
+    "toggle": "切换主题"
+  },
   "auth": {
     "welcomeBack": "欢迎回来",
     "loginSubtitle": "登录到 LiteDock 管理平台",

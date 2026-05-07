@@ -191,6 +191,11 @@
     "saved": "Settings saved",
     "confirmReset": "Are you sure you want to reset all settings to defaults?"
   },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
+  },
   "auth": {
     "welcomeBack": "Welcome Back",
     "loginSubtitle": "Sign in to LiteDock management platform",
