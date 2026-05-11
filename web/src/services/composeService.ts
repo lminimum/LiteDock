@@ -30,7 +30,7 @@ function snakeToCamelProject(raw: any): ComposeProject {
 
 export const composeService = {
   async listProjects(machineId: string): Promise<ComposeProject[]> {
-    const r = await api.get(`/machines/${machineId}/compose`)
+    const r: any = await api.get(`/machines/${machineId}/compose`)
     return (r.projects ?? []).map(snakeToCamelProject)
   },
 
@@ -78,7 +78,7 @@ export const composeService = {
   },
 
   async getLogs(machineId: string, projectName: string): Promise<string> {
-    const r = await api.get(`/machines/${machineId}/compose/${projectName}/logs`)
+    const r: any = await api.get(`/machines/${machineId}/compose/${projectName}/logs`)
     return r.logs ?? ''
   },
 }

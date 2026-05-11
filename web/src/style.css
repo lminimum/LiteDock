@@ -12,6 +12,13 @@
 @import './themes/light.css';
 @import './themes/dark.css';
 
+:root {
+  /* Sidebar & Header Dimensions */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
+}
+
 /* ============================================
    Base Styles
    ============================================ */
@@ -38,7 +45,8 @@ body {
   line-height: var(--line-height-normal);
   color: var(--color-text);
   background: var(--color-background);
-  transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base);
+  overflow-x: hidden;
 }
 
 #app {
@@ -58,11 +66,13 @@ h6 {
   font-family: var(--font-mono);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-strong);
-  line-height: var(--line-height-normal);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--space-4);
 }
 
 h1 {
   font-size: var(--font-size-4xl);
+  letter-spacing: -0.02em;
 }
 
 h2 {

@@ -205,7 +205,7 @@
     <ComposeCreateModal
       v-if="showCreateModal && machines.length > 0"
       :show="showCreateModal"
-      :machine-id="machines[0].id"
+      :machine-id="machines[0]?.id ?? ''"
       :templates="templates"
       @close="showCreateModal = false"
       @created="onProjectCreated"

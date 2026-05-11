@@ -79,7 +79,7 @@
 
     <VolumeCreateModal
       v-if="machines.length > 0"
-      :machine-id="machines[0].id"
+      :machine-id="machines[0]!.id"
       :visible="showCreateModal"
       @created="onVolumeCreated"
       @close="showCreateModal = false"

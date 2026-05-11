@@ -41,6 +41,8 @@
     "messageQueue": "Message Queue",
     "online": "Online",
     "offline": "Offline",
+    "machineStatus": "Connectivity",
+    "machineStatusDesc": "Remote Nodes Activity",
     "justNow": "Just now",
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} hr ago",

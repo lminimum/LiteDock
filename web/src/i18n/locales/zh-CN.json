@@ -41,6 +41,8 @@
     "messageQueue": "消息队列",
     "online": "在线",
     "offline": "离线",
+    "machineStatus": "连接状态",
+    "machineStatusDesc": "远程节点在线情况",
     "justNow": "刚刚",
     "minutesAgo": "{n} 分钟前",
     "hoursAgo": "{n} 小时前",

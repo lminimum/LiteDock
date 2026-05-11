@@ -97,12 +97,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 <style scoped>
 .top-header {
   height: var(--header-height);
-  border-bottom: 1px solid var(--color-border-weak);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
-  background: var(--color-background);
+  padding: 0 var(--space-8);
+  background: transparent;
+  z-index: 10;
 }
 
 .menu-toggle {
