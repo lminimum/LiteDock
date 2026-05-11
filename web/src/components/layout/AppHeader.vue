@@ -17,12 +17,6 @@
           <RefreshCw :size="18" :class="{ spinning: refreshing }" />
         </button>
         <LanguageSwitcher />
-        <div class="notification-dropdown" ref="notifRef">
-          <button @click="toggleNotifications" class="btn btn-ghost" :title="t('common.notifications')">
-            <Bell :size="18" />
-            <span class="notification-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
-          </button>
-        </div>
       </div>
 
       <UserMenu />
@@ -37,7 +31,7 @@ import { t } from '@/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import UserMenu from '@/components/layout/UserMenu.vue'
-import { RefreshCw, Bell, Menu } from 'lucide-vue-next'
+import { RefreshCw, Menu } from 'lucide-vue-next'
 
 defineEmits<{
   (e: 'toggle-sidebar'): void
@@ -46,9 +40,6 @@ defineEmits<{
 const route = useRoute()
 
 const refreshing = ref(false)
-const notificationsOpen = ref(false)
-const unreadCount = ref(3)
-const notifRef = ref<HTMLElement | null>(null)
 
 // Simplified nav items — only name + label needed for title/breadcrumb resolution
 const allNavItems = computed(() => [
@@ -80,18 +71,7 @@ const refreshData = async () => {
   }
 }
 
-const toggleNotifications = () => {
-  notificationsOpen.value = !notificationsOpen.value
-}
 
-const handleClickOutside = (event: Event) => {
-  if (notifRef.value && !notifRef.value.contains(event.target as Node)) {
-    notificationsOpen.value = false
-  }
-}
-
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <style scoped>
@@ -173,25 +153,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   to { transform: rotate(360deg); }
 }
 
-.notification-dropdown {
-  position: relative;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  background: var(--color-error);
-  color: #fdfcfc;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 @media (max-width: 767px) {
   .top-header {
     padding: 0 var(--space-4);
@@ -206,10 +167,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   }
 
   .header-breadcrumb {
-    display: none;
-  }
-
-  .header-actions .notification-dropdown {
     display: none;
   }
 }
