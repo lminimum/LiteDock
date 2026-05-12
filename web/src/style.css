@@ -516,6 +516,108 @@ button:disabled {
   gap: var(--space-4);
 }
 
+.item-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.item-list-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  transition: background var(--transition-fast);
+  min-height: 44px;
+}
+
+.item-list-row:hover {
+  background: var(--color-background-weak);
+}
+
+.item-list-row + .item-list-row {
+  border-top: 1px solid var(--color-border-weak);
+}
+
+.item-list-row .item-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-list-row .item-list-title {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-list-row .item-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-weak);
+  line-height: var(--line-height-tight);
+}
+
+.item-list-row .item-list-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* View fade transition for card/list switching */
+.view-fade-enter-active,
+.view-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.view-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.view-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* Filter bar consistency across pages */
+.filters {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+}
+
+.filters .search-box {
+  flex: 1;
+}
+
+.filters .filter-options {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.filters .filter-options select {
+  min-width: 130px;
+}
+
 /* Spinning animation for refresh icon */
 .spinning {
   animation: spin 1s linear infinite;

@@ -7,8 +7,8 @@
           :key="i"
           class="cube-cell"
           :style="cellPositionStyle(i)"
-          @mouseenter="hoveredIndex = i"
-          @mouseleave="hoveredIndex = null"
+          @mouseenter="onCellMouseEnter($event, i)"
+          @mouseleave="onCellMouseLeave"
         >
           <div
             class="cube"
@@ -19,23 +19,26 @@
             <div class="face face-front"></div>
             <div class="face face-right"></div>
           </div>
-
-          <!-- Hover Tooltip -->
-          <Transition name="fade">
-            <div 
-              v-if="hoveredIndex === i && cell.status !== 'empty'" 
-              class="cube-tooltip"
-            >
-              <div class="tooltip-name">{{ cell.name || (cell.status === 'local' ? 'Local Host' : 'Unknown Machine') }}</div>
-              <div class="tooltip-status" :class="cell.status">
-                <span class="status-dot"></span>
-                {{ cell.status.toUpperCase() }}
-              </div>
-            </div>
-          </Transition>
         </div>
       </div>
     </div>
+
+    <!-- Global Tooltip (outside 3D context via Teleport) -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="tooltipData"
+          class="cube-tooltip"
+          :style="tooltipStyle"
+        >
+          <div class="tooltip-name">{{ tooltipData.name }}</div>
+          <div class="tooltip-status" :class="tooltipData.status">
+            <span class="status-dot"></span>
+            {{ tooltipData.status.toUpperCase() }}
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -45,7 +48,7 @@ import { computed, ref } from 'vue'
 export interface CubeData {
   id?: string
   name?: string
-  status: 'online' | 'offline' | 'empty' | 'local'
+  status: 'online' | 'offline' | 'empty' | 'local' | 'unknown'
 }
 
 interface Props {
@@ -59,6 +62,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const hoveredIndex = ref<number | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
+const tooltipData = ref<{ name: string; status: string } | null>(null)
 
 const displayCubes = computed<CubeData[]>(() => {
   const result: CubeData[] = []
@@ -87,6 +92,37 @@ function cellAnimationDelay(index: number): number {
   const row = Math.floor(index / GRID_COLS)
   const col = index % GRID_COLS
   return (row * GRID_COLS + col) * 0.12
+}
+
+function getCellName(cell: CubeData): string {
+  if (cell.status === 'empty') return ''
+  return cell.name || (cell.status === 'local' ? 'Local Host' : 'Unknown Machine')
+}
+
+function onCellMouseEnter(event: MouseEvent, index: number) {
+  const cell = displayCubes.value[index]
+  if (!cell || cell.status === 'empty') return
+
+  hoveredIndex.value = index
+  tooltipData.value = {
+    name: getCellName(cell),
+    status: cell.status
+  }
+
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  tooltipStyle.value = {
+    position: 'fixed',
+    left: `${rect.left + rect.width / 2}px`,
+    top: `${rect.top}px`,
+    transform: 'translate(-50%, -100%)',
+    marginTop: '-8px'
+  }
+}
+
+function onCellMouseLeave() {
+  hoveredIndex.value = null
+  tooltipData.value = null
 }
 </script>
 
@@ -166,6 +202,16 @@ function cellAnimationDelay(index: number): number {
 .cube--offline .face-front { filter: brightness(0.8); }
 .cube--offline .face-right { filter: brightness(0.6); }
 
+/* Unknown State - Yellow Glow (connection not verified) */
+.cube--unknown .face {
+  background: var(--cube-face-unknown);
+  box-shadow: 0 0 15px var(--cube-glow-unknown);
+}
+
+.cube--unknown .face-top { opacity: 0.95; }
+.cube--unknown .face-front { filter: brightness(0.8); }
+.cube--unknown .face-right { filter: brightness(0.6); }
+
 /* Local State - Blue Glow (host machine) */
 .cube--local .face {
   background: var(--cube-face-local);
@@ -189,69 +235,6 @@ function cellAnimationDelay(index: number): number {
 .cube--hovered {
   transform: scale(1.1) translateZ(10px) !important;
   transition: transform 0.2s ease-out;
-}
-
-/* Tooltip Styles */
-.cube-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) rotateZ(45deg) rotateX(-54deg) translateY(-20px);
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.tooltip-name {
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-}
-
-.tooltip-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-
-.tooltip-status.online { color: var(--color-success); }
-.tooltip-status.online .status-dot { background: var(--color-success); }
-
-.tooltip-status.offline { color: var(--color-error); }
-.tooltip-status.offline .status-dot { background: var(--color-error); }
-
-.tooltip-status.local { color: var(--color-accent); }
-.tooltip-status.local .status-dot { background: var(--color-accent); }
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) rotateZ(45deg) rotateX(-54deg) translateY(-10px);
 }
 
 @keyframes cube-float {
@@ -284,5 +267,67 @@ function cellAnimationDelay(index: number): number {
   .face-top { transform: rotateX(90deg) translateZ(18px); }
   .face-front { transform: translateZ(18px); }
   .face-right { transform: rotateY(90deg) translateZ(18px); }
+}
+</style>
+
+<!-- Tooltip is Teleported to body, so global styles apply -->
+<style>
+.cube-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(6px);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tooltip-name {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono), monospace;
+}
+
+.tooltip-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.tooltip-status.online { color: var(--color-success); }
+.tooltip-status.online .status-dot { background: var(--color-success); }
+
+.tooltip-status.offline { color: var(--color-error); }
+.tooltip-status.offline .status-dot { background: var(--color-error); }
+
+.tooltip-status.local { color: var(--color-accent); }
+.tooltip-status.local .status-dot { background: var(--color-accent); }
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
 }
 </style>

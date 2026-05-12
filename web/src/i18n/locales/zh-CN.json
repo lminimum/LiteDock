@@ -404,7 +404,11 @@
     "confirm": "确认",
     "yes": "是",
     "no": "否",
-    "searchPlaceholder": "搜索..."
+    "searchPlaceholder": "搜索...",
+    "viewCard": "卡片视图",
+    "viewList": "列表视图",
+    "inspect": "查看",
+    "delete": "删除"
   },
   "errors": {
     "loginFailed": "登录失败"

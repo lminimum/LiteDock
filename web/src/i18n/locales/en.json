@@ -423,7 +423,11 @@
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "viewCard": "Card view",
+    "viewList": "List view",
+    "inspect": "Inspect",
+    "delete": "Delete"
   },
   "errors": {
     "loginFailed": "Login failed"

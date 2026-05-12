@@ -24,6 +24,7 @@
           class="input"
         />
       </div>
+      <ViewToggle v-model="viewMode" />
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -51,15 +52,37 @@
       <p>{{ t('pages.images.noImages') }}</p>
     </div>
 
-    <div v-else class="card-grid">
-      <ImageCard
-        v-for="img in filteredImages"
-        :key="`${img.machineId}:${img.id}`"
-        :image="img"
-        @inspect="handleInspect"
-        @delete="confirmDelete"
-      />
-    </div>
+    <Transition name="view-fade" mode="out-in">
+      <div v-if="viewMode === 'card'" class="card-grid" key="card">
+        <ImageCard
+          v-for="img in filteredImages"
+          :key="`${img.machineId}:${img.id}`"
+          :image="img"
+          @inspect="handleInspect"
+          @delete="confirmDelete"
+        />
+      </div>
+
+      <div v-else class="item-list" key="list">
+        <div v-for="img in filteredImages" :key="`${img.machineId}:${img.id}`" class="item-list-row">
+        <div class="item-list-info">
+          <div class="item-list-title">{{ img.repoTags?.[0] || 'untagged' }}</div>
+          <div class="item-list-meta">
+            <span class="text-muted">ID: {{ img.id.replace('sha256:', '').slice(0, 12) }}</span>
+            <span class="badge badge-info">{{ img.repoTags?.length || 0 }} tags</span>
+            <span>{{ (img.size / 1048576).toFixed(1) }} MB</span>
+          </div>
+        </div>
+        <div class="item-list-actions">
+          <button @click="handleInspect(img)" class="btn btn-sm btn-ghost">
+            <Eye :size="14" /> Inspect
+          </button>
+          <button @click="confirmDelete(img)" class="btn btn-sm btn-danger">
+            <Trash2 :size="14" /> Delete
+          </button>
+        </div>
+      </div>
+    </div></Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -80,7 +103,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Download, Trash2, RefreshCw } from 'lucide-vue-next'
+import { Download, Trash2, RefreshCw, Eye } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { imageService } from '@/services/imageService'
@@ -90,6 +113,8 @@ import ImageCard from '@/components/image/ImageCard.vue'
 import ImagePullModal from '@/components/image/ImagePullModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import { formatSize, formatDate } from '@/utils/format'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 interface ImageWithMachine extends Image {
   machine: string
@@ -102,6 +127,7 @@ const searchQuery = ref('')
 const showPullModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const images = ref<ImageWithMachine[]>([])
+const viewMode = useViewMode('images')
 
 const showInspect = ref(false)
 const selectedImage = ref<ImageWithMachine | null>(null)
@@ -278,6 +304,14 @@ onMounted(() => fetchImages())
 @media (max-width: 768px) {
   .card-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .item-list-actions {
+    justify-content: flex-end;
   }
 
   .filters {

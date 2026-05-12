@@ -33,6 +33,7 @@
           <option value="tmpfs">tmpfs</option>
         </select>
       </div>
+      <ViewToggle v-model="viewMode" />
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -60,15 +61,38 @@
       <p>{{ t('volumes.noVolumes') }}</p>
     </div>
 
-    <div v-else class="card-grid">
-      <VolumeCard
-        v-for="vol in filteredVolumes"
-        :key="`${vol.machineId}:${vol.name}`"
-        :volume="vol"
-        @delete="handleDelete"
-        @inspect="handleInspect"
-      />
-    </div>
+    <Transition name="view-fade" mode="out-in">
+      <div v-if="viewMode === 'card'" class="card-grid" key="card">
+        <VolumeCard
+          v-for="vol in filteredVolumes"
+          :key="`${vol.machineId}:${vol.name}`"
+          :volume="vol"
+          @delete="handleDelete"
+          @inspect="handleInspect"
+        />
+      </div>
+
+      <div v-else class="item-list" key="list">
+        <div v-for="vol in filteredVolumes" :key="`${vol.machineId}:${vol.name}`" class="item-list-row">
+        <div class="item-list-info">
+          <div class="item-list-title">{{ vol.name }}</div>
+          <div class="item-list-meta">
+            <span class="badge badge-info">{{ vol.driver }}</span>
+            <span class="badge badge-info">{{ vol.scope }}</span>
+            <span class="text-muted truncate" :title="vol.mountpoint">{{ vol.mountpoint }}</span>
+            <span>{{ vol.machine }}</span>
+          </div>
+        </div>
+        <div class="item-list-actions">
+          <button @click="handleInspect(vol.name)" class="btn btn-sm btn-ghost">
+            <Info :size="14" /> Details
+          </button>
+          <button @click="handleDelete(`${vol.machineId}:${vol.name}`)" class="btn btn-sm btn-danger">
+            <Trash2 :size="14" /> Delete
+          </button>
+        </div>
+      </div>
+    </div></Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -89,7 +113,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus } from 'lucide-vue-next'
+import { RefreshCw, Plus, Info, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { volumeService } from '@/services/volumeService'
@@ -98,6 +122,8 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import VolumeCard from '@/components/volume/VolumeCard.vue'
 import VolumeCreateModal from '@/components/volume/VolumeCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 interface VolumeWithMachine extends Volume {
   machineId: string
@@ -112,6 +138,7 @@ const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const volumes = ref<VolumeWithMachine[]>([])
 
+const viewMode = useViewMode('volumes')
 const showInspect = ref(false)
 const selectedVolume = ref<VolumeWithMachine | null>(null)
 
@@ -271,6 +298,15 @@ onMounted(() => refreshVolumes())
 
   .filter-options select {
     min-width: 100%;
+  }
+
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .item-list-actions {
+    justify-content: flex-end;
   }
 }
 </style>

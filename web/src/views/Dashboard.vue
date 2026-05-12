@@ -248,19 +248,22 @@ const remoteMachines = ref<RemoteMachine[]>([])
 // Cube Section
 const cubeData = computed<CubeData[]>(() => {
   const cubes: CubeData[] = []
-  // Host machine — always present as local
+  
+  // Host machine — always first (hardcoded)
   cubes.push({ 
     id: 'local', 
     name: 'Local Host', 
     status: 'local' 
   })
   
-  // Map remote machines to online/offline
+  // Map remote machines to online/offline, skip local duplicates
   remoteMachines.value.forEach(m => {
+    const isLocal = m.host === 'localhost' || m.host === '127.0.0.1' || m.docker_host === 'local'
+    if (isLocal) return
     cubes.push({ 
       id: m.id, 
       name: m.name, 
-      status: m.status === 'online' ? 'online' : 'offline' 
+      status: m.status === 'unknown' ? 'unknown' : (m.status === 'online' ? 'online' : 'offline')
     })
   })
   

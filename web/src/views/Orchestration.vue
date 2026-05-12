@@ -38,6 +38,7 @@
           <option value="partial">{{ t('pages.orchestration.status.partial') }}</option>
         </select>
       </div>
+      <ViewToggle v-model="viewMode" />
     </div>
 
     <!-- Loading state -->
@@ -72,19 +73,77 @@
       <p style="color: var(--color-text-weak)">No projects match your search.</p>
     </div>
 
-    <!-- Card grid -->
-    <div v-else class="card-grid">
-      <ComposeCard
-        v-for="project in filteredProjects"
-        :key="`${project.machineId}:${project.id}`"
-        :project="project"
-        @inspect="handleInspect"
-        @delete="handleDelete"
-        @up="handleUp"
-        @down="handleDown"
-        @logs="handleLogsClick"
-      />
-    </div>
+    <template v-else>
+      <Transition name="view-fade" mode="out-in">
+        <div v-if="viewMode === 'card'" class="card-grid" key="card">
+        <ComposeCard
+          v-for="project in filteredProjects"
+          :key="`${project.machineId}:${project.id}`"
+          :project="project"
+          @inspect="handleInspect"
+          @delete="handleDelete"
+          @up="handleUp"
+          @down="handleDown"
+          @logs="handleLogsClick"
+        />
+      </div>
+      <div v-else class="item-list">
+        <div
+          v-for="project in filteredProjects"
+          :key="`${project.machineId}:${project.id}`"
+          class="item-list-row"
+        >
+          <div class="item-list-info">
+            <div class="item-list-title">{{ project.name }}</div>
+            <div class="item-list-meta">
+              <span :class="['badge', statusBadgeClass(project.status)]">
+                {{ project.status }}
+              </span>
+              <span>{{ project.machineName }}</span>
+              <span>{{ project.services?.length ?? 0 }} services</span>
+              <span class="text-muted">{{ formatDate(project.createdAt) }}</span>
+            </div>
+          </div>
+          <div class="item-list-actions">
+            <button
+              class="btn btn-sm btn-primary"
+              @click="handleUp(project.id)"
+              :title="t('pages.orchestration.actions.up')"
+            >
+              <Play :size="14" />
+            </button>
+            <button
+              class="btn btn-sm btn-warning"
+              @click="handleDown(project.id)"
+              :title="t('pages.orchestration.actions.down')"
+            >
+              <Square :size="14" />
+            </button>
+            <button
+              class="btn btn-sm btn-ghost"
+              @click="handleLogsClick(project.id)"
+              :title="t('pages.orchestration.actions.logs')"
+            >
+              <ScrollText :size="14" />
+            </button>
+            <button
+              class="btn btn-sm btn-ghost"
+              @click="handleInspect(project.id)"
+              :title="t('common.inspect')"
+            >
+              <Eye :size="14" />
+            </button>
+            <button
+              class="btn btn-sm btn-ghost"
+              @click="handleDelete(project.id)"
+              :title="t('common.delete')"
+            >
+              <Trash2 :size="14" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition></template>
 
     <!-- Detail panel -->
     <div v-if="selectedProject" class="detail-panel card">
@@ -215,7 +274,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus, GitBranch, Play, Square, X, Layers, FileCode, ScrollText } from 'lucide-vue-next'
+import { RefreshCw, Plus, GitBranch, Play, Square, X, Layers, FileCode, ScrollText, Eye, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { composeService } from '@/services/composeService'
@@ -227,11 +286,14 @@ import ComposeCreateModal from '@/components/compose/ComposeCreateModal.vue'
 import ServiceStatusCard from '@/components/compose/ServiceStatusCard.vue'
 import ComposeEditor from '@/components/compose/ComposeEditor.vue'
 import LogViewer from '@/components/compose/LogViewer.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 interface ProjectWithMachine extends ComposeProject {
   machineName: string
 }
 
+const viewMode = useViewMode('orchestration')
 const projects = ref<ProjectWithMachine[]>([])
 const machines = ref<RemoteMachine[]>([])
 const loading = ref(true)

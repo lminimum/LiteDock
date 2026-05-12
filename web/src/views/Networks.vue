@@ -40,6 +40,7 @@
           <option value="swarm">Swarm</option>
         </select>
       </div>
+      <ViewToggle v-model="viewMode" />
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -67,15 +68,50 @@
       <p>{{ t('networks.noNetworks') }}</p>
     </div>
 
-    <div v-else class="card-grid">
-      <NetworkCard
-        v-for="network in filteredNetworks"
-        :key="network.id"
-        :network="network"
-        @delete="handleDelete"
-        @inspect="handleInspect"
-      />
-    </div>
+    <template v-else>
+      <Transition name="view-fade" mode="out-in">
+        <div v-if="viewMode === 'card'" class="card-grid" key="card">
+        <NetworkCard
+          v-for="network in filteredNetworks"
+          :key="network.id"
+          :network="network"
+          @delete="handleDelete"
+          @inspect="handleInspect"
+        />
+      </div>
+      <div v-else class="item-list">
+        <div
+          v-for="network in filteredNetworks"
+          :key="network.id"
+          class="item-list-row"
+        >
+          <div class="item-list-info">
+            <div class="item-list-title">{{ network.name }}</div>
+            <div class="item-list-meta">
+              <span>{{ network.driver }}</span>
+              <span class="badge badge-info badge-sm">{{ network.scope }}</span>
+              <span>{{ network.containers?.length ?? 0 }} containers</span>
+            </div>
+          </div>
+          <div class="item-list-actions">
+            <button
+              class="btn btn-ghost btn-sm"
+              @click="handleInspect(network.id)"
+              :title="t('common.inspect')"
+            >
+              <Eye :size="14" />
+            </button>
+            <button
+              class="btn btn-ghost btn-sm"
+              @click="handleDelete(network.id)"
+              :title="t('common.delete')"
+            >
+              <Trash2 :size="14" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition></template>
 
     <InspectModal
       :visible="showInspect"
@@ -96,7 +132,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus } from 'lucide-vue-next'
+import { RefreshCw, Plus, Eye, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { networkService } from '@/services/networkService'
@@ -105,6 +141,8 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import NetworkCard from '@/components/network/NetworkCard.vue'
 import NetworkCreateModal from '@/components/network/NetworkCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 interface NetworkWithMachine extends Network {
   machineId: string
@@ -116,6 +154,7 @@ const error = ref('')
 const searchQuery = ref('')
 const driverFilter = ref('')
 const scopeFilter = ref('')
+const viewMode = useViewMode('networks')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const networks = ref<NetworkWithMachine[]>([])
@@ -284,6 +323,16 @@ onMounted(() => refreshNetworks())
 
   .filter-options select {
     min-width: 100%;
+  }
+
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+
+  .item-list-row .item-list-actions {
+    justify-content: flex-start;
   }
 }
 </style>

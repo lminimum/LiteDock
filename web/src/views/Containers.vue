@@ -30,6 +30,7 @@
           <option value="exited">{{ t('containers.exited') }}</option>
           <option value="created">{{ t('containers.created') }}</option>
         </select>
+        <ViewToggle v-model="viewMode" />
       </div>
     </div>
 
@@ -51,19 +52,50 @@
       <p>{{ t('containers.noContainers') }}</p>
     </div>
 
-    <div v-else class="card-grid">
-      <ContainerCard
-        v-for="container in filteredContainers"
-        :key="container.id"
-        :container="container"
-        @inspect="handleInspect"
-        @delete="deleteContainer"
-        @start="startContainer"
-        @stop="stopContainer"
-        @restart="restartContainer"
-        @logs="showLogs"
-      />
-    </div>
+    <Transition name="view-fade" mode="out-in">
+      <div v-if="viewMode === 'card'" class="card-grid" key="card">
+        <ContainerCard
+          v-for="container in filteredContainers"
+          :key="container.id"
+          :container="container"
+          @inspect="handleInspect"
+          @delete="deleteContainer"
+          @start="startContainer"
+          @stop="stopContainer"
+          @restart="restartContainer"
+          @logs="showLogs"
+        />
+      </div>
+
+      <div v-else class="item-list" key="list">
+        <div v-for="container in filteredContainers" :key="container.id" class="item-list-row">
+        <div class="item-list-info">
+          <div class="item-list-title">{{ container.name }}</div>
+          <div class="item-list-meta">
+            <span class="text-muted">Image: {{ container.image }}</span>
+            <span class="badge" :class="container.status === 'running' ? 'badge-success' : container.status === 'stopped' || container.status === 'exited' ? 'badge-error' : 'badge-warning'">{{ container.status }}</span>
+            <span>{{ container.machine }}</span>
+          </div>
+        </div>
+        <div class="item-list-actions">
+          <button @click="handleInspect(container.id)" class="btn btn-sm btn-ghost">
+            <Info :size="14" /> Details
+          </button>
+          <button v-if="container.status === 'stopped'" @click="startContainer(container.id)" class="btn btn-sm btn-secondary">
+            <Play :size="14" /> Start
+          </button>
+          <button v-if="container.status === 'running'" @click="stopContainer(container.id)" class="btn btn-sm btn-secondary">
+            <Square :size="14" /> Stop
+          </button>
+          <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
+            <FileText :size="14" /> Logs
+          </button>
+          <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
+            <Trash2 :size="14" /> Delete
+          </button>
+        </div>
+      </div>
+    </div></Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -83,7 +115,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus } from 'lucide-vue-next'
+import { RefreshCw, Plus, Info, Play, Square, FileText, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import api from '@/utils/api'
 import { remoteMachineService } from '@/services/remoteMachineService'
@@ -92,6 +124,8 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import ContainerCard from '@/components/container/ContainerCard.vue'
 import ContainerCreateModal from '@/components/container/ContainerCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 interface Container {
   id: string
@@ -108,6 +142,7 @@ const loading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
 const statusFilter = ref('')
+const viewMode = useViewMode('containers')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 
@@ -233,7 +268,7 @@ const deleteContainer = async (id: string) => {
   }
 }
 
-const onContainerCreated = (container: { id: string; name: string; image: string; machineId: string }) => {
+const onContainerCreated = (_container: { id: string; name: string; image: string; machineId: string }) => {
   showCreateModal.value = false
   refreshContainers()
 }
@@ -290,6 +325,14 @@ onMounted(() => refreshContainers())
 
   .filter-options select {
     min-width: 100%;
+  }
+
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .item-list-actions {
+    justify-content: flex-end;
   }
 }
 </style>

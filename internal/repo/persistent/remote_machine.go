@@ -215,6 +215,17 @@ func (r *RemoteMachineRepo) GetByHost(ctx context.Context, host string) (*entity
 	return &m, nil
 }
 
+func (r *RemoteMachineRepo) UpdateStatus(ctx context.Context, id string, status string) error {
+	query := `UPDATE remote_machines SET status = ?, updated_at = ? WHERE id = ?`
+
+	err := r.db.Exec(ctx, query, status, time.Now(), id)
+	if err != nil {
+		return errors.Wrap(err, "RemoteMachineRepo.UpdateStatus.Exec")
+	}
+
+	return nil
+}
+
 func (r *RemoteMachineRepo) Count(ctx context.Context) (int64, error) {
 	var count int64
 

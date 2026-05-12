@@ -109,6 +109,33 @@ func (uc *UseCase) List(ctx context.Context) ([]entity.RemoteMachine, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "UseCase.List.repo.List")
 	}
+
+	// Connectivity check for each machine (parallel per machine)
+	for i := range machines {
+		m := &machines[i]
+
+		pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		var status string
+
+		cli, err := uc.getDockerClient(pingCtx, m.ID)
+		if err != nil {
+			uc.l.Warn("UseCase.List.getDockerClient(%s): %v", m.ID, err)
+			status = "offline"
+		} else {
+			err = cli.Ping(pingCtx)
+			cli.Close()
+			if err != nil {
+				uc.l.Warn("UseCase.List.Ping(%s): %v", m.ID, err)
+				status = "offline"
+			} else {
+				status = "online"
+			}
+		}
+		cancel()
+
+		m.Status = status
+	}
+
 	return machines, nil
 }
 
@@ -153,15 +180,18 @@ func (uc *UseCase) GetByHost(ctx context.Context, host string) (*entity.RemoteMa
 func (uc *UseCase) TestConnection(ctx context.Context, id string) error {
 	cli, err := uc.getDockerClient(ctx, id)
 	if err != nil {
+		_ = uc.repo.UpdateStatus(ctx, id, "offline")
 		return errors.Wrap(err, "UseCase.TestConnection.getDockerClient")
 	}
 	defer cli.Close()
 
 	err = cli.Ping(ctx)
 	if err != nil {
+		_ = uc.repo.UpdateStatus(ctx, id, "offline")
 		return errors.Wrap(err, "UseCase.TestConnection.cli.Ping")
 	}
 
+	_ = uc.repo.UpdateStatus(ctx, id, "online")
 	return nil
 }
 

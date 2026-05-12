@@ -84,4 +84,6 @@
   --cube-glow-online: rgba(22, 163, 74, 0.4);
   --cube-glow-offline: rgba(220, 38, 38, 0.4);
   --cube-glow-local: rgba(0, 122, 255, 0.4);
+  --cube-face-unknown: #ca8a04;  /* Yellow-600 */
+  --cube-glow-unknown: rgba(202, 138, 4, 0.4);
 }
