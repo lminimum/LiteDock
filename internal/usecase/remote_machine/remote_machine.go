@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
@@ -275,6 +276,22 @@ func (uc *UseCase) ExecContainer(ctx context.Context, machineID, containerID str
 	}
 
 	return output, nil
+}
+
+func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *container.Config, hostCfg *container.HostConfig, name string) (*container.CreateResponse, error) {
+	cli, err := uc.getDockerClient(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.CreateContainer.getDockerClient")
+	}
+	defer cli.Close()
+
+	resp, err := cli.ContainerCreate(ctx, cfg, hostCfg, name)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.CreateContainer.cli.ContainerCreate")
+	}
+
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
+	return resp, nil
 }
 
 func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID string) error {

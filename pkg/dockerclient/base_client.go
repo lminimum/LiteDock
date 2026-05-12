@@ -181,6 +181,14 @@ func (c *baseClient) ContainerRemove(ctx context.Context, containerID string, fo
 	return nil
 }
 
+func (c *baseClient) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, containerName string) (*container.CreateResponse, error) {
+	resp, err := c.docker.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+	if err != nil {
+		return nil, errors.Wrap(errors.ErrDockerOperation, "ContainerCreate."+err.Error())
+	}
+	return &resp, nil
+}
+
 func (c *baseClient) ContainerInspect(ctx context.Context, containerID string) (*container.InspectResponse, error) {
 	result, err := c.docker.ContainerInspect(ctx, containerID)
 	if err != nil {
