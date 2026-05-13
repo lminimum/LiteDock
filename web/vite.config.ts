@@ -4,9 +4,14 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiUrl = env.VITE_API_URL || 'http://localhost:8080/v1'
+  const apiUrl = env.VITE_API_URL || 'http://localhost:5174/v1'
   const target = apiUrl.replace(/\/v1\/?$/, '')
-  const allowedHosts = env.VITE_ALLOWED_HOSTS ? env.VITE_ALLOWED_HOSTS.split(',') : []
+  const allowedHosts: string[] = env.VITE_ALLOWED_HOSTS
+    ? env.VITE_ALLOWED_HOSTS.split(',')
+    : []
+  if (!allowedHosts.includes('oi.lch.ink')) {
+    allowedHosts.push('oi.lch.ink')
+  }
 
   return {
     plugins: [vue()],

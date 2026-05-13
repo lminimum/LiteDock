@@ -1,8 +1,7 @@
 <!-- web/src/components/layout/Sidebar.vue -->
 <template>
   <aside class="sidebar" :class="{ collapsed: effectiveCollapsed, 'mobile-open': mobileOpen && !isClosing, 'mobile-mode': isMobile, 'mobile-closing': isClosing }">
-    <SidebarLogo :collapsed="effectiveCollapsed" :is-mobile="isMobile" />
-    <SidebarNav :collapsed="effectiveCollapsed" :is-mobile="isMobile" />
+    <SidebarNav :collapsed="effectiveCollapsed" :is-mobile="isMobile" @close-mobile="$emit('toggle')" />
     <SidebarUserInfo v-if="!isMobile" :collapsed="effectiveCollapsed" @toggle="handleToggle" />
   </aside>
 </template>
@@ -12,7 +11,6 @@ import { computed, ref, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSidebarStore } from '@/stores/sidebar'
 import { useViewport } from '@/composables/useViewport'
-import SidebarLogo from '@/components/layout/SidebarLogo.vue'
 import SidebarNav from '@/components/nav/SidebarNav.vue'
 import SidebarUserInfo from '@/components/layout/SidebarUserInfo.vue'
 
@@ -86,8 +84,8 @@ watch(() => props.mobileOpen, (open) => {
 .sidebar {
   width: var(--sidebar-width);
   height: 100%;
-  background: var(--color-background);
-  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-background-weak);
+  border-right: 1px solid var(--color-border-weak);
   display: flex;
   flex-direction: column;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);

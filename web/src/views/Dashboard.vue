@@ -1,191 +1,213 @@
 <template>
   <div class="dashboard">
-    <PageHeader :title="t('dashboard.title')" />
-
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-accent stat-accent--info"></div>
-        <div class="stat-icon">
-          <Box :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.containers.total }}</span>
-          <span class="stat-label">{{ t('dashboard.totalContainers') }}</span>
-          <span class="stat-sub">
-            <span class="stat-sub--running">{{ stats.containers.running }} {{ t('dashboard.running') }}</span>
-            <span class="stat-sub--stopped">{{ stats.containers.stopped }} {{ t('dashboard.stopped') }}</span>
-          </span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-accent stat-accent--accent"></div>
-        <div class="stat-icon">
-          <Globe :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.machines.total }}</span>
-          <span class="stat-label">{{ t('nav.machines') }}</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-accent stat-accent--success"></div>
-        <div class="stat-icon">
-          <Network :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.networks.total }}</span>
-          <span class="stat-label">{{ t('dashboard.totalNetworks') }}</span>
-          <span class="stat-sub">{{ stats.networks.active }} {{ t('dashboard.active') }}</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-accent stat-accent--warning"></div>
-        <div class="stat-icon">
-          <HardDrive :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.volumes.total }}</span>
-          <span class="stat-label">{{ t('dashboard.totalVolumes') }}</span>
-          <span class="stat-sub">{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-accent stat-accent--success"></div>
-        <div class="stat-icon">
-          <Image :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.images.total }}</span>
-          <span class="stat-label">{{ t('dashboard.totalImages') }}</span>
-          <span class="stat-sub">{{ stats.images.size }}</span>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-accent" style="background: var(--color-accent);"></div>
-        <div class="stat-icon">
-          <Layers :size="24" />
-        </div>
-        <div class="stat-body">
-          <span class="stat-number">{{ stats.compose.total }}</span>
-          <span class="stat-label">{{ t('dashboard.stats.compose') }}</span>
-          <span class="stat-sub">{{ stats.compose.running }} {{ t('dashboard.running') }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content Grid: Chart as centerpiece -->
-    <div class="dashboard-content">
-      <!-- Left: Main area (chart + activity) -->
-      <div class="dashboard-main">
-        <div class="card card--chart">
-          <div class="card-header">
-            <h3>{{ t('dashboard.systemResources') }}</h3>
+    <!-- Centerpiece — Stats (left) + 3D cube grid (right) -->
+    <section class="centerpiece" aria-label="Machine connectivity visualization">
+      <!-- Stats column — 4 metric cards stacked vertically -->
+      <div class="stats-panel">
+        <div class="stat-card stat-card--containers">
+          <div class="stat-accent"></div>
+          <div class="stat-body">
+            <div class="stat-head">
+              <Box :size="16" class="stat-icon" />
+              <span class="stat-number">{{ stats.containers.total }}</span>
+            </div>
+            <span class="stat-label">{{ t('dashboard.totalContainers') }}</span>
+            <span class="stat-sub">
+              <span class="stat-sub--running">{{ stats.containers.running }} {{ t('dashboard.running') }}</span>
+              <span class="stat-sub--stopped">{{ stats.containers.stopped }} {{ t('dashboard.stopped') }}</span>
+            </span>
           </div>
-          <div class="card-body">
-            <SystemResourcesChart
-              :labels="chart.labels.value"
-              :cpu="chart.cpu.value"
-              :memory="chart.memory.value"
-              :disk="chart.disk.value"
+        </div>
+
+        <div class="stat-card stat-card--machines">
+          <div class="stat-accent"></div>
+          <div class="stat-body">
+            <div class="stat-head">
+              <Globe :size="16" class="stat-icon" />
+              <span class="stat-number">{{ stats.machines.total }}</span>
+            </div>
+            <span class="stat-label">{{ t('nav.machines') }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--networks">
+          <div class="stat-accent"></div>
+          <div class="stat-body">
+            <div class="stat-head">
+              <Network :size="16" class="stat-icon" />
+              <span class="stat-number">{{ stats.networks.total }}</span>
+            </div>
+            <span class="stat-label">{{ t('dashboard.totalNetworks') }}</span>
+            <span class="stat-sub">{{ stats.networks.active }} {{ t('dashboard.active') }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card--volumes">
+          <div class="stat-accent"></div>
+          <div class="stat-body">
+            <div class="stat-head">
+              <HardDrive :size="16" class="stat-icon" />
+              <span class="stat-number">{{ stats.volumes.total }}</span>
+            </div>
+            <span class="stat-label">{{ t('dashboard.totalVolumes') }}</span>
+            <span class="stat-sub">{{ stats.volumes.size }} {{ t('dashboard.totalSize') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D cube visualization — right side -->
+      <div class="centerpiece-visual">
+        <div class="visual-header">
+          <h2 class="visual-title">{{ t('dashboard.machineStatus') }}</h2>
+          <p class="visual-description">{{ t('dashboard.machineStatusDesc') }}</p>
+        </div>
+        <CubeArray :cubes="cubeData" :max-cubes="16" />
+      </div>
+    </section>
+
+    <!-- Resource Panel — CPU / Memory / Disk progress bars -->
+    <section class="resource-panel" aria-label="System resource metrics">
+      <div class="card">
+        <div class="card-header">
+          <h3>{{ t('dashboard.systemResources') }}</h3>
+        </div>
+        <div class="card-body">
+          <div class="resource-grid">
+            <MinimalProgress
+              :label="t('dashboard.cpu')"
+              :value="currentCpu"
+              color="info"
+              unit="%"
+            />
+            <MinimalProgress
+              :label="t('dashboard.memory')"
+              :value="currentMemory"
+              color="warning"
+              unit="%"
+            />
+            <MinimalProgress
+              :label="t('dashboard.disk')"
+              :value="currentDisk"
+              color="success"
+              unit="%"
             />
           </div>
         </div>
+      </div>
+    </section>
 
-        <div class="card">
-          <div class="card-header">
-            <h3>{{ t('dashboard.recentActivity') }}</h3>
-            <router-link to="/containers" class="view-all">{{ t('dashboard.viewAll') }}</router-link>
+    <!-- Bottom Row — Quick Actions + System Status + Secondary Stats -->
+    <section class="dashboard-bottom">
+      <div class="card">
+        <div class="card-header">
+          <h3>{{ t('dashboard.quickActions') }}</h3>
+        </div>
+        <div class="card-body">
+          <div class="quick-actions">
+            <button class="quick-action-btn" @click="createContainer">
+              <Plus :size="18" />
+              <span>{{ t('dashboard.createContainer') }}</span>
+            </button>
+            <button class="quick-action-btn" @click="pullImage">
+              <Download :size="18" />
+              <span>{{ t('dashboard.pullImage') }}</span>
+            </button>
+            <button class="quick-action-btn" @click="createNetwork">
+              <PlusCircle :size="18" />
+              <span>{{ t('dashboard.createNetwork') }}</span>
+            </button>
+            <button class="quick-action-btn" @click="createVolume">
+              <PlusCircle :size="18" />
+              <span>{{ t('dashboard.createVolume') }}</span>
+            </button>
+            <button class="quick-action-btn" @click="goToOrchestration">
+              <Layers :size="18" />
+              <span>{{ t('dashboard.composeProjects') }}</span>
+            </button>
           </div>
-          <div class="card-body">
-            <div class="activity-list">
-              <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-                <div class="activity-dot" :class="'activity-dot--' + activity.type"></div>
-                <div class="activity-content">
-                  <span class="activity-title">{{ activity.title }}</span>
-                  <span class="activity-time">{{ formatTime(activity.time) }}</span>
-                </div>
-              </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>{{ t('dashboard.systemStatus') }}</h3>
+        </div>
+        <div class="card-body">
+          <div class="status-list">
+            <div class="status-item">
+              <span class="status-label">{{ t('dashboard.dockerService') }}</span>
+              <span class="badge" :class="systemStatus.docker ? 'badge-success' : 'badge-error'">
+                {{ systemStatus.docker ? t('dashboard.online') : t('dashboard.offline') }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">{{ t('dashboard.apiService') }}</span>
+              <span class="badge badge-success">{{ t('dashboard.online') }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">{{ t('dashboard.database') }}</span>
+              <span class="badge" :class="systemStatus.database ? 'badge-success' : 'badge-error'">
+                {{ systemStatus.database ? t('dashboard.online') : t('dashboard.offline') }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">{{ t('dashboard.messageQueue') }}</span>
+              <span class="badge" :class="systemStatus.messageQueue ? 'badge-success' : 'badge-error'">
+                {{ systemStatus.messageQueue ? t('dashboard.online') : t('dashboard.offline') }}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right: Side panel -->
-      <div class="dashboard-side">
-        <div class="card">
-          <div class="card-header">
-            <h3>{{ t('dashboard.quickActions') }}</h3>
-          </div>
-          <div class="card-body">
-            <div class="quick-actions">
-              <button class="quick-action-btn" @click="createContainer">
-                <Plus :size="18" />
-                <span>{{ t('dashboard.createContainer') }}</span>
-              </button>
-              <button class="quick-action-btn" @click="pullImage">
-                <Download :size="18" />
-                <span>{{ t('dashboard.pullImage') }}</span>
-              </button>
-              <button class="quick-action-btn" @click="createNetwork">
-                <PlusCircle :size="18" />
-                <span>{{ t('dashboard.createNetwork') }}</span>
-              </button>
-              <button class="quick-action-btn" @click="createVolume">
-                <PlusCircle :size="18" />
-                <span>{{ t('dashboard.createVolume') }}</span>
-              </button>
-              <button class="quick-action-btn" @click="goToOrchestration">
-                <Layers :size="18" />
-                <span>{{ t('dashboard.composeProjects') }}</span>
-              </button>
+      <div class="card">
+        <div class="card-header">
+          <h3>{{ t('dashboard.stats.compose') }} &amp; {{ t('dashboard.totalImages') }}</h3>
+        </div>
+        <div class="card-body">
+          <div class="secondary-stats">
+            <div class="secondary-stat">
+              <Image :size="16" class="secondary-stat-icon" />
+              <span class="secondary-stat-number">{{ stats.images.total }}</span>
+              <span class="secondary-stat-label">{{ t('dashboard.totalImages') }}</span>
+              <span class="secondary-stat-sub">{{ stats.images.size }}</span>
+            </div>
+            <div class="secondary-stat">
+              <Layers :size="16" class="secondary-stat-icon" />
+              <span class="secondary-stat-number">{{ stats.compose.total }}</span>
+              <span class="secondary-stat-label">{{ t('dashboard.stats.compose') }}</span>
+              <span class="secondary-stat-sub">{{ stats.compose.running }} {{ t('dashboard.running') }}</span>
             </div>
           </div>
         </div>
+      </div>
+    </section>
 
-        <div class="card">
-          <div class="card-header">
-            <h3>{{ t('dashboard.systemStatus') }}</h3>
-          </div>
-          <div class="card-body">
-            <div class="status-list">
-              <div class="status-item">
-                <span class="status-label">{{ t('dashboard.dockerService') }}</span>
-                <span class="badge" :class="systemStatus.docker ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.docker ? t('dashboard.online') : t('dashboard.offline') }}
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">{{ t('dashboard.apiService') }}</span>
-                <span class="badge badge-success">{{ t('dashboard.online') }}</span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">{{ t('dashboard.database') }}</span>
-                <span class="badge" :class="systemStatus.database ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.database ? t('dashboard.online') : t('dashboard.offline') }}
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="status-label">{{ t('dashboard.messageQueue') }}</span>
-                <span class="badge" :class="systemStatus.messageQueue ? 'badge-success' : 'badge-error'">
-                  {{ systemStatus.messageQueue ? t('dashboard.online') : t('dashboard.offline') }}
-                </span>
+    <!-- Recent Activity — kept subtle at the bottom -->
+    <section class="dashboard-activity">
+      <div class="card">
+        <div class="card-header">
+          <h3>{{ t('dashboard.recentActivity') }}</h3>
+          <router-link to="/containers" class="view-all">{{ t('dashboard.viewAll') }}</router-link>
+        </div>
+        <div class="card-body">
+          <div class="activity-list">
+            <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
+              <div class="activity-dot" :class="'activity-dot--' + activity.type"></div>
+              <div class="activity-content">
+                <span class="activity-title">{{ activity.title }}</span>
+                <span class="activity-time">{{ formatTime(activity.time) }}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Box,
@@ -199,13 +221,15 @@ import {
   Layers
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
-import PageHeader from '@/components/ui/PageHeader.vue'
-import SystemResourcesChart from '@/components/chart/SystemResourcesChart.vue'
+import CubeArray from '@/components/dashboard/CubeArray.vue'
+import type { CubeData } from '@/components/dashboard/CubeArray.vue'
+import MinimalProgress from '@/components/dashboard/MinimalProgress.vue'
 import api from '@/utils/api'
 import { imageService } from '@/services/imageService'
 import { composeService } from '@/services/composeService'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { formatSize } from '@/utils/format'
+import type { RemoteMachine } from '@/types'
 import { useChart } from '@/composables/useChart'
 import { useWebSocket } from '@/composables/useWebSocket'
 
@@ -218,9 +242,48 @@ const stats = reactive({
   compose: { total: 0, running: 0 }
 })
 
+const remoteMachines = ref<RemoteMachine[]>([])
 const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
 
+// Cube Section
+const cubeData = computed<CubeData[]>(() => {
+  const cubes: CubeData[] = []
+  
+  // Host machine — always first (hardcoded)
+  cubes.push({ 
+    id: 'local', 
+    name: 'Local Host', 
+    status: 'local' 
+  })
+  
+  // Map remote machines to online/offline, skip local duplicates
+  remoteMachines.value.forEach(m => {
+    const isLocal = m.host === 'localhost' || m.host === '127.0.0.1' || m.docker_host === 'local'
+    if (isLocal) return
+    cubes.push({ 
+      id: m.id, 
+      name: m.name, 
+      status: m.status === 'unknown' ? 'unknown' : (m.status === 'online' ? 'online' : 'offline')
+    })
+  })
+  
+  return cubes
+})
+
 const chart = useChart()
+
+const currentCpu = computed<number>(() => {
+  const arr = chart.cpu.value
+  return arr.length > 0 ? arr[arr.length - 1]! : 0
+})
+const currentMemory = computed<number>(() => {
+  const arr = chart.memory.value
+  return arr.length > 0 ? arr[arr.length - 1]! : 0
+})
+const currentDisk = computed<number>(() => {
+  const arr = chart.disk.value
+  return arr.length > 0 ? arr[arr.length - 1]! : 0
+})
 
 const getWsUrl = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -249,7 +312,6 @@ const refreshStats = async () => {
     console.error('Failed to fetch stats:', e)
   }
 
-  // Load image stats
   try {
     const images = await imageService.list('local')
     stats.images.total = images.length
@@ -259,12 +321,12 @@ const refreshStats = async () => {
     console.error('Failed to fetch image stats:', e)
   }
 
-  // Load compose stats
   try {
-    const compMachines = await remoteMachineService.list()
+    const machines = await remoteMachineService.list()
+    remoteMachines.value = machines
     let totalProjs = 0
     let runningProjs = 0
-    await Promise.all(compMachines.map(async (m) => {
+    await Promise.all(machines.map(async (m) => {
       const projs = await composeService.listProjects(m.id)
       totalProjs += projs.length
       runningProjs += projs.filter(p => p.status === 'running').length
@@ -317,132 +379,162 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ============================================
-   Dashboard — Flat, monospace-first, warm dark
-   ============================================ */
-
 .dashboard {
   max-width: var(--container-max);
   margin: 0 auto;
 }
 
-/* ------------------------------------------
-   Stats Grid — 4-column desktop, 2-column mobile
-   ------------------------------------------ */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
+/* Centerpiece — Stats (left) + 3D cube (right) */
+.centerpiece {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 420px;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: radial-gradient(circle at center, var(--color-background-weak) 0%, transparent 70%);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
 }
 
-/* Stat Card — flat, border-only, accent strip on top */
+.stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  max-width: 240px;
+}
+
 .stat-card {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-  padding: var(--space-5);
   background: var(--color-background-weak);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-weak);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-base);
 }
 
 .stat-card:hover {
-  border-color: var(--color-text-weaker);
+  border-color: var(--color-text-weak);
 }
 
-/* Accent strip — thin colored bar at top of stat card */
 .stat-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-}
-
-.stat-accent--info    { background: var(--color-info); }
-.stat-accent--accent  { background: var(--color-accent); }
-.stat-accent--success { background: var(--color-success); }
-.stat-accent--warning { background: var(--color-warning); }
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
   flex-shrink: 0;
-  color: var(--color-text-weak);
-  margin-top: var(--space-1);
+  width: 3px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
+
+.stat-card--containers .stat-accent { background: var(--color-info); }
+.stat-card--machines   .stat-accent { background: var(--color-accent); }
+.stat-card--networks   .stat-accent { background: var(--color-success); }
+.stat-card--volumes    .stat-accent { background: var(--color-warning); }
 
 .stat-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
   min-width: 0;
+  flex: 1;
+}
+
+.stat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stat-icon {
+  color: var(--color-text-weaker);
+  flex-shrink: 0;
 }
 
 .stat-number {
   font-family: var(--font-mono);
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-strong);
   line-height: var(--line-height-tight);
 }
 
 .stat-label {
-  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--color-text-weak);
   line-height: var(--line-height-tight);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .stat-sub {
-  display: flex;
-  gap: var(--space-3);
-  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--color-text-weaker);
   line-height: var(--line-height-tight);
+  display: flex;
+  gap: var(--space-2);
+  margin-top: 1px;
 }
 
 .stat-sub--running { color: var(--color-success); }
 .stat-sub--stopped { color: var(--color-text-weaker); }
 
-/* ------------------------------------------
-   Dashboard Content — chart-centered layout
-   ------------------------------------------ */
+.centerpiece-visual {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1.6;
+  min-width: 0;
+  gap: var(--space-4);
+}
 
-.dashboard-content {
+.visual-header {
+  text-align: center;
+  margin-top: var(--space-4);
+}
+
+.visual-title {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 var(--space-1) 0;
+}
+
+.visual-description {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-weaker);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.resource-panel {
+  margin-bottom: var(--space-6);
+}
+
+.resource-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--space-6);
-  align-items: start;
-}
-
-.dashboard-main {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-6);
 }
 
-.dashboard-side {
-  display: flex;
-  flex-direction: column;
+.dashboard-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
-
-/* ------------------------------------------
-   Card — flat scoped override
-   Global .card has padding; we use internal sub-layout
-   ------------------------------------------ */
 
 .card {
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 1px solid var(--color-border-weak);
   border-radius: var(--radius-sm);
   padding: 0;
 }
@@ -451,8 +543,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-weak);
 }
 
 .card-header h3 {
@@ -469,29 +561,126 @@ onMounted(async () => {
   padding: var(--space-5);
 }
 
-/* Chart card — tighter padding for chart */
-.card--chart .card-body {
-  padding: var(--space-4) var(--space-3) var(--space-3);
-}
-
-/* ------------------------------------------
-   View All link
-   ------------------------------------------ */
-
 .view-all {
+  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--color-accent);
   text-decoration: none;
-  transition: color var(--transition-fast), opacity var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .view-all:hover {
   color: var(--color-accent-hover);
 }
 
-/* ------------------------------------------
-   Activity List — minimal dots, no icon boxes
-   ------------------------------------------ */
+.secondary-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.secondary-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+
+.secondary-stat + .secondary-stat {
+  border-top: 1px solid var(--color-border-weak);
+}
+
+.secondary-stat-icon {
+  color: var(--color-text-weak);
+  flex-shrink: 0;
+}
+
+.secondary-stat-number {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  line-height: var(--line-height-tight);
+}
+
+.secondary-stat-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-weak);
+  line-height: var(--line-height-tight);
+  margin-right: auto;
+}
+
+.secondary-stat-sub {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-weaker);
+  line-height: var(--line-height-tight);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  min-height: 80px;
+  background: var(--color-background-weak);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-weak);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.quick-action-btn:hover {
+  border-color: var(--color-text-strong);
+  color: var(--color-text-strong);
+  background: var(--color-background-hover);
+}
+
+.quick-action-btn:active {
+  border-color: var(--color-accent);
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+}
+
+.status-item + .status-item {
+  border-top: 1px solid var(--color-border-weak);
+}
+
+.status-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-weak);
+}
+
+.dashboard-activity {
+  margin-bottom: var(--space-6);
+}
 
 .activity-list {
   display: flex;
@@ -530,153 +719,96 @@ onMounted(async () => {
 }
 
 .activity-title {
+  font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   color: var(--color-text-strong);
   line-height: var(--line-height-tight);
 }
 
 .activity-time {
+  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--color-text-weaker);
 }
 
-/* ------------------------------------------
-   Quick Actions
-   ------------------------------------------ */
-
-.quick-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-}
-
-.quick-action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-5) var(--space-4);
-  min-height: 72px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-weak);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-}
-
-.quick-action-btn:hover {
-  border-color: var(--color-text-strong);
-  color: var(--color-text-strong);
-  background: var(--color-info-bg);
-}
-
-.quick-action-btn:active {
-  border-color: var(--color-accent);
-}
-
-/* ------------------------------------------
-   System Status
-   ------------------------------------------ */
-
-.status-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) 0;
-}
-
-.status-item + .status-item {
-  border-top: 1px solid var(--color-border-weak);
-}
-
-.status-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-weak);
-}
-
-/* ------------------------------------------
-   Responsive: Tablet (≤1024px)
-   ------------------------------------------ */
-
 @media (max-width: 1024px) {
-  .dashboard-content {
-    grid-template-columns: 1fr;
+  .centerpiece {
+    min-height: 360px;
+    gap: var(--space-6);
   }
 
-  /* Side-by-side layout for side cards on tablet */
-  .dashboard-side {
-    display: grid;
+  .stats-panel {
+    max-width: 200px;
+  }
+
+  .dashboard-bottom {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .resource-grid {
     gap: var(--space-4);
   }
 }
 
-/* ------------------------------------------
-   Responsive: Mobile (≤767px)
-   ------------------------------------------ */
-
 @media (max-width: 767px) {
-  /* 2-column stat grid */
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-gap: var(--space-2);
+  .centerpiece {
+    flex-direction: column;
+    min-height: auto;
+    padding: var(--space-4);
+    gap: var(--space-6);
+    background: var(--color-background-weak);
   }
 
-  .stat-card {
-    padding: var(--space-4);
-    flex-direction: column;
+  .centerpiece-visual {
+    order: -1;
+    width: 100%;
+  }
+
+  .stats-panel {
+    max-width: none;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
   }
 
-  .stat-icon {
-    width: 32px;
-    height: 32px;
-    margin-top: 0;
-    color: var(--color-text-weaker);
+  .stat-card {
+    border-radius: var(--radius-sm);
   }
 
-  .stat-icon :deep(svg) {
-    width: 20px;
-    height: 20px;
+  .stat-body {
+    padding: var(--space-2) var(--space-3);
+    gap: 1px;
   }
 
   .stat-number {
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-lg);
   }
 
   .stat-label {
-    font-size: var(--font-size-xs);
+    font-size: 10px;
   }
 
   .stat-sub {
-    flex-wrap: wrap;
-    font-size: 11px;
+    font-size: 10px;
   }
 
-  .dashboard-content {
+  .resource-grid {
     grid-template-columns: 1fr;
     gap: var(--space-4);
   }
 
-  .dashboard-main {
+  .dashboard-bottom {
+    grid-template-columns: 1fr;
     gap: var(--space-4);
   }
 
-  .dashboard-side {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
+  .resource-panel {
+    margin-bottom: var(--space-4);
+  }
+
+  .dashboard-activity {
+    margin-bottom: var(--space-4);
   }
 
   .card-header {
@@ -691,11 +823,6 @@ gap: var(--space-2);
     padding: var(--space-4);
   }
 
-  .card--chart .card-body {
-    padding: var(--space-3) var(--space-2) var(--space-2);
-  }
-
-  /* Horizontal quick actions for better touch targets */
   .quick-actions {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-2);
@@ -731,29 +858,23 @@ gap: var(--space-2);
   }
 }
 
-/* ------------------------------------------
-   Responsive: Small mobile (≤400px)
-   ------------------------------------------ */
-
 @media (max-width: 400px) {
-  .stats-grid {
+  .centerpiece {
+    padding: var(--space-3);
+    gap: var(--space-4);
+  }
+
+  .stats-panel {
     grid-template-columns: 1fr;
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 
-  .stat-card {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-4);
+  .stat-number {
+    font-size: var(--font-size-base);
   }
 
-  .stat-body {
-    gap: var(--space-1);
-  }
-
-  .stat-sub {
-    display: none;
+  .quick-actions {
+    grid-template-columns: 1fr;
   }
 }
 </style>

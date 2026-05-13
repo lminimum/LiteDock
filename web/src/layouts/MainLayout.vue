@@ -113,7 +113,9 @@ watch(mobileSidebarOpen, (open) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-background-overlay);
+  background: rgba(32, 29, 29, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 40;
   opacity: 0;
   pointer-events: none;

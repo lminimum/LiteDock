@@ -7,8 +7,9 @@ export const networkService = {
     return r.networks ?? []
   },
 
-  async createNetwork(machineId: string, data: { name: string; driver?: string }): Promise<void> {
-    await api.post(`/machines/${machineId}/networks`, data)
+  async createNetwork(machineId: string, data: { name: string; driver?: string }): Promise<Network> {
+    const r: any = await api.post(`/machines/${machineId}/networks`, data)
+    return r as Network
   },
 
   async deleteNetwork(machineId: string, networkId: string): Promise<void> {

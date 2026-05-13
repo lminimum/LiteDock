@@ -95,6 +95,7 @@ export interface Network {
   driver: string
   scope: string
   internal: boolean
+  attachable?: boolean
   containers?: string[]
 }
 

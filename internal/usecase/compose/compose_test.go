@@ -213,6 +213,10 @@ func (m *mockRemoteMachineRepo) GetByHost(_ context.Context, _ string) (*entity.
 	return nil, nil
 }
 
+func (m *mockRemoteMachineRepo) UpdateStatus(_ context.Context, _ string, _ string) error {
+	return nil
+}
+
 var _ repo.RemoteMachineRepo = (*mockRemoteMachineRepo)(nil)
 
 // --- helpers ---

@@ -15,16 +15,15 @@
       </button>
     </PageHeader>
 
-    <div v-if="!loading && !error && networks.length > 0" class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('networks.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <div class="filter-options">
+    <CollapsibleFilters
+      v-if="!loading && !error && networks.length > 0"
+      v-model="searchQuery"
+      :search-placeholder="t('networks.searchPlaceholder')"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
         <select v-model="driverFilter" class="input">
           <option value="">{{ t('networks.allDrivers') }}</option>
           <option value="bridge">Bridge</option>
@@ -39,8 +38,15 @@
           <option value="global">Global</option>
           <option value="swarm">Swarm</option>
         </select>
-      </div>
-    </div>
+        <select v-model="machineFilter" class="input">
+          <option value="">{{ t('common.allMachines') }}</option>
+          <option v-for="opt in machineOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </template>
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="loading" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
@@ -67,15 +73,67 @@
       <p>{{ t('networks.noNetworks') }}</p>
     </div>
 
-    <div v-else class="card-grid">
-      <NetworkCard
-        v-for="network in filteredNetworks"
-        :key="network.id"
-        :network="network"
-        @delete="handleDelete"
-        @inspect="handleInspect"
-      />
-    </div>
+    <template v-else>
+      <Transition name="view-fade" mode="out-in">
+        <div v-if="viewMode === 'card'" key="card">
+          <template v-for="group in groupedItems" :key="group.machineId">
+            <div class="machine-section-header">
+              <Server :size="16" class="icon" />
+              {{ group.machineName }}
+              <span class="count">{{ group.items.length }} {{ t('common.networks') }}</span>
+            </div>
+            <div class="card-grid">
+              <NetworkCard
+                v-for="network in group.items"
+                :key="network.id"
+                :network="network"
+                @delete="handleDelete"
+                @inspect="handleInspect"
+              />
+            </div>
+          </template>
+        </div>
+        <div v-else key="list">
+          <template v-for="group in groupedItems" :key="group.machineId">
+            <div class="machine-section-header">
+              <Server :size="16" class="icon" />
+              {{ group.machineName }}
+              <span class="count">{{ group.items.length }} {{ t('common.networks') }}</span>
+            </div>
+            <div class="item-list">
+              <div
+                v-for="network in group.items"
+                :key="network.id"
+                class="item-list-row"
+              >
+                <div class="item-list-info">
+                  <div class="item-list-title">{{ network.name }}</div>
+                  <div class="item-list-meta">
+                    <span>{{ network.driver }}</span>
+                    <span class="badge badge-info badge-sm">{{ network.scope }}</span>
+                    <span>{{ network.containers?.length ?? 0 }} containers</span>
+                  </div>
+                </div>
+                <div class="item-list-actions">
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    @click="handleInspect(network.id)"
+                  >
+                    <Eye :size="14" /> {{ t('common.inspect') }}
+                  </button>
+                  <button
+                    class="btn btn-sm btn-ghost btn-danger-text"
+                    @click="handleDelete(network.id)"
+                  >
+                    <Trash2 :size="14" /> {{ t('common.delete') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </Transition>
+    </template>
 
     <InspectModal
       :visible="showInspect"
@@ -86,7 +144,7 @@
 
     <NetworkCreateModal
       v-if="machines.length > 0"
-      :machine-id="machines[0].id"
+      :machine-id="machines[0]!.id"
       :visible="showCreateModal"
       @created="onNetworkCreated"
       @close="showCreateModal = false"
@@ -96,7 +154,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus } from 'lucide-vue-next'
+import { RefreshCw, Plus, Eye, Trash2, Server } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { networkService } from '@/services/networkService'
@@ -105,6 +163,10 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import NetworkCard from '@/components/network/NetworkCard.vue'
 import NetworkCreateModal from '@/components/network/NetworkCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
+import { useViewMode } from '@/composables/useViewMode'
+import { useMachineFilter } from '@/composables/useMachineFilter'
 
 interface NetworkWithMachine extends Network {
   machineId: string
@@ -116,6 +178,7 @@ const error = ref('')
 const searchQuery = ref('')
 const driverFilter = ref('')
 const scopeFilter = ref('')
+const viewMode = useViewMode('networks')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const networks = ref<NetworkWithMachine[]>([])
@@ -164,6 +227,13 @@ const filteredNetworks = computed(() => {
 
   return filtered
 })
+
+const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
+  filteredNetworks,
+  machines,
+  (n) => n.machineId,
+  (n) => n.machine,
+)
 
 const refreshNetworks = async () => {
   loading.value = true
@@ -228,29 +298,6 @@ onMounted(() => refreshNetworks())
   margin: 0 auto;
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-}
-
-.search-box {
-  flex: 1;
-}
-
-.filter-options {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.filter-options select {
-  min-width: 130px;
-}
-
 .loading-state {
   display: flex;
   align-items: center;
@@ -274,16 +321,13 @@ onMounted(() => refreshNetworks())
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .filters {
-    flex-direction: column;
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 
-  .filter-options {
-    flex-direction: column;
-  }
-
-  .filter-options select {
-    min-width: 100%;
+  .item-list-row .item-list-actions {
+    justify-content: flex-end;
   }
 }
 </style>

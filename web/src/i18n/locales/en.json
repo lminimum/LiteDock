@@ -42,6 +42,8 @@
     "messageQueue": "Message Queue",
     "online": "Online",
     "offline": "Offline",
+    "machineStatus": "Connectivity",
+    "machineStatusDesc": "Remote Nodes Activity",
     "justNow": "Just now",
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} hr ago",
@@ -79,7 +81,26 @@
     "machine": "Machine:",
     "createdAt": "Created:",
     "confirmDelete": "Are you sure you want to delete this container?",
-    "noContainers": "No containers found"
+    "noContainers": "No containers found",
+    "createModal": {
+      "title": "Create Container",
+      "name": "Name",
+      "image": "Image",
+      "cmd": "Command",
+      "cmdPlaceholder": "e.g. sleep infinity",
+      "env": "Environment (key=value)",
+      "envPlaceholder": "NODE_ENV=production\nPORT=8080",
+      "ports": "Ports (host:container)",
+      "portsPlaceholder": "8080:80\n443:443",
+      "volumes": "Volumes (host:container)",
+      "volumesPlaceholder": "/host/path:/container/path",
+      "network": "Network",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating...",
+      "imageRequired": "Image is required",
+      "createError": "Failed to create container"
+    }
   },
   "networks": {
     "title": "Network Management",
@@ -409,7 +430,25 @@
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "viewCard": "Card view",
+    "viewList": "List view",
+    "inspect": "Inspect",
+    "delete": "Delete",
+    "logs": "Logs",
+    "details": "Details",
+    "test": "Test",
+    "edit": "Edit",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "allMachines": "All Machines",
+    "images": "Images",
+    "volumes": "Volumes",
+    "containers": "Containers",
+    "networks": "Networks",
+    "machine": "Machine",
+    "services": "Services"
   },
   "errors": {
     "loginFailed": "Login failed"

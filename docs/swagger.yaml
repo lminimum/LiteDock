@@ -15,6 +15,37 @@ definitions:
       username:
         type: string
     type: object
+  v1.CreateContainerRequest:
+    properties:
+      cmd:
+        items:
+          type: string
+        type: array
+      env:
+        items:
+          type: string
+        type: array
+      image:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      network:
+        type: string
+      ports:
+        items:
+          type: string
+        type: array
+      volumes:
+        items:
+          type: string
+        type: array
+    required:
+    - image
+    type: object
   v1.CreateMachineRequest:
     properties:
       auth_method:
@@ -695,6 +726,44 @@ paths:
             additionalProperties: true
             type: object
       summary: Stop a container
+      tags:
+      - machines
+  /machines/{id}/containers/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new Docker container using the Docker SDK directly
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateContainerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a container on a machine
       tags:
       - machines
   /machines/{id}/networks:

@@ -3,6 +3,7 @@ package remote_machine
 import (
 	"context"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/lminimum/LiteDock/internal/entity"
 )
 
@@ -18,6 +19,7 @@ type UseCaseInterface interface {
 	ListContainers(context.Context, string) ([]entity.Container, error)
 	GetContainerLogs(context.Context, string, string, string) (string, error)
 	ExecContainer(context.Context, string, string, []string) (string, error)
+	CreateContainer(context.Context, string, *container.Config, *container.HostConfig, string) (*container.CreateResponse, error)
 	StartContainer(context.Context, string, string) error
 	StopContainer(context.Context, string, string) error
 	RestartContainer(context.Context, string, string) error

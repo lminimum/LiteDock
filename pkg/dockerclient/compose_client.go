@@ -60,6 +60,28 @@ type rawPublisher struct {
 	PublishedPort int    `json:"PublishedPort"`
 }
 
+// parseComposePsOutput handles both array and object JSON formats from
+// "docker compose ps --format json". Older versions return an array,
+// newer versions may return a single object or empty output.
+func parseComposePsOutput(output string) ([]rawPsEntry, error) {
+	trimmed := strings.TrimSpace(output)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	var entries []rawPsEntry
+	if err := json.Unmarshal([]byte(trimmed), &entries); err == nil {
+		return entries, nil
+	}
+
+	var single rawPsEntry
+	if err := json.Unmarshal([]byte(trimmed), &single); err == nil {
+		return []rawPsEntry{single}, nil
+	}
+
+	return nil, fmt.Errorf("unexpected JSON format: %q", trimmed[:min(len(trimmed), 80)])
+}
+
 // ---------------------------------------------------------------------------
 // localComposeClient – runs docker compose via os/exec on the local machine.
 // ---------------------------------------------------------------------------
@@ -109,13 +131,13 @@ func (c *localComposeClient) ComposePs(ctx context.Context, _, projectName strin
 		return nil, errors.Wrap(errors.ErrDockerOperation, "ComposePs."+err.Error())
 	}
 
-	var raw []rawPsEntry
-	if err := json.Unmarshal([]byte(output), &raw); err != nil {
+	entries, err := parseComposePsOutput(output)
+	if err != nil {
 		return nil, fmt.Errorf("dockerclient.ComposePs: parse json: %w", err)
 	}
 
-	result := make([]ComposeServiceStatus, 0, len(raw))
-	for _, e := range raw {
+	result := make([]ComposeServiceStatus, 0, len(entries))
+	for _, e := range entries {
 		pubs := make([]PublishInfo, 0, len(e.Publishers))
 		for _, p := range e.Publishers {
 			pubs = append(pubs, PublishInfo{
@@ -233,13 +255,13 @@ func (c *remoteComposeClient) ComposePs(ctx context.Context, _, projectName stri
 		return nil, errors.Wrap(errors.ErrDockerOperation, "ComposePs."+err.Error())
 	}
 
-	var raw []rawPsEntry
-	if err := json.Unmarshal(output, &raw); err != nil {
+	entries, err := parseComposePsOutput(string(output))
+	if err != nil {
 		return nil, fmt.Errorf("dockerclient.ComposePs: parse json: %w", err)
 	}
 
-	result := make([]ComposeServiceStatus, 0, len(raw))
-	for _, e := range raw {
+	result := make([]ComposeServiceStatus, 0, len(entries))
+	for _, e := range entries {
 		pubs := make([]PublishInfo, 0, len(e.Publishers))
 		for _, p := range e.Publishers {
 			pubs = append(pubs, PublishInfo{
