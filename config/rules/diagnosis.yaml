@@ -1,0 +1,88 @@
+rules:
+  - exit_code: 0
+    name: "Success"
+    diagnosis: "容器正常退出，未出现错误"
+    causes:
+      - "应用正常执行完成"
+      - "收到 SIGTERM 信号并正常关闭"
+      - "手动执行了 stop 命令"
+    remediation:
+      - "无需处理，如需重新运行请使用 start 命令"
+      - "检查日志确认预期行为"
+
+  - exit_code: 1
+    name: "GeneralError"
+    diagnosis: "容器因通用错误而退出，通常是应用程序错误"
+    causes:
+      - "应用程序内部错误"
+      - "配置文件错误"
+      - "依赖服务不可用"
+      - "资源不足"
+    remediation:
+      - "查看容器日志定位具体错误"
+      - "检查配置文件是否正确"
+      - "确认环境变量设置正确"
+      - "检查依赖服务状态"
+
+  - exit_code: 127
+    name: "CommandNotFound"
+    diagnosis: "容器内找不到指定的命令或可执行文件"
+    causes:
+      - "ENTRYPOINT 或 CMD 指定的命令不存在"
+      - "镜像构建错误，命令未正确安装"
+      - "PATH 环境变量配置错误"
+    remediation:
+      - "检查 Dockerfile 中的命令路径"
+      - "确认镜像构建过程正确"
+      - "验证命令已正确安装在容器内"
+
+  - exit_code: 137
+    name: "SIGKILL"
+    diagnosis: "容器被强制终止，通常是由于内存不足（OOM）或手动 kill"
+    causes:
+      - "容器内存使用超过限制（OOM Killer）"
+      - "手动执行了 kill -9 命令"
+      - "系统资源极度紧张"
+    remediation:
+      - "增加容器内存限制"
+      - "优化应用内存使用"
+      - "检查是否存在内存泄漏"
+      - "查看系统内存使用情况"
+
+  - exit_code: 139
+    name: "SegmentationFault"
+    diagnosis: "容器进程发生段错误，非正常终止"
+    causes:
+      - "应用程序访问了非法内存地址"
+      - "底层库或驱动程序问题"
+      - "硬件故障或驱动问题"
+    remediation:
+      - "更新应用程序到最新版本"
+      - "检查系统日志中的硬件错误"
+      - "更新相关系统库"
+      - "在支持的平台上重新测试"
+
+  - exit_code: 143
+    name: "SIGTERM_Termination"
+    diagnosis: "容器收到 SIGTERM 信号后正常终止"
+    causes:
+      - "执行了 docker stop 命令"
+      - "Dockerfile 中定义了优雅关闭"
+      - "容器超时设置触发停止"
+    remediation:
+      - "这是正常行为，无需处理"
+      - "如果异常，请检查 stop 命令的超时设置"
+
+  - exit_code: 255
+    name: "ExitCodeOutOfRange"
+    diagnosis: "容器退出码超出正常范围（0-255），通常表示严重的系统级错误"
+    causes:
+      - "Bash 脚本执行失败"
+      - "ENTRYPOINT 或 CMD 引用了不存在的命令"
+      - "超级用户权限问题"
+      - "严重的系统错误"
+    remediation:
+      - "检查入口脚本是否存在语法错误"
+      - "确认 ENTRYPOINT 和 CMD 配置正确"
+      - "查看系统日志了解详细错误"
+      - "确保容器有正确的执行权限"
