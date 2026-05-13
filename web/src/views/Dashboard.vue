@@ -185,8 +185,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, markRaw } from 'vue'
-import { useRouter } from 'vue-router
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   Box,
   Network,
@@ -207,7 +207,7 @@ import { composeService } from '@/services/composeService'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { formatSize } from '@/utils/format'
 import { useChart } from '@/composables/useChart'
-import { useWebSocket } from '@/composables/useWebSocket
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },

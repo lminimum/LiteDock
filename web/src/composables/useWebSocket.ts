@@ -13,10 +13,10 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const ws = ref<WebSocket | null>(null)
   const isConnected = ref(false)
   const reconnectTimer = ref<ReturnType<typeof setTimeout> | null>(null)
-  
+
   const connect = () => {
     if (ws.value?.readyState === WebSocket.OPEN) return
-    
+
     ws.value = new WebSocket(url)
     
     ws.value.onopen = () => {
@@ -51,8 +51,15 @@ export function useWebSocket(options: UseWebSocketOptions) {
       reconnectTimer.value = null
     }
     if (ws.value) {
+      ws.value.onclose = null
       ws.value.close()
       ws.value = null
+    }
+  }
+
+  const send = (data: unknown): void => {
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(JSON.stringify(data))
     }
   }
   
@@ -62,6 +69,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
     ws,
     isConnected,
     connect,
-    disconnect
+    disconnect,
+    send
   }
 }

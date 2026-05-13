@@ -11,7 +11,8 @@
     "main": "主要功能",
     "system": "系统",
     "docker": "Docker",
-    "infrastructure": "基础设施"
+    "infrastructure": "基础设施",
+    "ai": "AI"
   },
   "dashboard": {
     "title": "概览",
@@ -189,7 +190,13 @@
     "saving": "保存中...",
     "resetDefaults": "重置为默认",
     "saved": "设置已保存",
-    "confirmReset": "确定要重置所有设置为默认值吗？"
+    "confirmReset": "确定要重置所有设置为默认值吗？",
+    "ai": {
+      "title": "AI",
+      "apiEndpoint": "API 端点",
+      "apiKey": "API 密钥",
+      "modelName": "模型名称"
+    }
   },
   "theme": {
     "light": "浅色",
@@ -406,5 +413,63 @@
   },
   "errors": {
     "loginFailed": "登录失败"
+  },
+  "assistant": {
+    "title": "AI 助手",
+    "input": {
+      "placeholder": "描述您想执行的操作...",
+      "send": "发送"
+    },
+    "response": {
+      "thinking": "正在处理...",
+      "noMatch": "未识别您的指令，请重新描述"
+    },
+    "error": {
+      "general": "发生错误，请重试",
+      "empty": "请输入指令"
+    },
+    "diagnosis": {
+      "title": "诊断结果"
+    },
+    "config": {
+      "title": "配置推荐",
+      "scenario": "场景"
+    },
+    "chat": {
+      "toggle": "切换助手",
+      "close": "关闭"
+    },
+    "status": {
+      "executing": "执行中...",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "confirmation": {
+      "title": "确认操作",
+      "message": "确定要执行此操作吗？",
+      "confirm": "确认",
+      "cancel": "取消",
+      "waiting": "执行中..."
+    }
+  },
+  "ai": {
+    "description": "AI 驱动的 Docker 助手",
+    "emptyPrompt": "询问任何关于 Docker 容器的问题，或试试下面的快捷操作！",
+    "quick": {
+      "startContainer": "启动容器",
+      "checkLogs": "查看日志",
+      "diagnose": "诊断问题",
+      "deployWeb": "部署应用",
+      "checkDisk": "存储检查",
+      "network": "网络状态"
+    },
+    "prompts": {
+      "startContainer": "启动nginx容器",
+      "checkLogs": "查看nginx容器日志",
+      "diagnose": "诊断容器问题",
+      "deployWeb": "部署Web应用",
+      "checkDisk": "查看存储使用",
+      "network": "查看网络状态"
+    }
   }
 }

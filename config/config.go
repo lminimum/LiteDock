@@ -17,6 +17,7 @@ type (
 		Swagger Swagger
 		Cache   Cache
 		Auth    Auth
+		AI      AI
 	}
 
 	App struct {
@@ -56,6 +57,12 @@ type (
 
 	Auth struct {
 		JWTSecret string `env:"AUTH_JWT_SECRET,required"`
+	}
+
+	AI struct {
+		APIEndpoint string `env:"AI_API_ENDPOINT" envDefault:""`
+		APIKey      string `env:"AI_API_KEY" envDefault:""`
+		ModelName   string `env:"AI_MODEL_NAME" envDefault:"gpt-4o"`
 	}
 )
 

@@ -39,7 +39,7 @@ export function useChart(
   const loadHistory = async (apiGet: (url: string) => Promise<{ data: { success: boolean; data: ChartDataPoint[] } }>): Promise<boolean> => {
     try {
       const res = await apiGet('/dashboard/resources/history?minutes=5')
-      if (res.data.success && res.data.data.length > 0) {
+      if (res?.data?.success && res.data.data.length > 0) {
         const history = res.data.data.slice(-totalPoints)
         const cpuArr: number[] = []
         const memoryArr: number[] = []

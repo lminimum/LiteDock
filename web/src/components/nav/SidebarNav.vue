@@ -70,6 +70,7 @@ import {
   Image as ImageIcon,
   HardDrive,
   Globe,
+  Bot,
   Sun,
   Moon,
 } from 'lucide-vue-next'
@@ -159,6 +160,7 @@ const mainNavItems = computed<NavItemDef[]>(() => [
 
 const systemNavItems = computed<NavItemDef[]>(() => [
   { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings },
+  { name: 'AI', path: '/ai', label: t('nav.ai'), icon: Bot },
 ])
 
 onMounted(async () => {

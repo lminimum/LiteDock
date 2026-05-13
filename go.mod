@@ -38,6 +38,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.49.0
 	golang.org/x/sync v0.20.0
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.18.1
 )
 
@@ -437,7 +438,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 	honnef.co/go/tools v0.6.1 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect

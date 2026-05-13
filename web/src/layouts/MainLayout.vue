@@ -20,6 +20,9 @@
         <router-view />
       </main>
     </div>
+
+    <!-- AI Assistant (floating, position: fixed) -->
+    <AssistantChat />
   </div>
 </template>
 
@@ -27,6 +30,7 @@
 import { ref, watch, onUnmounted } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import AssistantChat from '@/components/ui/AssistantChat.vue'
 import { useViewport } from '@/composables/useViewport'
 
 // Mobile detection

@@ -70,7 +70,7 @@ var _ containerRepo = (*mockContainerRepo)(nil)
 // --- helpers ---
 
 func newUseCaseForTest(repo *mockContainerRepo) *UseCase {
-	return &UseCase{repo: repo, l: &mockLogger{}}
+	return &UseCase{repo: repo, remoteMachineRepo: nil, l: &mockLogger{}}
 }
 
 // --- tests ---

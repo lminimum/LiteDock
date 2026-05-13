@@ -109,6 +109,34 @@
           </div>
         </div>
 
+        <!-- AI -->
+        <div v-if="activeSection === 'ai'" class="settings-section">
+          <h2>{{ t('settings.ai.title') }}</h2>
+          <div class="setting-group">
+            <label>{{ t('settings.ai.apiEndpoint') }}</label>
+            <input v-model="settings.ai.apiEndpoint" type="url" placeholder="https://api.openai.com" class="input" />
+          </div>
+          <div class="setting-group">
+            <label>{{ t('settings.ai.apiKey') }}</label>
+            <div class="password-field">
+              <input
+                v-model="settings.ai.apiKey"
+                :type="showApiKey ? 'text' : 'password'"
+                class="input"
+                placeholder="sk-..."
+              />
+              <button type="button" class="password-toggle" @click="showApiKey = !showApiKey">
+                <Eye v-if="!showApiKey" :size="16" :stroke-width="1.5" />
+                <EyeOff v-else :size="16" :stroke-width="1.5" />
+              </button>
+            </div>
+          </div>
+          <div class="setting-group">
+            <label>{{ t('settings.ai.modelName') }}</label>
+            <input v-model="settings.ai.modelName" type="text" placeholder="gpt-4o" class="input" />
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="settings-actions">
           <button @click="saveSettings" class="btn btn-primary" :disabled="saving">
@@ -126,18 +154,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, markRaw, type Component } from 'vue'
-import { Settings, Container, Shield, Activity, Save, RotateCcw } from 'lucide-vue-next'
+import { ref, reactive, computed, markRaw, onMounted, type Component } from 'vue'
+import { Settings, Container, Shield, Activity, Save, RotateCcw, Bot, Eye, EyeOff } from 'lucide-vue-next'
 import { t } from '@/i18n'
+import api from '@/utils/api'
 
 const activeSection = ref('general')
 const saving = ref(false)
+const showApiKey = ref(false)
 
 const settingsSections = computed<{ id: string; title: string; icon: Component }[]>(() => [
   { id: 'general', title: t('settings.general'), icon: markRaw(Settings) },
   { id: 'docker', title: t('settings.docker'), icon: markRaw(Container) },
   { id: 'security', title: t('settings.security'), icon: markRaw(Shield) },
-  { id: 'monitoring', title: t('settings.monitoring'), icon: markRaw(Activity) }
+  { id: 'monitoring', title: t('settings.monitoring'), icon: markRaw(Activity) },
+  { id: 'ai', title: t('settings.ai.title'), icon: markRaw(Bot) }
 ])
 
 const defaultSettings = () => ({
@@ -158,16 +189,35 @@ const defaultSettings = () => ({
     enabled: true,
     interval: 30,
     retention: 30
+  },
+  ai: {
+    apiEndpoint: '',
+    apiKey: '',
+    modelName: 'gpt-4o'
   }
 })
 
 const settings = reactive(defaultSettings())
 
+const fetchAISettings = async () => {
+  try {
+    const data = await api.get('/assistant/settings')
+    if (data) Object.assign(settings.ai, data)
+  } catch {
+    // Keep defaults on error
+  }
+}
+
+onMounted(fetchAISettings)
+
 const saveSettings = async () => {
   saving.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const resp = await api.put('/assistant/settings', settings.ai)
+    Object.assign(settings.ai, resp)
     alert(t('settings.saved'))
+  } catch {
+    alert('Failed to save settings')
   } finally {
     saving.value = false
   }
@@ -346,6 +396,35 @@ const resetSettings = () => {
   padding-top: var(--space-6);
   border-top: 1px solid var(--color-border-weak);
   margin-top: var(--space-8);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field .input {
+  padding-right: var(--space-8);
+}
+
+.password-toggle {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-weaker);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.password-toggle:hover {
+  color: var(--color-text);
 }
 
 @media (max-width: 767px) {

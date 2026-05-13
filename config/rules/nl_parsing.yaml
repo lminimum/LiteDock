@@ -1,0 +1,60 @@
+rules:
+  - name: "start_container"
+    intent: "StartContainer"
+    keywords: ["启动", "开启", "运行", "开始", "start"]
+    description: "启动一个或多个容器"
+
+  - name: "stop_container"
+    intent: "StopContainer"
+    keywords: ["停止", "关闭", "停掉", "shutdown", "stop"]
+    description: "停止一个或多个运行中的容器"
+
+  - name: "restart_container"
+    intent: "RestartContainer"
+    keywords: ["重启", "重新启动", "restart", "reload"]
+    description: "重启一个或多个容器"
+
+  - name: "view_logs"
+    intent: "ViewLogs"
+    keywords: ["日志", "查看日志", "logs", "tail", "输出"]
+    description: "查看容器日志输出"
+
+  - name: "view_container_list"
+    intent: "ListContainers"
+    keywords: ["列表", "查看列表", "列出", "list", "ls"]
+    description: "列出所有容器"
+
+  - name: "create_container"
+    intent: "CreateContainer"
+    keywords: ["创建", "新建", "新增", "create", "new"]
+    description: "创建新容器"
+
+  - name: "delete_container"
+    intent: "DeleteContainer"
+    keywords: ["删除", "移除", "销毁", "delete", "remove"]
+    description: "删除一个或多个容器"
+
+  - name: "pull_image"
+    intent: "PullImage"
+    keywords: ["拉取", "下载镜像", "pull", "fetch"]
+    description: "从镜像仓库拉取镜像"
+
+  - name: "network_inspect"
+    intent: "InspectNetwork"
+    keywords: ["网络", "网络详情", "network", "net"]
+    description: "查看网络详情"
+
+  - name: "volume_operations"
+    intent: "VolumeOperations"
+    keywords: ["卷", "存储卷", "volume", "存储"]
+    description: "管理存储卷操作"
+
+  - name: "container_stats"
+    intent: "ContainerStats"
+    keywords: ["状态", "资源", "统计", "stats", "资源使用"]
+    description: "查看容器资源使用状态"
+
+  - name: "container_inspect"
+    intent: "InspectContainer"
+    keywords: ["检查", "详情", "inspect", "详情信息"]
+    description: "查看容器详细信息"
