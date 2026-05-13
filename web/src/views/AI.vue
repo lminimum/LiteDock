@@ -561,6 +561,7 @@ onMounted(() => {
   flex-direction: column;
   height: calc(100vh - var(--header-height) - var(--content-padding) * 2);
   max-width: 100%;
+  overflow: hidden;
 }
 
 /* ── Top bar ───────────────────────────────────────────────── */

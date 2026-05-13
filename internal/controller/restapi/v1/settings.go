@@ -67,7 +67,13 @@ func NewSettingsRoutes(protected fiber.Router, store *AISettingsStore, l logger.
 
 // Get handles GET /v1/assistant/settings — returns current AI settings.
 func (h *SettingsHandler) Get(c *fiber.Ctx) error {
-	return successResponse(c, h.store.Get())
+	settings := h.store.Get()
+	if len(settings.APIKey) > 8 {
+		settings.APIKey = settings.APIKey[:4] + "****" + settings.APIKey[len(settings.APIKey)-4:]
+	} else if settings.APIKey != "" {
+		settings.APIKey = "****"
+	}
+	return successResponse(c, settings)
 }
 
 // Set handles PUT /v1/assistant/settings — updates AI settings.

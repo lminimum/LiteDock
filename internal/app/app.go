@@ -120,6 +120,7 @@ func Run(cfg *config.Config) {
 
 	nlEngine := assistant_engine.NewEngine(engineRules, tokenizer)
 	nlParserUseCase := assistant.NewNLParserUseCase(nlEngine, tokenizer, l)
+	defer nlParserUseCase.Close()
 	faultDiagnosisUseCase := assistant.NewFaultDiagnosisUseCase(l)
 	configRecommendUseCase := assistant.NewConfigRecommendUseCase(l)
 

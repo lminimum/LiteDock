@@ -56,6 +56,14 @@
     </div>
 
     <div class="nav-section theme-section">
+      <NavItem
+        :to="'/settings'"
+        :icon="Settings"
+        :label="t('nav.settings')"
+        :active="currentRouteName === 'Settings'"
+        :collapsed="collapsed"
+        :is-mobile="isMobile"
+      />
       <button
         class="nav-item theme-toggle"
         :class="{ collapsed, 'mobile-mode': isMobile }"
@@ -167,7 +175,6 @@ const mainNavItems = computed<NavItemDef[]>(() => [
 ])
 
 const systemNavItems = computed<NavItemDef[]>(() => [
-  { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings },
   { name: 'AI', path: '/ai', label: t('nav.ai'), icon: Bot },
 ])
 

@@ -2,18 +2,19 @@
   <!-- Unified container: narrow handle bar when closed, expands to chat panel when open -->
   <div
     class="chat-container"
-    :class="{ 'is-open': isOpen, 'is-dragging': isDragging }"
+    :class="{ 'is-open': isOpen, 'is-dragging': isDragging, 'is-handle-dragging': isHandleDragging }"
     :style="containerStyle"
   >
-    <!-- CLOSED: narrow handle bar on right edge -->
+    <!-- CLOSED: prominent handle on edge -->
     <div
       v-if="!isOpen"
       class="chat-handle"
       :aria-label="t('assistant.chat.toggle')"
       title="AI Assistant"
+      @mousedown="onHandleDragStart"
       @click="openChat"
     >
-      <Bot :size="12" :stroke-width="2" />
+      <Bot :size="16" :stroke-width="2" />
     </div>
 
     <!-- OPEN: full chat panel -->
@@ -129,14 +130,23 @@ const abortController = ref<AbortController | null>(null)
 const DIALOG_WIDTH = 380
 const DIALOG_ESTIMATED_HEIGHT = 560
 
-const dialogX = ref(computeInitialX())
+const dialogX = ref(0)
 const dialogY = ref(computeInitialY())
 const isDragging = ref(false)
 const dragOffsetX = ref(0)
 const dragOffsetY = ref(0)
+const isHandleDragging = ref(false)
+const dragDistance = ref(0)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
 
 const containerStyle = computed(() => {
-  if (!isOpen.value) return {}
+  if (!isOpen.value) {
+    return {
+      top: `${dialogY.value}px`,
+      right: '0',
+    }
+  }
   return {
     left: `${dialogX.value}px`,
     top: `${dialogY.value}px`,
@@ -144,7 +154,7 @@ const containerStyle = computed(() => {
 })
 
 function computeInitialX(): number {
-  return Math.max(0, window.innerWidth - DIALOG_WIDTH)
+  return window.innerWidth - DIALOG_WIDTH
 }
 
 function computeInitialY(): number {
@@ -168,6 +178,41 @@ function runQuickAction(action: QuickAction): void {
 }
 
 /* ── Drag ──────────────────────────────────────────────────── */
+
+function onHandleDragStart(e: MouseEvent) {
+  if (e.button !== 0) return
+  isHandleDragging.value = true
+  dragDistance.value = 0
+  dragStartX.value = e.clientX
+  dragStartY.value = e.clientY
+  dragOffsetY.value = e.clientY - dialogY.value
+
+  const onMove = (moveEvent: MouseEvent) => {
+    if (!isHandleDragging.value) return
+    
+    // Calculate distance to distinguish drag from click
+    const dist = Math.sqrt(
+      Math.pow(moveEvent.clientX - dragStartX.value, 2) +
+      Math.pow(moveEvent.clientY - dragStartY.value, 2)
+    )
+    dragDistance.value = dist
+
+    let newY = moveEvent.clientY - dragOffsetY.value
+    newY = Math.max(0, Math.min(newY, window.innerHeight - 64))
+    dialogY.value = newY
+  }
+
+  const onEnd = () => {
+    isHandleDragging.value = false
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onEnd)
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onEnd)
+  e.preventDefault()
+  e.stopPropagation()
+}
 
 function onDragStart(e: MouseEvent) {
   if (e.button !== 0) return
@@ -218,8 +263,8 @@ function scrollToBottom() {
 }
 
 function openChat() {
+  if (dragDistance.value > 5) return // Ignore if it was a drag
   dialogX.value = computeInitialX()
-  dialogY.value = computeInitialY()
   isOpen.value = true
   nextTick(() => {
     inputRef.value?.focus()
@@ -302,35 +347,46 @@ onUnmounted(() => {
     height var(--transition-base),
     border-radius var(--transition-base),
     opacity var(--transition-base),
-    background var(--transition-base);
+    background var(--transition-base),
+    right var(--transition-base);
 }
 
-/* Closed: narrow handle bar */
+/* Closed: prominent semi-circle handle on right edge */
 .chat-container:not(.is-open) {
-  width: 8px;
-  height: 100px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-radius: 8px 0 0 8px;
+  width: 32px;
+  height: 64px;
+  right: 0;
+  border-radius: 32px 0 0 32px;
   background: var(--color-background-weak);
-  opacity: 0.5;
-  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-right: none;
+  opacity: 0.9;
+  cursor: grab;
   overflow: hidden;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.chat-container:not(.is-open).is-handle-dragging {
+  cursor: grabbing;
+  transition: none;
 }
 
 .chat-container:not(.is-open):hover {
-  opacity: 0.8;
+  width: 40px;
+  opacity: 1;
+  background: var(--color-background-strong);
 }
 
-/* Open: full chat panel */
 .chat-container.is-open {
   width: 380px;
-  max-height: 560px;
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  max-height: calc(100vh - 48px);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   background: var(--color-background-weak);
   border: 1px solid var(--color-border);
+  border-right: none;
   opacity: 1;
   overflow: hidden;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Handle (closed state icon wrapper) ────────────────────── */
@@ -410,6 +466,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: var(--space-3);
   scrollbar-width: none;
+  background: var(--color-background);
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -420,9 +477,9 @@ onUnmounted(() => {
   align-self: flex-end;
   background: var(--color-accent);
   color: #ffffff;
-  padding: 8px 14px;
-  border-radius: 16px 16px 4px 16px;
-  max-width: 80%;
+  padding: 6px 12px;
+  border-radius: 12px 12px 2px 12px;
+  max-width: 85%;
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
@@ -430,11 +487,12 @@ onUnmounted(() => {
 
 .message-assistant {
   align-self: flex-start;
-  background: var(--color-background-strong);
+  background: var(--color-background-weak);
+  border: 1px solid var(--color-border-weak);
   color: var(--color-text);
-  padding: 8px 14px;
-  border-radius: 16px 16px 16px 4px;
-  max-width: 80%;
+  padding: 6px 12px;
+  border-radius: 12px 12px 12px 2px;
+  max-width: 85%;
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);

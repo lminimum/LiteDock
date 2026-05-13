@@ -71,6 +71,13 @@ func (uc *NLParserUseCase) SetActionRegistry(reg *action.ActionRegistry) {
 	uc.actionRegistry = reg
 }
 
+// Close stops the internal rate limiter.
+func (uc *NLParserUseCase) Close() {
+	if uc.rateLimiter != nil {
+		uc.rateLimiter.Close()
+	}
+}
+
 // NewNLParser creates a new NLParserUseCase with LLM client and action registry.
 // The TF-IDF engine and tokenizer are kept as fallback when LLM is unavailable.
 func NewNLParser(llmClient LLMClientInterface, actionRegistry *action.ActionRegistry,
