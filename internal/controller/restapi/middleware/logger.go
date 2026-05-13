@@ -28,7 +28,7 @@ func Logger(l logger.Interface) func(c *fiber.Ctx) error {
 	return func(ctx *fiber.Ctx) error {
 		err := ctx.Next()
 
-		l.Info(buildRequestMessage(ctx))
+		l.Debug(buildRequestMessage(ctx))
 
 		return err
 	}

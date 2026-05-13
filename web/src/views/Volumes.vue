@@ -15,16 +15,15 @@
       </button>
     </PageHeader>
 
-    <div v-if="!loading && !error && volumes.length > 0" class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('volumes.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <div class="filter-options">
+    <CollapsibleFilters
+      v-if="!loading && !error && volumes.length > 0"
+      v-model="searchQuery"
+      :search-placeholder="t('volumes.searchPlaceholder')"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
         <select v-model="driverFilter" class="input">
           <option value="">{{ t('volumes.allDrivers') }}</option>
           <option value="local">local</option>
@@ -32,9 +31,15 @@
           <option value="cifs">cifs</option>
           <option value="tmpfs">tmpfs</option>
         </select>
-      </div>
-      <ViewToggle v-model="viewMode" />
-    </div>
+        <select v-model="machineFilter" class="input">
+          <option value="">{{ t('common.allMachines') }}</option>
+          <option v-for="opt in machineOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </template>
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="loading" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
@@ -62,37 +67,55 @@
     </div>
 
     <Transition name="view-fade" mode="out-in">
-      <div v-if="viewMode === 'card'" class="card-grid" key="card">
-        <VolumeCard
-          v-for="vol in filteredVolumes"
-          :key="`${vol.machineId}:${vol.name}`"
-          :volume="vol"
-          @delete="handleDelete"
-          @inspect="handleInspect"
-        />
+      <div v-if="viewMode === 'card'" key="card">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.volumes') }}</span>
+          </div>
+          <div class="card-grid">
+            <VolumeCard
+              v-for="vol in group.items"
+              :key="`${vol.machineId}:${vol.name}`"
+              :volume="vol"
+              @delete="handleDelete"
+              @inspect="handleInspect"
+            />
+          </div>
+        </template>
       </div>
 
-      <div v-else class="item-list" key="list">
-        <div v-for="vol in filteredVolumes" :key="`${vol.machineId}:${vol.name}`" class="item-list-row">
-        <div class="item-list-info">
-          <div class="item-list-title">{{ vol.name }}</div>
-          <div class="item-list-meta">
-            <span class="badge badge-info">{{ vol.driver }}</span>
-            <span class="badge badge-info">{{ vol.scope }}</span>
-            <span class="text-muted truncate" :title="vol.mountpoint">{{ vol.mountpoint }}</span>
-            <span>{{ vol.machine }}</span>
+      <div v-else key="list">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.volumes') }}</span>
           </div>
-        </div>
-        <div class="item-list-actions">
-          <button @click="handleInspect(vol.name)" class="btn btn-sm btn-ghost">
-            <Info :size="14" /> Details
-          </button>
-          <button @click="handleDelete(`${vol.machineId}:${vol.name}`)" class="btn btn-sm btn-danger">
-            <Trash2 :size="14" /> Delete
-          </button>
-        </div>
-      </div>
-    </div></Transition>
+          <div class="item-list">
+            <div v-for="vol in group.items" :key="`${vol.machineId}:${vol.name}`" class="item-list-row">
+              <div class="item-list-info">
+                <div class="item-list-title">{{ vol.name }}</div>
+                <div class="item-list-meta">
+                  <span class="badge badge-info">{{ vol.driver }}</span>
+                  <span class="badge badge-info">{{ vol.scope }}</span>
+                  <span class="text-muted truncate" :title="vol.mountpoint">{{ vol.mountpoint }}</span>
+                  <span>{{ vol.machine }}</span>
+                </div>
+              </div>
+              <div class="item-list-actions">
+                <button @click="handleInspect(vol.name)" class="btn btn-sm btn-ghost">
+                  <Eye :size="14" /> {{ t('common.inspect') }}
+                </button>
+                <button @click="handleDelete(`${vol.machineId}:${vol.name}`)" class="btn btn-sm btn-ghost btn-danger-text">
+                  <Trash2 :size="14" /> {{ t('common.delete') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div></Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -113,7 +136,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus, Info, Trash2 } from 'lucide-vue-next'
+import { RefreshCw, Plus, Eye, Trash2, Server } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { volumeService } from '@/services/volumeService'
@@ -123,7 +146,9 @@ import VolumeCard from '@/components/volume/VolumeCard.vue'
 import VolumeCreateModal from '@/components/volume/VolumeCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
+import { useMachineFilter } from '@/composables/useMachineFilter'
 
 interface VolumeWithMachine extends Volume {
   machineId: string
@@ -178,6 +203,8 @@ const filteredVolumes = computed(() => {
 
   return filtered
 })
+
+const { machineFilter, machineOptions, groupedItems } = useMachineFilter(filteredVolumes, machines, (v) => v.machineId, (v) => v.machine)
 
 const refreshVolumes = async () => {
   loading.value = true
@@ -242,29 +269,6 @@ onMounted(() => refreshVolumes())
   margin: 0 auto;
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-}
-
-.search-box {
-  flex: 1;
-}
-
-.filter-options {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.filter-options select {
-  min-width: 130px;
-}
-
 .loading-state {
   display: flex;
   align-items: center;
@@ -286,18 +290,6 @@ onMounted(() => refreshVolumes())
 @media (max-width: 768px) {
   .card-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .filters {
-    flex-direction: column;
-  }
-
-  .filter-options {
-    flex-direction: column;
-  }
-
-  .filter-options select {
-    min-width: 100%;
   }
 
   .item-list-row {

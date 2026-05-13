@@ -408,7 +408,21 @@
     "viewCard": "卡片视图",
     "viewList": "列表视图",
     "inspect": "查看",
-    "delete": "删除"
+    "delete": "删除",
+    "logs": "日志",
+    "details": "详情",
+    "test": "测试",
+    "edit": "编辑",
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "allMachines": "所有机器",
+    "images": "镜像",
+    "volumes": "存储卷",
+    "containers": "容器",
+    "networks": "网络",
+    "machine": "机器",
+    "services": "服务"
   },
   "errors": {
     "loginFailed": "登录失败"

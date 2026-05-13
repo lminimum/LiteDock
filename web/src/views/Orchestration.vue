@@ -18,17 +18,15 @@
       </button>
     </PageHeader>
 
-    <!-- Filters -->
-    <div v-if="!loading && !error && projects.length > 0" class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('common.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <div class="filter-options">
+    <CollapsibleFilters
+      v-if="!loading && !error && projects.length > 0"
+      v-model="searchQuery"
+      :search-placeholder="t('common.searchPlaceholder')"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
         <select v-model="statusFilter" class="input">
           <option value="">All</option>
           <option value="running">{{ t('pages.orchestration.status.running') }}</option>
@@ -37,9 +35,17 @@
           <option value="failed">{{ t('pages.orchestration.status.failed') }}</option>
           <option value="partial">{{ t('pages.orchestration.status.partial') }}</option>
         </select>
-      </div>
-      <ViewToggle v-model="viewMode" />
-    </div>
+        <select v-model="machineFilter" class="input">
+          <option value="">{{ t('common.allMachines') }}</option>
+          <option v-for="opt in machineOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </template>
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <!-- Loading state -->
     <div v-if="loading" class="loading-state">
@@ -75,73 +81,96 @@
 
     <template v-else>
       <Transition name="view-fade" mode="out-in">
-        <div v-if="viewMode === 'card'" class="card-grid" key="card">
-        <ComposeCard
-          v-for="project in filteredProjects"
-          :key="`${project.machineId}:${project.id}`"
-          :project="project"
-          @inspect="handleInspect"
-          @delete="handleDelete"
-          @up="handleUp"
-          @down="handleDown"
-          @logs="handleLogsClick"
-        />
-      </div>
-      <div v-else class="item-list">
-        <div
-          v-for="project in filteredProjects"
-          :key="`${project.machineId}:${project.id}`"
-          class="item-list-row"
-        >
-          <div class="item-list-info">
-            <div class="item-list-title">{{ project.name }}</div>
-            <div class="item-list-meta">
-              <span :class="['badge', statusBadgeClass(project.status)]">
-                {{ project.status }}
-              </span>
-              <span>{{ project.machineName }}</span>
-              <span>{{ project.services?.length ?? 0 }} services</span>
-              <span class="text-muted">{{ formatDate(project.createdAt) }}</span>
+        <div v-if="viewMode === 'card'" key="card">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.services') }}</span>
+          </div>
+          <div class="card-grid">
+            <ComposeCard
+              v-for="project in group.items"
+              :key="`${project.machineId}:${project.id}`"
+              :project="project"
+              @inspect="handleInspect"
+              @delete="handleDelete"
+              @up="handleUp"
+              @down="handleDown"
+              @logs="handleLogsClick"
+            />
+          </div>
+        </template>
+        </div>
+      <div v-else key="list">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.services') }}</span>
+          </div>
+          <div class="item-list">
+            <div
+              v-for="project in group.items"
+              :key="`${project.machineId}:${project.id}`"
+              class="item-list-row"
+            >
+              <div class="item-list-info">
+                <div class="item-list-title">{{ project.name }}</div>
+                <div class="item-list-meta">
+                  <span :class="['badge', statusBadgeClass(project.status)]">
+                    {{ project.status }}
+                  </span>
+                  <span>{{ project.machineName }}</span>
+                  <span>{{ project.services?.length ?? 0 }} services</span>
+                  <span class="text-muted">{{ formatDate(project.createdAt) }}</span>
+                </div>
+              </div>
+              <div class="item-list-actions">
+                <button
+                  class="btn btn-sm btn-ghost"
+                  @click="handleUp(project.id)"
+                  :title="t('pages.orchestration.actions.up')"
+                >
+                  <Play :size="14" />
+                  {{ t('pages.orchestration.actions.up') }}
+                </button>
+                <button
+                  class="btn btn-sm btn-ghost"
+                  @click="handleDown(project.id)"
+                  :title="t('pages.orchestration.actions.down')"
+                >
+                  <Square :size="14" />
+                  {{ t('pages.orchestration.actions.down') }}
+                </button>
+                <button
+                  class="btn btn-sm btn-ghost"
+                  @click="handleLogsClick(project.id)"
+                  :title="t('pages.orchestration.actions.logs')"
+                >
+                  <ScrollText :size="14" />
+                  {{ t('pages.orchestration.actions.logs') }}
+                </button>
+                <button
+                  class="btn btn-sm btn-ghost"
+                  @click="handleInspect(project.id)"
+                  :title="t('common.inspect')"
+                >
+                  <Eye :size="14" />
+                  {{ t('common.inspect') }}
+                </button>
+                <button
+                  class="btn btn-sm btn-ghost btn-danger-text"
+                  @click="handleDelete(project.id)"
+                  :title="t('common.delete')"
+                >
+                  <Trash2 :size="14" />
+                  {{ t('common.delete') }}
+                </button>
+              </div>
             </div>
           </div>
-          <div class="item-list-actions">
-            <button
-              class="btn btn-sm btn-primary"
-              @click="handleUp(project.id)"
-              :title="t('pages.orchestration.actions.up')"
-            >
-              <Play :size="14" />
-            </button>
-            <button
-              class="btn btn-sm btn-warning"
-              @click="handleDown(project.id)"
-              :title="t('pages.orchestration.actions.down')"
-            >
-              <Square :size="14" />
-            </button>
-            <button
-              class="btn btn-sm btn-ghost"
-              @click="handleLogsClick(project.id)"
-              :title="t('pages.orchestration.actions.logs')"
-            >
-              <ScrollText :size="14" />
-            </button>
-            <button
-              class="btn btn-sm btn-ghost"
-              @click="handleInspect(project.id)"
-              :title="t('common.inspect')"
-            >
-              <Eye :size="14" />
-            </button>
-            <button
-              class="btn btn-sm btn-ghost"
-              @click="handleDelete(project.id)"
-              :title="t('common.delete')"
-            >
-              <Trash2 :size="14" />
-            </button>
-          </div>
-        </div>
+        </template>
       </div>
     </Transition></template>
 
@@ -274,7 +303,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus, GitBranch, Play, Square, X, Layers, FileCode, ScrollText, Eye, Trash2 } from 'lucide-vue-next'
+import { RefreshCw, Plus, GitBranch, Play, Square, X, Layers, FileCode, ScrollText, Eye, Trash2, Server } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { composeService } from '@/services/composeService'
@@ -287,7 +316,9 @@ import ServiceStatusCard from '@/components/compose/ServiceStatusCard.vue'
 import ComposeEditor from '@/components/compose/ComposeEditor.vue'
 import LogViewer from '@/components/compose/LogViewer.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
+import { useMachineFilter } from '@/composables/useMachineFilter'
 
 interface ProjectWithMachine extends ComposeProject {
   machineName: string
@@ -458,6 +489,13 @@ const filteredProjects = computed(() => {
 
   return result
 })
+
+const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
+  filteredProjects,
+  machines,
+  (p) => p.machineId,
+  (p) => p.machineName,
+)
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -732,29 +770,6 @@ onMounted(() => fetchProjects())
   margin: 0 auto;
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-}
-
-.search-box {
-  flex: 1;
-}
-
-.filter-options {
-  display: flex;
-  gap: var(--space-3);
-}
-
-.filter-options select {
-  min-width: 130px;
-}
-
 .loading-state {
   display: flex;
   align-items: center;
@@ -876,16 +891,13 @@ onMounted(() => fetchProjects())
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .filters {
-    flex-direction: column;
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 
-  .filter-options {
-    flex-direction: column;
-  }
-
-  .filter-options select {
-    min-width: 100%;
+  .item-list-row .item-list-actions {
+    justify-content: flex-end;
   }
 
   .detail-header {

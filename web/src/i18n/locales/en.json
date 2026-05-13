@@ -427,7 +427,21 @@
     "viewCard": "Card view",
     "viewList": "List view",
     "inspect": "Inspect",
-    "delete": "Delete"
+    "delete": "Delete",
+    "logs": "Logs",
+    "details": "Details",
+    "test": "Test",
+    "edit": "Edit",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "allMachines": "All Machines",
+    "images": "Images",
+    "volumes": "Volumes",
+    "containers": "Containers",
+    "networks": "Networks",
+    "machine": "Machine",
+    "services": "Services"
   },
   "errors": {
     "loginFailed": "Login failed"

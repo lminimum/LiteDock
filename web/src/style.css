@@ -594,6 +594,52 @@ button:disabled {
   transform: translateY(-8px);
 }
 
+/* Machine section grouping */
+.machine-section {
+  margin-bottom: var(--space-6);
+}
+
+.machine-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+}
+
+.machine-section-header .icon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.machine-section-header .count {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-weaker);
+}
+
+.machine-section-header + .item-list {
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  margin-top: calc(var(--space-3) * -1 + 1px);
+}
+
+.machine-section-header + .card-grid {
+  margin-top: calc(var(--space-3) * -1);
+}
+
+.machine-section-header:has(+ .item-list) {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
 /* Filter bar consistency across pages */
 .filters {
   display: flex;
@@ -736,6 +782,16 @@ button:disabled {
 .btn-warning:hover:not(:disabled) {
   background: var(--color-warning-hover);
   border-color: var(--color-warning-hover);
+}
+
+/* Danger text — red text on transparent background for destructive actions */
+.btn-danger-text {
+  color: var(--color-error);
+}
+
+.btn-danger-text:hover:not(:disabled) {
+  background: var(--color-error);
+  color: #fdfcfc;
 }
 
 /* Sizes */

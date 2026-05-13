@@ -15,17 +15,24 @@
       </button>
     </PageHeader>
 
-    <div v-if="!loading && !error && images.length > 0" class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('common.searchPlaceholder') || 'Search images...'"
-          type="text"
-          class="input"
-        />
-      </div>
-      <ViewToggle v-model="viewMode" />
-    </div>
+    <CollapsibleFilters
+      v-if="!loading && !error && images.length > 0"
+      v-model="searchQuery"
+      :search-placeholder="t('common.searchPlaceholder') || 'Search images...'"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
+        <select v-model="machineFilter" class="input">
+          <option value="">{{ t('common.allMachines') }}</option>
+          <option v-for="opt in machineOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </template>
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="loading" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
@@ -53,36 +60,55 @@
     </div>
 
     <Transition name="view-fade" mode="out-in">
-      <div v-if="viewMode === 'card'" class="card-grid" key="card">
-        <ImageCard
-          v-for="img in filteredImages"
-          :key="`${img.machineId}:${img.id}`"
-          :image="img"
-          @inspect="handleInspect"
-          @delete="confirmDelete"
-        />
+      <div v-if="viewMode === 'card'" key="card">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.images') }}</span>
+          </div>
+          <div class="card-grid">
+            <ImageCard
+              v-for="img in group.items"
+              :key="`${img.machineId}:${img.id}`"
+              :image="img"
+              @inspect="handleInspect"
+              @delete="confirmDelete"
+            />
+          </div>
+        </template>
       </div>
 
-      <div v-else class="item-list" key="list">
-        <div v-for="img in filteredImages" :key="`${img.machineId}:${img.id}`" class="item-list-row">
-        <div class="item-list-info">
-          <div class="item-list-title">{{ img.repoTags?.[0] || 'untagged' }}</div>
-          <div class="item-list-meta">
-            <span class="text-muted">ID: {{ img.id.replace('sha256:', '').slice(0, 12) }}</span>
-            <span class="badge badge-info">{{ img.repoTags?.length || 0 }} tags</span>
-            <span>{{ (img.size / 1048576).toFixed(1) }} MB</span>
+      <div v-else key="list">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.images') }}</span>
           </div>
-        </div>
-        <div class="item-list-actions">
-          <button @click="handleInspect(img)" class="btn btn-sm btn-ghost">
-            <Eye :size="14" /> Inspect
-          </button>
-          <button @click="confirmDelete(img)" class="btn btn-sm btn-danger">
-            <Trash2 :size="14" /> Delete
-          </button>
-        </div>
+          <div class="item-list">
+            <div v-for="img in group.items" :key="`${img.machineId}:${img.id}`" class="item-list-row">
+              <div class="item-list-info">
+                <div class="item-list-title">{{ img.repoTags?.[0] || 'untagged' }}</div>
+                <div class="item-list-meta">
+                  <span class="text-muted">ID: {{ img.id.replace('sha256:', '').slice(0, 12) }}</span>
+                  <span class="badge badge-info">{{ img.repoTags?.length || 0 }} tags</span>
+                  <span>{{ (img.size / 1048576).toFixed(1) }} MB</span>
+                </div>
+              </div>
+              <div class="item-list-actions">
+                <button @click="handleInspect(img)" class="btn btn-sm btn-ghost">
+                  <Eye :size="14" /> {{ t('common.inspect') }}
+                </button>
+                <button @click="confirmDelete(img)" class="btn btn-sm btn-ghost btn-danger-text">
+                  <Trash2 :size="14" /> {{ t('common.delete') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
-    </div></Transition>
+    </Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -103,7 +129,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Download, Trash2, RefreshCw, Eye } from 'lucide-vue-next'
+import { Download, Trash2, RefreshCw, Eye, Server } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { imageService } from '@/services/imageService'
@@ -114,7 +140,9 @@ import ImagePullModal from '@/components/image/ImagePullModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import { formatSize, formatDate } from '@/utils/format'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
+import { useMachineFilter } from '@/composables/useMachineFilter'
 
 interface ImageWithMachine extends Image {
   machine: string
@@ -128,6 +156,28 @@ const showPullModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const images = ref<ImageWithMachine[]>([])
 const viewMode = useViewMode('images')
+
+const filteredImages = computed(() => {
+  let filtered = images.value
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(
+      img =>
+        img.repoTags.some(tag => tag.toLowerCase().includes(q)) ||
+        img.id.toLowerCase().includes(q)
+    )
+  }
+
+  return filtered
+})
+
+const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
+  filteredImages,
+  machines,
+  (img) => img.machineId,
+  (img) => img.machine,
+)
 
 const showInspect = ref(false)
 const selectedImage = ref<ImageWithMachine | null>(null)
@@ -155,21 +205,6 @@ const handleInspect = (image: Image) => {
   selectedImage.value = image as ImageWithMachine
   showInspect.value = true
 }
-
-const filteredImages = computed(() => {
-  let filtered = images.value
-
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      img =>
-        img.repoTags.some(tag => tag.toLowerCase().includes(q)) ||
-        img.id.toLowerCase().includes(q)
-    )
-  }
-
-  return filtered
-})
 
 const fetchImages = async () => {
   loading.value = true
@@ -269,20 +304,6 @@ onMounted(() => fetchImages())
   margin: 0 auto;
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-md);
-}
-
-.search-box {
-  flex: 1;
-}
-
 .loading-state {
   display: flex;
   align-items: center;
@@ -313,9 +334,6 @@ onMounted(() => fetchImages())
   .item-list-actions {
     justify-content: flex-end;
   }
-
-  .filters {
-    flex-direction: column;
-  }
 }
+
 </style>

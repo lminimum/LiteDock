@@ -1,7 +1,5 @@
 <template>
   <div class="dashboard">
-    <PageHeader :title="t('dashboard.title')" />
-
     <!-- Centerpiece — Stats (left) + 3D cube grid (right) -->
     <section class="centerpiece" aria-label="Machine connectivity visualization">
       <!-- Stats column — 4 metric cards stacked vertically -->
@@ -223,7 +221,6 @@ import {
   Layers
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
-import PageHeader from '@/components/ui/PageHeader.vue'
 import CubeArray from '@/components/dashboard/CubeArray.vue'
 import type { CubeData } from '@/components/dashboard/CubeArray.vue'
 import MinimalProgress from '@/components/dashboard/MinimalProgress.vue'

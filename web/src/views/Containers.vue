@@ -11,16 +11,15 @@
       </button>
     </PageHeader>
 
-    <div v-if="!loading && !error && containers.length > 0" class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('containers.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <div class="filter-options">
+    <CollapsibleFilters
+      v-if="!loading && !error && containers.length > 0"
+      v-model="searchQuery"
+      :search-placeholder="t('containers.searchPlaceholder')"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
         <select v-model="statusFilter" class="input">
           <option value="">{{ t('containers.allStatuses') }}</option>
           <option value="running">{{ t('containers.running') }}</option>
@@ -30,9 +29,15 @@
           <option value="exited">{{ t('containers.exited') }}</option>
           <option value="created">{{ t('containers.created') }}</option>
         </select>
+        <select v-model="machineFilter" class="input">
+          <option value="">{{ t('common.allMachines') }}</option>
+          <option v-for="opt in machineOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </template>
+      <template #right>
         <ViewToggle v-model="viewMode" />
-      </div>
-    </div>
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="loading" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
@@ -53,49 +58,67 @@
     </div>
 
     <Transition name="view-fade" mode="out-in">
-      <div v-if="viewMode === 'card'" class="card-grid" key="card">
-        <ContainerCard
-          v-for="container in filteredContainers"
-          :key="container.id"
-          :container="container"
-          @inspect="handleInspect"
-          @delete="deleteContainer"
-          @start="startContainer"
-          @stop="stopContainer"
-          @restart="restartContainer"
-          @logs="showLogs"
-        />
+      <div v-if="viewMode === 'card'" key="card">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.containers') }}</span>
+          </div>
+          <div class="card-grid">
+            <ContainerCard
+              v-for="container in group.items"
+              :key="container.id"
+              :container="container"
+              @inspect="handleInspect"
+              @delete="deleteContainer"
+              @start="startContainer"
+              @stop="stopContainer"
+              @restart="restartContainer"
+              @logs="showLogs"
+            />
+          </div>
+        </template>
       </div>
 
-      <div v-else class="item-list" key="list">
-        <div v-for="container in filteredContainers" :key="container.id" class="item-list-row">
-        <div class="item-list-info">
-          <div class="item-list-title">{{ container.name }}</div>
-          <div class="item-list-meta">
-            <span class="text-muted">Image: {{ container.image }}</span>
-            <span class="badge" :class="container.status === 'running' ? 'badge-success' : container.status === 'stopped' || container.status === 'exited' ? 'badge-error' : 'badge-warning'">{{ container.status }}</span>
-            <span>{{ container.machine }}</span>
+      <div v-else key="list">
+        <template v-for="group in groupedItems" :key="group.machineId">
+          <div class="machine-section-header">
+            <Server :size="16" class="icon" />
+            {{ group.machineName }}
+            <span class="count">{{ group.items.length }} {{ t('common.containers') }}</span>
           </div>
-        </div>
-        <div class="item-list-actions">
-          <button @click="handleInspect(container.id)" class="btn btn-sm btn-ghost">
-            <Info :size="14" /> Details
-          </button>
-          <button v-if="container.status === 'stopped'" @click="startContainer(container.id)" class="btn btn-sm btn-secondary">
-            <Play :size="14" /> Start
-          </button>
-          <button v-if="container.status === 'running'" @click="stopContainer(container.id)" class="btn btn-sm btn-secondary">
-            <Square :size="14" /> Stop
-          </button>
-          <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
-            <FileText :size="14" /> Logs
-          </button>
-          <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
-            <Trash2 :size="14" /> Delete
-          </button>
-        </div>
-      </div>
-    </div></Transition>
+          <div class="item-list">
+            <div v-for="container in group.items" :key="container.id" class="item-list-row">
+              <div class="item-list-info">
+                <div class="item-list-title">{{ container.name }}</div>
+                <div class="item-list-meta">
+                  <span class="text-muted">Image: {{ container.image }}</span>
+                  <span class="badge" :class="container.status === 'running' ? 'badge-success' : container.status === 'stopped' || container.status === 'exited' ? 'badge-error' : 'badge-warning'">{{ container.status }}</span>
+                  <span>{{ container.machine }}</span>
+                </div>
+              </div>
+              <div class="item-list-actions">
+                <button @click="handleInspect(container.id)" class="btn btn-sm btn-ghost">
+                  <Info :size="14" /> {{ t('common.details') }}
+                </button>
+                <button v-if="container.status === 'stopped'" @click="startContainer(container.id)" class="btn btn-sm btn-ghost">
+                  <Play :size="14" /> {{ t('common.start') }}
+                </button>
+                <button v-if="container.status === 'running'" @click="stopContainer(container.id)" class="btn btn-sm btn-ghost">
+                  <Square :size="14" /> {{ t('common.stop') }}
+                </button>
+                <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
+                  <FileText :size="14" /> {{ t('common.logs') }}
+                </button>
+                <button @click="deleteContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
+                  <Trash2 :size="14" /> {{ t('common.delete') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div></Transition>
 
     <InspectModal
       :visible="showInspect"
@@ -115,17 +138,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus, Info, Play, Square, FileText, Trash2 } from 'lucide-vue-next'
+import { RefreshCw, Plus, Server, Info, Play, Square, FileText, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import api from '@/utils/api'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import ContainerCard from '@/components/container/ContainerCard.vue'
 import ContainerCreateModal from '@/components/container/ContainerCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
-import ViewToggle from '@/components/ui/ViewToggle.vue'
 import { useViewMode } from '@/composables/useViewMode'
+import { useMachineFilter } from '@/composables/useMachineFilter'
 
 interface Container {
   id: string
@@ -243,6 +268,8 @@ const filteredContainers = computed(() => {
   return filtered
 })
 
+const { machineFilter, machineOptions, groupedItems } = useMachineFilter(filteredContainers, machines, (c) => c.machineId, (c) => c.machine)
+
 
 const startContainer = async (id: string) => {
   const container = containers.value.find(c => c.id === id)
@@ -300,33 +327,7 @@ onMounted(() => refreshContainers())
   padding: var(--space-10) var(--space-6);
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-}
-
-.search-box {
-  flex: 1;
-}
-
-.filter-options select {
-  min-width: 140px;
-}
-
 @media (max-width: 768px) {
-  .filters {
-    flex-direction: column;
-  }
-
-  .filter-options select {
-    min-width: 100%;
-  }
-
   .item-list-row {
     grid-template-columns: 1fr;
     gap: var(--space-2);

@@ -11,17 +11,16 @@
       </button>
     </PageHeader>
 
-    <div class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('machines.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <ViewToggle v-model="viewMode" />
-    </div>
+    <CollapsibleFilters
+      v-model="searchQuery"
+      :search-placeholder="t('machines.searchPlaceholder')"
+      search-label="Search"
+      :has-filters="false"
+    >
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="machines.length === 0 && !loading" class="empty-state">
       <Server :size="48" class="empty-icon" />
@@ -76,15 +75,15 @@
           </div>
 
           <div class="machine-actions">
-            <button @click="testConnection(machine.id)" class="btn btn-sm btn-secondary" :disabled="testingId === machine.id">
+            <button @click="testConnection(machine.id)" class="btn btn-sm btn-ghost" :disabled="testingId === machine.id">
               <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" />
               {{ t('machines.test') }}
             </button>
-            <button @click="openEditModal(machine)" class="btn btn-sm btn-secondary" :disabled="machine.id === 'local'">
+            <button @click="openEditModal(machine)" class="btn btn-sm btn-ghost" :disabled="machine.id === 'local'">
               <Pencil :size="14" />
               {{ t('machines.edit') }}
             </button>
-            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-secondary">
+            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-ghost">
               <Box :size="14" />
               {{ t('machines.containers') }}
             </button>
@@ -109,14 +108,14 @@
             </div>
           </div>
           <div class="item-list-actions">
-            <button @click="testConnection(machine.id)" class="btn btn-sm btn-secondary" :disabled="testingId === machine.id">
-              <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" /> Test
+            <button @click="testConnection(machine.id)" class="btn btn-sm btn-ghost" :disabled="testingId === machine.id">
+              <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" /> {{ t('machines.test') }}
             </button>
-            <button @click="openEditModal(machine)" class="btn btn-sm btn-secondary" :disabled="machine.id === 'local'">
-              <Pencil :size="14" /> Edit
+            <button @click="openEditModal(machine)" class="btn btn-sm btn-ghost" :disabled="machine.id === 'local'">
+              <Pencil :size="14" /> {{ t('machines.edit') }}
             </button>
-            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-secondary">
-              <Box :size="14" /> Containers
+            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-ghost">
+              <Box :size="14" /> {{ t('machines.containers') }}
             </button>
             <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
               <Trash2 :size="14" /> Delete
@@ -226,6 +225,7 @@ import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine, CreateMachineRequest, UpdateMachineRequest } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
 
 const router = useRouter()
@@ -412,20 +412,6 @@ onMounted(() => refreshMachines())
 .machines-page {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-}
-
-.search-box {
-  flex: 1;
 }
 
 .empty-state {
@@ -643,10 +629,6 @@ onMounted(() => refreshMachines())
 @media (max-width: 768px) {
   .machines-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filters {
-    flex-direction: column;
   }
 
   .machine-actions {

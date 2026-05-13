@@ -27,24 +27,22 @@
       <span class="info-chip mono">{{ machine.docker_host }}</span>
     </div>
 
-    <div class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('containers.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-      <div class="filter-options">
+    <CollapsibleFilters
+      v-model="searchQuery"
+      :search-placeholder="t('containers.searchPlaceholder')"
+      search-label="Search"
+      filter-label="Filters"
+      :has-filters="true"
+    >
+      <template #filters>
         <select v-model="statusFilter" class="input">
           <option value="">{{ t('containers.allStatuses') }}</option>
           <option value="running">{{ t('containers.running') }}</option>
           <option value="stopped">{{ t('containers.stopped') }}</option>
           <option value="paused">{{ t('containers.paused') }}</option>
         </select>
-      </div>
-    </div>
+      </template>
+    </CollapsibleFilters>
 
     <div class="containers-grid">
       <div
@@ -198,6 +196,7 @@ import {
 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import type { RemoteMachine, RemoteContainer } from '@/types'
 
 const router = useRouter()
@@ -444,24 +443,6 @@ onUnmounted(() => {
   font-family: var(--font-mono);
 }
 
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-}
-
-.search-box {
-  flex: 1;
-}
-
-.filter-options select {
-  min-width: 140px;
-}
-
 .containers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
@@ -672,10 +653,6 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .containers-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filters {
-    flex-direction: column;
   }
 
   .container-actions {

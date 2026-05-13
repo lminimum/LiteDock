@@ -41,7 +41,6 @@ const route = useRoute()
 
 const refreshing = ref(false)
 
-// Simplified nav items — only name + label needed for title/breadcrumb resolution
 const allNavItems = computed(() => [
   { name: 'Dashboard', label: t('nav.overview') },
   { name: 'Containers', label: t('nav.containers') },
@@ -49,6 +48,8 @@ const allNavItems = computed(() => [
   { name: 'Images', label: t('nav.images') },
   { name: 'Networks', label: t('nav.networks') },
   { name: 'Volumes', label: t('nav.volumes') },
+  { name: 'Machines', label: t('nav.machines') },
+  { name: 'MachineDetail', label: t('nav.machines') },
   { name: 'Settings', label: t('nav.settings') },
 ])
 
@@ -58,8 +59,37 @@ const currentPageTitle = computed(() => {
 })
 
 const breadcrumbs = computed(() => {
-  const item = allNavItems.value.find(item => item.name === route.name)
-  return item ? ['LiteDock', item.label] : ['LiteDock']
+  const crumbs: string[] = ['LiteDock']
+
+  const path = route.path
+  const segments = path.split('/').filter(Boolean)
+
+  if (segments.length === 0) {
+    return crumbs
+  }
+
+  const segmentLabelMap: Record<string, string> = {
+    containers: t('nav.containers'),
+    images: t('nav.images'),
+    networks: t('nav.networks'),
+    volumes: t('nav.volumes'),
+    orchestration: t('nav.orchestration'),
+    machines: t('nav.machines'),
+    settings: t('nav.settings'),
+  }
+
+  for (const segment of segments) {
+    if (segment.startsWith(':') || /^[a-f0-9-]{8,}$/.test(segment)) {
+      crumbs.push(route.params.id as string || segment)
+      continue
+    }
+    const label = segmentLabelMap[segment]
+    if (label) {
+      crumbs.push(label)
+    }
+  }
+
+  return crumbs
 })
 
 const refreshData = async () => {
