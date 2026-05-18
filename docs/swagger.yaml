@@ -15,6 +15,18 @@ definitions:
       username:
         type: string
     type: object
+  v1.CreateComposeRequest:
+    properties:
+      content:
+        type: string
+      file_path:
+        type: string
+      name:
+        type: string
+    required:
+    - content
+    - name
+    type: object
   v1.CreateContainerRequest:
     properties:
       cmd:
@@ -103,6 +115,15 @@ definitions:
     required:
     - cmd
     type: object
+  v1.PullImageRequest:
+    properties:
+      repository:
+        type: string
+      tag:
+        type: string
+    required:
+    - repository
+    type: object
   v1.Response:
     properties:
       code:
@@ -110,6 +131,13 @@ definitions:
       data: {}
       msg:
         type: string
+    type: object
+  v1.UpdateComposeRequest:
+    properties:
+      content:
+        type: string
+    required:
+    - content
     type: object
   v1.UpdateMachineRequest:
     properties:
@@ -279,6 +307,25 @@ paths:
       summary: Get a container by ID
       tags:
       - containers
+  /dashboard/resources:
+    get:
+      description: Get current CPU, memory, and disk usage metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current system resource metrics
+      tags:
+      - dashboard
   /dashboard/resources/history:
     get:
       description: Get historical metrics for the chart (last N minutes)
@@ -302,6 +349,20 @@ paths:
             additionalProperties: true
             type: object
       summary: Get historical system resources metrics
+      tags:
+      - dashboard
+  /dashboard/resources/stream:
+    get:
+      description: WebSocket endpoint that streams current CPU, memory, and disk metrics
+        every 2 seconds
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+      summary: Stream system resource metrics
       tags:
       - dashboard
   /dashboard/stats:
@@ -471,6 +532,430 @@ paths:
       summary: Update a remote machine
       tags:
       - machines
+  /machines/{id}/compose:
+    get:
+      description: Get all Docker Compose projects on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List Compose projects
+      tags:
+      - compose
+    post:
+      consumes:
+      - application/json
+      description: Create a Docker Compose project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.CreateComposeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a Compose project
+      tags:
+      - compose
+  /machines/{id}/compose/{name}:
+    delete:
+      description: Delete a Docker Compose project from a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a Compose project
+      tags:
+      - compose
+    get:
+      description: Get Docker Compose project details from a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a Compose project
+      tags:
+      - compose
+    put:
+      consumes:
+      - application/json
+      description: Update Docker Compose project content on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Compose project update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateComposeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a Compose project
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/build:
+    post:
+      description: Run docker compose build for a project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Build Compose project images
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/down:
+    post:
+      description: Run docker compose down for a project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      - default: false
+        description: Remove named volumes
+        in: query
+        name: volumes
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Stop and remove a Compose project
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/logs:
+    get:
+      description: Get logs for a Docker Compose project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Compose project logs
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/ps:
+    get:
+      description: List services and containers for a Docker Compose project on a
+        remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List Compose project services
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/restart:
+    post:
+      description: Restart services for a Docker Compose project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Restart Compose services
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/start:
+    post:
+      description: Start services for a Docker Compose project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Start Compose services
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/stop:
+    post:
+      description: Stop services for a Docker Compose project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Stop Compose services
+      tags:
+      - compose
+  /machines/{id}/compose/{name}/up:
+    post:
+      description: Run docker compose up for a project on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Compose project name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Start a Compose project
+      tags:
+      - compose
   /machines/{id}/containers:
     get:
       description: Get all Docker containers running on a remote host
@@ -766,6 +1251,153 @@ paths:
       summary: Create a container on a machine
       tags:
       - machines
+  /machines/{id}/images:
+    get:
+      description: Get all Docker images from a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List images on a machine
+      tags:
+      - images
+  /machines/{id}/images/{imageID}:
+    delete:
+      description: Delete a Docker image from a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image ID or name
+        in: path
+        name: imageID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete an image
+      tags:
+      - images
+    get:
+      description: Get detailed information about a Docker image
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image ID or name
+        in: path
+        name: imageID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Inspect an image
+      tags:
+      - images
+  /machines/{id}/images/prune:
+    post:
+      description: Remove unused Docker images from a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Prune unused images
+      tags:
+      - images
+  /machines/{id}/images/pull:
+    post:
+      consumes:
+      - application/json
+      description: Pull a Docker image on a remote machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image pull request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.PullImageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Pull an image
+      tags:
+      - images
   /machines/{id}/networks:
     get:
       description: Get all Docker networks on a remote host
