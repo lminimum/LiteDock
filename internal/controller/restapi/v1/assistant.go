@@ -25,6 +25,7 @@ type AssistantHandler struct {
 	settingsStore *AISettingsStore
 	registry      *action.ActionRegistry
 	rateLimiter   *assistant.RateLimiter
+	tokenService  *assistant.TokenService
 	l             logger.Interface
 }
 
@@ -37,6 +38,7 @@ func NewAssistantRoutes(apiV1Group fiber.Router, parser *assistant.NLParserUseCa
 		settingsStore: settingsStore,
 		registry:      registry,
 		rateLimiter:   rateLimiter,
+		tokenService:  assistant.NewTokenService("", 0),
 		l:             l,
 	}
 
@@ -101,6 +103,183 @@ func sendWSEvent(w *bufio.Writer, eventType WSEventType, payload interface{}) {
 	w.Flush()
 }
 
+// streamToolCallDeltaFunc is the function sub-object in a streaming delta.tool_calls chunk.
+type streamToolCallDeltaFunc struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+// streamToolCallDelta is a single entry in the delta.tool_calls array of an OpenAI SSE chunk.
+type streamToolCallDelta struct {
+	Index    int                    `json:"index"`
+	ID       string                 `json:"id,omitempty"`
+	Type     string                 `json:"type,omitempty"`
+	Function streamToolCallDeltaFunc `json:"function"`
+}
+
+// streamToolCall accumulates partial tool call data across streaming chunks.
+type streamToolCall struct {
+	id   string
+	name string
+	args string
+}
+
+// processStreamToolCalls converts accumulated tool calls into action_required or error events.
+// It does NOT execute any tool calls — only surfaces them as structured events for client confirmation.
+func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map[int]*streamToolCall) {
+	if len(toolCalls) == 0 {
+		return
+	}
+
+	for i := 0; i < len(toolCalls); i++ {
+		tc, ok := toolCalls[i]
+		if !ok {
+			continue
+		}
+
+		actionName := tc.name
+
+		if h.registry == nil {
+			sendWSEvent(w, WSEventError, WSPayloadError{Message: "unknown tool: " + actionName})
+			continue
+		}
+
+		act, found := h.registry.Get(actionName)
+		if !found {
+			sendWSEvent(w, WSEventError, WSPayloadError{Message: "unknown tool: " + actionName})
+			continue
+		}
+
+		params := make(map[string]string)
+		if tc.args != "" {
+			var rawParams map[string]interface{}
+			if err := json.Unmarshal([]byte(tc.args), &rawParams); err != nil {
+				sendWSEvent(w, WSEventError, WSPayloadError{Message: "invalid tool arguments for " + actionName})
+				continue
+			}
+			for k, v := range rawParams {
+				params[k] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		paramsIface := make(map[string]interface{}, len(params))
+		for k, v := range params {
+			paramsIface[k] = v
+		}
+
+		riskLevel := entity.RiskLevelRead
+		if act.Destructive(paramsIface) {
+			riskLevel = entity.RiskLevelDangerous
+		}
+
+		tokenStr := ""
+		if h.tokenService != nil {
+			hash := h.tokenService.ParamsHash(params)
+			tok, err := h.tokenService.Generate(assistant.ActionConfirmationToken{
+				Action:     actionName,
+				ParamsHash: hash,
+				RiskLevel:  string(riskLevel),
+			})
+			if err == nil {
+				tokenStr = tok
+			}
+		}
+
+		intent := entity.ActionIntent{
+			Action:               actionName,
+			Params:               params,
+			RiskLevel:            riskLevel,
+			RequiresConfirmation: true,
+			ConfirmationMessage:  act.ConfirmationMessage(paramsIface),
+			ConfirmationToken:    tokenStr,
+		}
+
+		intentBytes, _ := json.Marshal(intent)
+		env := WSEventEnvelope{V: 1, Type: WSEventActionRequired, Payload: intentBytes}
+		envBytes, _ := json.Marshal(env)
+		fmt.Fprintf(w, "data: %s\n\n", envBytes)
+		w.Flush()
+	}
+}
+
+// processWSToolCalls sends accumulated tool calls as action_required or error events over WebSocket.
+func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[int]*streamToolCall) {
+	if len(toolCalls) == 0 {
+		return
+	}
+
+	for i := 0; i < len(toolCalls); i++ {
+		tc, ok := toolCalls[i]
+		if !ok {
+			continue
+		}
+
+		actionName := tc.name
+
+		if h.registry == nil {
+			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "unknown tool: " + actionName})})
+			continue
+		}
+
+		act, found := h.registry.Get(actionName)
+		if !found {
+			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "unknown tool: " + actionName})})
+			continue
+		}
+
+		params := make(map[string]string)
+		if tc.args != "" {
+			var rawParams map[string]interface{}
+			if err := json.Unmarshal([]byte(tc.args), &rawParams); err != nil {
+				c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "invalid tool arguments for " + actionName})})
+				continue
+			}
+			for k, v := range rawParams {
+				params[k] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		paramsIface := make(map[string]interface{}, len(params))
+		for k, v := range params {
+			paramsIface[k] = v
+		}
+
+		riskLevel := entity.RiskLevelRead
+		if act.Destructive(paramsIface) {
+			riskLevel = entity.RiskLevelDangerous
+		}
+
+		tokenStr := ""
+		if h.tokenService != nil {
+			hash := h.tokenService.ParamsHash(params)
+			tok, err := h.tokenService.Generate(assistant.ActionConfirmationToken{
+				Action:     actionName,
+				ParamsHash: hash,
+				RiskLevel:  string(riskLevel),
+			})
+			if err == nil {
+				tokenStr = tok
+			}
+		}
+
+		intent := entity.ActionIntent{
+			Action:               actionName,
+			Params:               params,
+			RiskLevel:            riskLevel,
+			RequiresConfirmation: true,
+			ConfirmationMessage:  act.ConfirmationMessage(paramsIface),
+			ConfirmationToken:    tokenStr,
+		}
+
+		c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventActionRequired, Payload: mustMarshal(intent)})
+	}
+}
+
+func mustMarshal(v interface{}) json.RawMessage {
+	b, _ := json.Marshal(v)
+	return b
+}
+
 // StreamRequest is the request body for POST /v1/assistant/stream.
 type StreamRequest struct {
 	Messages []assistant.ChatMessage `json:"messages"`
@@ -143,6 +322,8 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Buffer(make([]byte, 0, 65536), 65536)
 
+		toolCalls := make(map[int]*streamToolCall)
+
 		for scanner.Scan() {
 			line := strings.TrimSuffix(scanner.Text(), "\r")
 			if line == "" || !strings.HasPrefix(line, "data: ") {
@@ -151,6 +332,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
+				h.processStreamToolCalls(w, toolCalls)
 				chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 				fmt.Fprintf(w, "data: %s\n\n", chunk)
 				w.Flush()
@@ -160,8 +342,10 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			var openAIChunk struct {
 				Choices []struct {
 					Delta struct {
-						Content string `json:"content"`
+						Content    string                  `json:"content"`
+						ToolCalls  []streamToolCallDelta   `json:"tool_calls"`
 					} `json:"delta"`
+					FinishReason *string `json:"finish_reason"`
 				} `json:"choices"`
 			}
 			if err := json.Unmarshal([]byte(data), &openAIChunk); err != nil {
@@ -172,7 +356,29 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 				continue
 			}
 
-			content := openAIChunk.Choices[0].Delta.Content
+			choice := openAIChunk.Choices[0]
+
+			for _, tc := range choice.Delta.ToolCalls {
+				existing, exists := toolCalls[tc.Index]
+				if !exists {
+					existing = &streamToolCall{}
+					toolCalls[tc.Index] = existing
+				}
+				if tc.ID != "" {
+					existing.id = tc.ID
+				}
+				if tc.Function.Name != "" {
+					existing.name = tc.Function.Name
+				}
+				existing.args += tc.Function.Arguments
+			}
+
+			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
+				h.processStreamToolCalls(w, toolCalls)
+				toolCalls = make(map[int]*streamToolCall)
+			}
+
+			content := choice.Delta.Content
 			if content == "" {
 				continue
 			}
@@ -186,7 +392,8 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			h.l.Error(scanner.Err(), "AssistantHandler - Stream - scanner")
 		}
 
-		// Ensure done event is sent even on scanner error
+		h.processStreamToolCalls(w, toolCalls)
+
 		chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 		fmt.Fprintf(w, "data: %s\n\n", chunk)
 		w.Flush()
@@ -251,7 +458,9 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Buffer(make([]byte, 0, 65536), 65536)
 
+		toolCalls := make(map[int]*streamToolCall)
 		doneSent := false
+
 		for scanner.Scan() {
 			line := strings.TrimSuffix(scanner.Text(), "\r")
 			if line == "" || !strings.HasPrefix(line, "data: ") {
@@ -260,6 +469,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
+				h.processWSToolCalls(c, toolCalls)
 				c.WriteJSON(map[string]interface{}{"done": true})
 				doneSent = true
 				break
@@ -268,16 +478,43 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			var openAIChunk struct {
 				Choices []struct {
 					Delta struct {
-						Content string `json:"content"`
+						Content    string                `json:"content"`
+						ToolCalls  []streamToolCallDelta `json:"tool_calls"`
 					} `json:"delta"`
+					FinishReason *string `json:"finish_reason"`
 				} `json:"choices"`
 			}
 			if err := json.Unmarshal([]byte(data), &openAIChunk); err != nil {
 				continue
 			}
-			if len(openAIChunk.Choices) > 0 && openAIChunk.Choices[0].Delta.Content != "" {
-				content := openAIChunk.Choices[0].Delta.Content
-				c.WriteJSON(map[string]interface{}{"content": content, "done": false})
+			if len(openAIChunk.Choices) == 0 {
+				continue
+			}
+
+			choice := openAIChunk.Choices[0]
+
+			for _, tc := range choice.Delta.ToolCalls {
+				existing, exists := toolCalls[tc.Index]
+				if !exists {
+					existing = &streamToolCall{}
+					toolCalls[tc.Index] = existing
+				}
+				if tc.ID != "" {
+					existing.id = tc.ID
+				}
+				if tc.Function.Name != "" {
+					existing.name = tc.Function.Name
+				}
+				existing.args += tc.Function.Arguments
+			}
+
+			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
+				h.processWSToolCalls(c, toolCalls)
+				toolCalls = make(map[int]*streamToolCall)
+			}
+
+			if choice.Delta.Content != "" {
+				c.WriteJSON(map[string]interface{}{"content": choice.Delta.Content, "done": false})
 			}
 		}
 
@@ -286,6 +523,8 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		if scanner.Err() != nil {
 			h.l.Error(scanner.Err(), "AssistantHandler - StreamWS - scanner")
 		}
+
+		h.processWSToolCalls(c, toolCalls)
 
 		if !doneSent {
 			c.WriteJSON(map[string]interface{}{"done": true})

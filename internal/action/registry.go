@@ -2,21 +2,61 @@ package action
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
 
-// ActionRegistry is a central registry for all AI-callable operations.
-type ActionRegistry struct {
-	mu      sync.RWMutex
-	actions map[string]Action
+type ctxKey string
+
+const (
+	ctxKeyUserID    ctxKey = "user_id"
+	ctxKeySessionID ctxKey = "session_id"
+)
+
+const (
+	RiskLevelDangerous = "dangerous"
+	RiskLevelSafe      = "safe"
+)
+
+const defaultTokenTTL = 2 * time.Minute
+
+// TokenParams holds the parameters for token validation.
+type TokenParams struct {
+	UserID     string
+	SessionID  string
+	Action     string
+	ParamsHash string
+	RiskLevel  string
 }
 
-// NewActionRegistry creates a new empty registry.
+// TokenValidator abstracts the confirmation token validation logic.
+type TokenValidator interface {
+	Validate(tokenStr string, params TokenParams) error
+}
+
+// ActionRegistry is a central registry for all AI-callable operations.
+type ActionRegistry struct {
+	mu           sync.RWMutex
+	actions      map[string]Action
+	tokenService TokenValidator
+}
+
+// NewActionRegistry creates a new empty registry without token validation.
 func NewActionRegistry() *ActionRegistry {
 	return &ActionRegistry{
 		actions: make(map[string]Action),
+	}
+}
+
+// NewActionRegistryWithToken creates a new registry with confirmation token support.
+func NewActionRegistryWithToken(ts TokenValidator) *ActionRegistry {
+	return &ActionRegistry{
+		actions:      make(map[string]Action),
+		tokenService: ts,
 	}
 }
 
@@ -55,7 +95,7 @@ func (r *ActionRegistry) List() []Action {
 }
 
 // Execute runs an action by name with the given params.
-// If the action is destructive and confirmed is false, it returns ErrDestructiveAction.
+// If the action is destructive, it returns ErrDestructiveAction.
 func (r *ActionRegistry) Execute(ctx context.Context, name string, params map[string]interface{}) (*ActionResult, error) {
 	a, ok := r.Get(name)
 	if !ok {
@@ -78,8 +118,80 @@ func (r *ActionRegistry) Execute(ctx context.Context, name string, params map[st
 	return result, err
 }
 
-// ExecuteConfirmed runs an action by name with the given params, bypassing the destructive check.
-// This should only be called after the user has explicitly confirmed the action.
+// ExecuteReadOnly runs only non-destructive actions.
+// Destructive actions are blocked with ErrConfirmationRequired.
+func (r *ActionRegistry) ExecuteReadOnly(ctx context.Context, name string, params map[string]interface{}) (*ActionResult, error) {
+	a, ok := r.Get(name)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownAction, name)
+	}
+
+	if err := a.Validate(params); err != nil {
+		return nil, fmt.Errorf("%w for %s: %w", ErrValidationFailed, name, err)
+	}
+
+	if a.Destructive(params) {
+		return nil, fmt.Errorf("%w: %s", ErrConfirmationRequired, name)
+	}
+
+	start := time.Now()
+	result, err := a.Execute(ctx, params)
+	if result != nil {
+		result.Duration = time.Since(start).Round(time.Millisecond).String()
+	}
+	return result, err
+}
+
+// ExecuteWithConfirmation runs an action with a confirmation token.
+// For non-destructive actions, the token is ignored.
+// For destructive actions, a valid token matching action+params+user is required.
+func (r *ActionRegistry) ExecuteWithConfirmation(ctx context.Context, name string, params map[string]interface{}, token string) (*ActionResult, error) {
+	a, ok := r.Get(name)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownAction, name)
+	}
+
+	if err := a.Validate(params); err != nil {
+		return nil, fmt.Errorf("%w for %s: %w", ErrValidationFailed, name, err)
+	}
+
+	isDestructive := a.Destructive(params)
+
+	if isDestructive {
+		if r.tokenService == nil {
+			return nil, fmt.Errorf("%w: no token service configured", ErrConfirmationRequired)
+		}
+
+		if token == "" {
+			return nil, fmt.Errorf("%w: %s", ErrConfirmationRequired, name)
+		}
+
+		userID := ctxValueOr(ctx, ctxKeyUserID, "anonymous")
+		sessionID := ctxValueOr(ctx, ctxKeySessionID, "")
+
+		validationParams := TokenParams{
+			UserID:     userID,
+			SessionID:  sessionID,
+			Action:     name,
+			ParamsHash: ComputeParamsHash(params),
+			RiskLevel:  RiskLevelDangerous,
+		}
+
+		if err := r.tokenService.Validate(token, validationParams); err != nil {
+			return nil, err
+		}
+	}
+
+	start := time.Now()
+	result, err := a.Execute(ctx, params)
+	if result != nil {
+		result.Duration = time.Since(start).Round(time.Millisecond).String()
+	}
+	return result, err
+}
+
+// Deprecated: ExecuteConfirmed runs an action bypassing the destructive check.
+// Use ExecuteWithConfirmation instead, which validates a confirmation token.
 func (r *ActionRegistry) ExecuteConfirmed(ctx context.Context, name string, params map[string]interface{}) (*ActionResult, error) {
 	a, ok := r.Get(name)
 	if !ok {
@@ -129,4 +241,43 @@ func (r *ActionRegistry) GenerateToolDefs() []map[string]interface{} {
 	}
 
 	return tools
+}
+
+func ctxValueOr(ctx context.Context, key ctxKey, fallback string) string {
+	if v, ok := ctx.Value(key).(string); ok {
+		return v
+	}
+	return fallback
+}
+
+// ComputeParamsHash produces a deterministic SHA-256 hex digest of the given params.
+func ComputeParamsHash(params map[string]interface{}) string {
+	if params == nil {
+		hash := sha256.Sum256([]byte(""))
+		return fmt.Sprintf("%x", hash)
+	}
+
+	strParams := make(map[string]string, len(params))
+	for k, v := range params {
+		strParams[k] = fmt.Sprintf("%v", v)
+	}
+
+	keys := make([]string, 0, len(strParams))
+	for k := range strParams {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var sb strings.Builder
+	for i, k := range keys {
+		if i > 0 {
+			sb.WriteString("&")
+		}
+		sb.WriteString(k)
+		sb.WriteString("=")
+		sb.WriteString(strParams[k])
+	}
+
+	hash := sha256.Sum256([]byte(sb.String()))
+	return fmt.Sprintf("%x", hash)
 }

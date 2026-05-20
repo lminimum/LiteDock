@@ -12,7 +12,6 @@ import (
 	"github.com/lminimum/LiteDock/pkg/assistant/engine"
 	tknzr "github.com/lminimum/LiteDock/pkg/assistant/tokenizer"
 	"github.com/lminimum/LiteDock/pkg/logger"
-	"github.com/lminimum/LiteDock/pkg/sanitize"
 )
 
 const (
@@ -38,6 +37,63 @@ var _stopWords = map[string]bool{
 	"容器":         true,
 	"镜像":         true,
 	"应用":         true,
+}
+
+// _destructiveKeywords are keywords that indicate a potentially destructive operation.
+// Used as a fail-safe when no rule matches but the user intent is clearly modifying.
+var _destructiveKeywords = []string{
+	"删除", "删除所有", "delete", "prune", "remove", "destroy", "drop",
+	"停止", "关掉", "重启", "restart",
+}
+
+// containsDestructiveKeyword checks if the input text contains any destructive keyword.
+func containsDestructiveKeyword(text string) bool {
+	lower := strings.ToLower(text)
+	for _, kw := range _destructiveKeywords {
+		if strings.Contains(lower, strings.ToLower(kw)) {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeAction maps a TF-IDF rule action to a registered action name.
+// If ruleAction matches a registered action directly, it is returned as-is.
+// Otherwise, it tries to find a registered action by extracting suffixes
+// (e.g., "stop_container" → "container") and returns the normalized name
+// with the original ruleAction as the "operation" parameter.
+func (uc *NLParserUseCase) normalizeAction(ruleAction string) (actionName string, extraParams map[string]string) {
+	if uc.actionRegistry == nil {
+		return ruleAction, nil
+	}
+
+	if _, ok := uc.actionRegistry.Get(ruleAction); ok {
+		return ruleAction, nil
+	}
+
+	parts := strings.Split(ruleAction, "_")
+	for i := 1; i < len(parts); i++ {
+		candidate := strings.Join(parts[i:], "_")
+		if a, ok := uc.actionRegistry.Get(candidate); ok {
+			for _, p := range a.Params() {
+				if p.Name == "operation" {
+					return candidate, map[string]string{"operation": ruleAction}
+				}
+			}
+		}
+		singular := strings.TrimSuffix(candidate, "s")
+		if singular != candidate {
+			if a, ok := uc.actionRegistry.Get(singular); ok {
+				for _, p := range a.Params() {
+					if p.Name == "operation" {
+						return singular, map[string]string{"operation": ruleAction}
+					}
+				}
+			}
+		}
+	}
+
+	return ruleAction, nil
 }
 
 // LLMClientInterface defines the method needed for LLM-based parsing.
@@ -100,7 +156,6 @@ func NewNLParser(llmClient LLMClientInterface, actionRegistry *action.ActionRegi
 // When the LLM returns plain text, it is wrapped as a chat response.
 // When the LLM returns a tool_call, it is parsed into an action request.
 func (uc *NLParserUseCase) Parse(ctx context.Context, text string) (entity.ParseResponse, error) {
-	text = sanitize.StripShellChars(text)
 	trimmed := strings.TrimSpace(text)
 	if trimmed == "" {
 		return entity.ParseResponse{}, fmt.Errorf("请输入指令")
@@ -203,6 +258,15 @@ func (uc *NLParserUseCase) parseWithTFIDF(text string) (entity.ParseResponse, er
 	}
 
 	if score == 0 || rule.Name == "" {
+		if containsDestructiveKeyword(text) {
+			uc.logger.Warn(fmt.Sprintf("NLParserUseCase - parseWithTFIDF - destructive keyword in unmatched input: %s", text))
+			return entity.ParseResponse{
+				Intent:               "unknown",
+				Description:          "该操作需要确认",
+				Params:               make(map[string]string),
+				RequiresConfirmation: true,
+			}, nil
+		}
 		return entity.ParseResponse{
 			Intent:      "unknown",
 			Description: "未识别您的指令",
@@ -210,30 +274,58 @@ func (uc *NLParserUseCase) parseWithTFIDF(text string) (entity.ParseResponse, er
 		}, nil
 	}
 
+	actionName, extraParams := uc.normalizeAction(rule.Action)
 	params := uc.extractParams(text, rule.Action)
+	for k, v := range extraParams {
+		params[k] = v
+	}
 
-	return entity.ParseResponse{
+	resp := entity.ParseResponse{
 		Intent:      rule.Intent,
-		Action:      rule.Action,
+		Action:      actionName,
 		Description: rule.Description,
 		Params:      params,
-	}, nil
+	}
+
+	if uc.actionRegistry != nil {
+		if a, ok := uc.actionRegistry.Get(actionName); ok {
+			ifParams := make(map[string]interface{}, len(params))
+			for k, v := range params {
+				ifParams[k] = v
+			}
+			if a.Destructive(ifParams) {
+				resp.RequiresConfirmation = true
+				resp.ConfirmationMessage = a.ConfirmationMessage(ifParams)
+				resp.ActionName = actionName
+				resp.ActionParams = params
+				uc.logger.Warn(fmt.Sprintf("NLParserUseCase - parseWithTFIDF - destructive action requires confirmation: %s", actionName))
+			}
+		}
+	}
+
+	return resp, nil
 }
 
 // extractParams finds potential parameter values in the input text after the action keyword.
-// It tokenizes the remaining text, filters out stop words, and maps the first valid token
-// as the container_name parameter.
+// For compound actions like "start_container", it extracts the verb prefix ("start")
+// to locate the action keyword in the user's text.
 func (uc *NLParserUseCase) extractParams(text string, action string) map[string]string {
 	params := make(map[string]string)
 
 	textLower := strings.ToLower(text)
 	actionLower := strings.ToLower(action)
-	idx := strings.Index(textLower, actionLower)
+
+	searchKey := actionLower
+	if idx := strings.Index(actionLower, "_"); idx > 0 {
+		searchKey = actionLower[:idx]
+	}
+
+	idx := strings.Index(textLower, searchKey)
 	if idx < 0 {
 		return params
 	}
 
-	remaining := strings.TrimSpace(text[idx+len(action):])
+	remaining := strings.TrimSpace(text[idx+len(searchKey):])
 	if remaining == "" {
 		return params
 	}
