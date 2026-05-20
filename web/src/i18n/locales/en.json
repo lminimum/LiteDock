@@ -12,6 +12,7 @@
     "system": "System",
     "docker": "Docker",
     "infrastructure": "Infrastructure",
+    "tasks": "Tasks",
     "ai": "AI"
   },
   "dashboard": {
@@ -179,6 +180,31 @@
     "noContainers": "No containers",
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs available"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "detailTitle": "Task Detail",
+    "searchPlaceholder": "Search tasks...",
+    "allStatuses": "All Statuses",
+    "noTasks": "No tasks found",
+    "inProgress": "In-Progress Tasks",
+    "history": "History Tasks",
+    "noTasksInProgress": "No tasks in progress",
+    "info": "Task Information",
+    "type": "Type",
+    "targetMachine": "Target Machine",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "message": "Message",
+    "logs": "Execution Logs",
+    "autoScroll": "Auto Scroll",
+    "waitingLogs": "Waiting for logs",
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
   },
   "settings": {
     "title": "System Settings",
@@ -419,6 +445,9 @@
     }
   },
   "common": {
+    "loading": "Loading",
+    "retry": "Retry",
+    "copy": "Copy",
     "menu": "Menu",
     "close": "Close",
     "refresh": "Refresh",
@@ -448,7 +477,9 @@
     "containers": "Containers",
     "networks": "Networks",
     "machine": "Machine",
-    "services": "Services"
+    "services": "Services",
+    "targetMachine": "Target Machine",
+    "selectTargetMachine": "Select target machine"
   },
   "errors": {
     "loginFailed": "Login failed"

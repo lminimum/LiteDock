@@ -187,6 +187,21 @@ export interface RemoteMachine {
   updated_at: string
 }
 
+// 任务/作业相关类型
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface Task {
+  id: string
+  type: string
+  status: TaskStatus
+  message: string
+  logs: string
+  machine_id: string
+  created_at: string
+  updated_at: string
+  finished_at?: string
+}
+
 export interface CreateMachineRequest {
   name: string
   host: string

@@ -1,6 +1,6 @@
 <template>
   <div class="form-field">
-    <label class="form-label" :for="selectId">Target Machine <span class="required">*</span></label>
+    <label class="form-label" :for="selectId">{{ t('common.targetMachine') }} <span class="required">*</span></label>
     <select
       :id="selectId"
       class="input"
@@ -9,7 +9,7 @@
       required
       @change="handleChange"
     >
-      <option value="" disabled>Select target machine</option>
+      <option value="" disabled>{{ t('common.selectTargetMachine') }}</option>
       <option v-for="option in options" :key="option.value" :value="option.value">
         {{ option.label }}{{ option.status ? ` (${option.status})` : '' }}
       </option>
@@ -19,6 +19,8 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
+
 export interface TargetMachineOption {
   value: string
   label: string
@@ -30,7 +32,7 @@ defineProps<{
   options: TargetMachineOption[]
   disabled?: boolean
   hint?: string
-  selectId?: string
+  selectId: string
 }>()
 
 const emit = defineEmits<{

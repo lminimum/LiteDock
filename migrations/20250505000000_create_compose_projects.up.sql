@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS compose_projects (
-    id UUID PRIMARY KEY,
-    machine_id VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    id TEXT PRIMARY KEY,
+    machine_id TEXT NOT NULL,
+    name TEXT NOT NULL,
     file_path TEXT NOT NULL,
-    project_name VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'unknown',
-    services JSONB DEFAULT '[]',
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    cached_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    project_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'unknown',
+    services TEXT DEFAULT '[]',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    cached_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(machine_id, project_name)
 );

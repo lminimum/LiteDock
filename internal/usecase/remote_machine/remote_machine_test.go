@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
 	"github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -232,6 +234,65 @@ func (m *mockDockerClient) Close() error {
 
 var _ dockerclient.Client = (*mockDockerClient)(nil)
 
+type mockTaskRepo struct {
+	mu       sync.Mutex
+	tasks    map[string]*entity.Task
+	onUpdate func(*entity.Task)
+}
+
+func (m *mockTaskRepo) Create(ctx context.Context, t *entity.Task) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if t.ID == "" {
+		t.ID = "task-id-123"
+	}
+	m.tasks[t.ID] = t
+	if m.onUpdate != nil {
+		m.onUpdate(t)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) GetByID(ctx context.Context, id string) (*entity.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t, ok := m.tasks[id]
+	if !ok {
+		return nil, fmt.Errorf("not found")
+	}
+	return t, nil
+}
+
+func (m *mockTaskRepo) Update(ctx context.Context, t *entity.Task) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tasks[t.ID] = t
+	if m.onUpdate != nil {
+		m.onUpdate(t)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) AppendLogs(ctx context.Context, id string, logs string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	t, ok := m.tasks[id]
+	if !ok {
+		return fmt.Errorf("not found")
+	}
+	t.Logs += logs
+	if m.onUpdate != nil {
+		m.onUpdate(t)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) List(ctx context.Context, limit, offset int) ([]entity.Task, error) {
+	return nil, nil
+}
+
+var _ repo.TaskRepo = (*mockTaskRepo)(nil)
+
 type mockLogger struct{}
 
 func (m *mockLogger) Debug(_ interface{}, _ ...interface{}) {}
@@ -400,34 +461,59 @@ func TestUpdate_RemoteMachineAllowed(t *testing.T) {
 }
 
 func TestCreateContainer_PullsMissingImageBeforeCreate(t *testing.T) {
+	var mu sync.Mutex
 	calls := make([]string, 0, 4)
 	cacheInvalidated := false
 
 	mockCli := &mockDockerClient{
 		imageInspectFn: func(_ context.Context, id string) (dockerImage.InspectResponse, error) {
+			mu.Lock()
 			calls = append(calls, "inspect")
+			mu.Unlock()
 			require.Equal(t, "nginx:alpine", id)
 			return dockerImage.InspectResponse{}, fmt.Errorf("image not found")
 		},
 		imagePullFn: func(_ context.Context, ref string, _ dockerImage.PullOptions) error {
+			mu.Lock()
 			calls = append(calls, "pull")
+			mu.Unlock()
 			require.Equal(t, "nginx:alpine", ref)
 			return nil
 		},
 		containerCreateFn: func(_ context.Context, cfg *container.Config, _ *container.HostConfig, name string) (*container.CreateResponse, error) {
+			mu.Lock()
 			calls = append(calls, "create")
+			mu.Unlock()
 			require.Equal(t, "nginx:alpine", cfg.Image)
 			require.Equal(t, "test-nginx", name)
 			return &container.CreateResponse{ID: "container-id"}, nil
 		},
 	}
 
+	doneChan := make(chan struct{})
+	taskRepo := &mockTaskRepo{
+		tasks: make(map[string]*entity.Task),
+		onUpdate: func(task *entity.Task) {
+			if task.Status == entity.TaskStatusCompleted || task.Status == entity.TaskStatusFailed {
+				select {
+				case <-doneChan:
+				default:
+					close(doneChan)
+				}
+			}
+		},
+	}
+	taskUC := task.New(taskRepo, &mockLogger{})
+
 	uc := &UseCase{
 		containerRepo: &mockContainerRepo{deleteByMachineFn: func(_ context.Context, machineID string) error {
+			mu.Lock()
 			cacheInvalidated = true
+			mu.Unlock()
 			require.Equal(t, LocalMachineID, machineID)
 			return nil
 		}},
+		taskUC:           taskUC,
 		l:                &mockLogger{},
 		testDockerClient: mockCli,
 	}
@@ -441,12 +527,22 @@ func TestCreateContainer_PullsMissingImageBeforeCreate(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.Equal(t, "container-id", resp.ID)
+	require.NotEmpty(t, resp)
+
+	select {
+	case <-doneChan:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for background container creation task to complete")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	require.Equal(t, []string{"inspect", "pull", "create"}, calls)
 	require.True(t, cacheInvalidated)
 }
 
 func TestCreateContainer_UsesExistingImageWithoutPull(t *testing.T) {
+	var mu sync.Mutex
 	pullCalled := false
 
 	mockCli := &mockDockerClient{
@@ -455,13 +551,31 @@ func TestCreateContainer_UsesExistingImageWithoutPull(t *testing.T) {
 			return dockerImage.InspectResponse{}, nil
 		},
 		imagePullFn: func(context.Context, string, dockerImage.PullOptions) error {
+			mu.Lock()
 			pullCalled = true
+			mu.Unlock()
 			return nil
 		},
 	}
 
+	doneChan := make(chan struct{})
+	taskRepo := &mockTaskRepo{
+		tasks: make(map[string]*entity.Task),
+		onUpdate: func(task *entity.Task) {
+			if task.Status == entity.TaskStatusCompleted || task.Status == entity.TaskStatusFailed {
+				select {
+				case <-doneChan:
+				default:
+					close(doneChan)
+				}
+			}
+		},
+	}
+	taskUC := task.New(taskRepo, &mockLogger{})
+
 	uc := &UseCase{
 		containerRepo:    &mockContainerRepo{},
+		taskUC:           taskUC,
 		l:                &mockLogger{},
 		testDockerClient: mockCli,
 	}
@@ -475,6 +589,15 @@ func TestCreateContainer_UsesExistingImageWithoutPull(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	require.Equal(t, "created", resp.ID)
+	require.NotEmpty(t, resp)
+
+	select {
+	case <-doneChan:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for background container creation task to complete")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	require.False(t, pullCalled)
 }

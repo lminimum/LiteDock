@@ -110,6 +110,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { t } from '@/i18n'
 import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
@@ -126,6 +127,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const router = useRouter()
 const name = ref('')
 const image = ref('')
 const cmdInput = ref('')
@@ -200,13 +202,8 @@ const handleSubmit = async () => {
       cmd,
     })
 
-    emit('created', {
-      id: result.id,
-      name: name.value.trim() || result.id.substring(0, 12),
-      image: image.value.trim(),
-      machineId: selectedMachineId.value,
-    })
     emit('close')
+    router.push(`/tasks/${result.taskId}`)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Failed to create container'
     error.value = msg

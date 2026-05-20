@@ -94,7 +94,6 @@ func (mc *MetricsCollector) collect() {
 		mc.l.Warn("MetricsCollector.collect.PruneToCount failed: %v", err)
 	}
 
-	mc.l.Debug("MetricsCollector: collected cpu=%.2f memory=%.2f disk=%.2f", sm.CPU, sm.Memory, sm.Disk)
 }
 
 func (mc *MetricsCollector) cleanupOld() {
