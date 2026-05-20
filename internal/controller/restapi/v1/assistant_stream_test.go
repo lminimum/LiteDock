@@ -185,8 +185,8 @@ func (a *testAction) Params() []action.ParamDef {
 		{Name: "container_id", Type: "string", Required: true, Description: "container ID"},
 	}
 }
-func (a *testAction) Validate(_ map[string]interface{}) error       { return nil }
-func (a *testAction) Destructive(_ map[string]interface{}) bool     { return a.destructive }
+func (a *testAction) Validate(_ map[string]interface{}) error             { return nil }
+func (a *testAction) Destructive(_ map[string]interface{}) bool           { return a.destructive }
 func (a *testAction) ConfirmationMessage(_ map[string]interface{}) string { return "confirm " + a.name }
 func (a *testAction) Execute(_ context.Context, _ map[string]interface{}) (*action.ActionResult, error) {
 	return &action.ActionResult{Success: true}, nil

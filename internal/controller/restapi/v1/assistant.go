@@ -62,10 +62,10 @@ type streamChunk struct {
 type WSEventType string
 
 const (
-	WSEventContent       WSEventType = "content"
+	WSEventContent        WSEventType = "content"
 	WSEventActionRequired WSEventType = "action_required"
-	WSEventError         WSEventType = "error"
-	WSEventDone          WSEventType = "done"
+	WSEventError          WSEventType = "error"
+	WSEventDone           WSEventType = "done"
 )
 
 // WSPayloadContent is the payload for content events.
@@ -112,9 +112,9 @@ type streamToolCallDeltaFunc struct {
 
 // streamToolCallDelta is a single entry in the delta.tool_calls array of an OpenAI SSE chunk.
 type streamToolCallDelta struct {
-	Index    int                    `json:"index"`
-	ID       string                 `json:"id,omitempty"`
-	Type     string                 `json:"type,omitempty"`
+	Index    int                     `json:"index"`
+	ID       string                  `json:"id,omitempty"`
+	Type     string                  `json:"type,omitempty"`
 	Function streamToolCallDeltaFunc `json:"function"`
 }
 
@@ -281,6 +281,16 @@ func mustMarshal(v interface{}) json.RawMessage {
 	return b
 }
 
+// emitAudit logs a structured audit event for an action execution attempt.
+// It never blocks execution — logging failures are silently swallowed.
+func (h *AssistantHandler) emitAudit(userID, sessionID, actionName string, params map[string]string, riskLevel entity.RiskLevel, result entity.AuditResult, execErr error, tokenValid, tokenExpired bool) {
+	event := entity.NewAIAuditEvent(userID, sessionID, entity.AuditSourceREST, actionName, params, riskLevel, result, execErr)
+	event.TokenValid = tokenValid
+	event.TokenExpired = tokenExpired
+	data, _ := json.Marshal(event)
+	h.l.Info("audit: %s", string(data))
+}
+
 // StreamRequest is the request body for POST /v1/assistant/stream.
 type StreamRequest struct {
 	Messages []assistant.ChatMessage `json:"messages"`
@@ -344,8 +354,8 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			var openAIChunk struct {
 				Choices []struct {
 					Delta struct {
-						Content    string                  `json:"content"`
-						ToolCalls  []streamToolCallDelta   `json:"tool_calls"`
+						Content   string                `json:"content"`
+						ToolCalls []streamToolCallDelta `json:"tool_calls"`
 					} `json:"delta"`
 					FinishReason *string `json:"finish_reason"`
 				} `json:"choices"`
@@ -485,8 +495,8 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			var openAIChunk struct {
 				Choices []struct {
 					Delta struct {
-						Content    string                `json:"content"`
-						ToolCalls  []streamToolCallDelta `json:"tool_calls"`
+						Content   string                `json:"content"`
+						ToolCalls []streamToolCallDelta `json:"tool_calls"`
 					} `json:"delta"`
 					FinishReason *string `json:"finish_reason"`
 				} `json:"choices"`
@@ -605,6 +615,11 @@ func (h *AssistantHandler) ExecuteAction(c *fiber.Ctx) error {
 		params[k] = v
 	}
 
+	riskLevel := entity.RiskLevelRead
+	if act.Destructive(params) {
+		riskLevel = entity.RiskLevelDangerous
+	}
+
 	ctx := c.UserContext()
 	if userID != "" {
 		ctx = context.WithValue(ctx, action.CtxKeyUserID, userID)
@@ -619,10 +634,12 @@ func (h *AssistantHandler) ExecuteAction(c *fiber.Ctx) error {
 			isDestructive := act.Destructive(params)
 			if isDestructive {
 				if req.ConfirmationToken == "" {
+					h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultRejected, action.ErrConfirmationRequired, false, false)
 					return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_required", "a confirmation token is required for this action")
 				}
 
 				if h.tokenService == nil {
+					h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultFailed, fmt.Errorf("token service not configured"), false, false)
 					return structuredErrorResponse(c, fiber.StatusInternalServerError, "internal_error", "token service not configured")
 				}
 
@@ -637,6 +654,8 @@ func (h *AssistantHandler) ExecuteAction(c *fiber.Ctx) error {
 
 				if vErr := h.tokenService.Validate(req.ConfirmationToken, validationParams); vErr != nil {
 					h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - tokenService.Validate: %w", vErr), "")
+					tokenExpired := errors.Is(vErr, action.ErrTokenExpired)
+					h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultRejected, vErr, false, tokenExpired)
 					return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_token_invalid", "confirmation token is invalid or expired")
 				}
 			}
@@ -644,24 +663,31 @@ func (h *AssistantHandler) ExecuteAction(c *fiber.Ctx) error {
 			result, err = h.registry.ExecuteConfirmed(ctx, req.Action, params)
 			if err != nil {
 				h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - registry.ExecuteConfirmed: %w", err), "")
+				h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultFailed, err, true, false)
 				return structuredErrorResponse(c, fiber.StatusBadRequest, "execution_failed", "Failed to execute action: "+err.Error())
 			}
 
+			h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultSuccess, nil, true, false)
 			return successResponse(c, result)
 		}
 
 		if errors.Is(err, action.ErrConfirmationRequired) {
+			h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultRejected, err, false, false)
 			return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_required", err.Error())
 		}
 
 		if errors.Is(err, action.ErrInvalidToken) || errors.Is(err, action.ErrTokenExpired) {
+			tokenExpired := errors.Is(err, action.ErrTokenExpired)
+			h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultRejected, err, false, tokenExpired)
 			return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_token_invalid", "confirmation token is invalid or expired")
 		}
 
 		h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - registry.ExecuteWithConfirmation: %w", err), "")
+		h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultFailed, err, true, false)
 		return structuredErrorResponse(c, fiber.StatusBadRequest, "execution_failed", "Failed to execute action: "+err.Error())
 	}
 
+	h.emitAudit(userID, sessionID, req.Action, req.Params, riskLevel, entity.AuditResultSuccess, nil, true, false)
 	return successResponse(c, result)
 }
 
