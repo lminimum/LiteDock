@@ -13,8 +13,10 @@ import (
 type ctxKey string
 
 const (
-	ctxKeyUserID    ctxKey = "user_id"
-	ctxKeySessionID ctxKey = "session_id"
+	// CtxKeyUserID is the context key for the authenticated user ID.
+	CtxKeyUserID ctxKey = "user_id"
+	// CtxKeySessionID is the context key for the session ID.
+	CtxKeySessionID ctxKey = "session_id"
 )
 
 const (
@@ -166,8 +168,8 @@ func (r *ActionRegistry) ExecuteWithConfirmation(ctx context.Context, name strin
 			return nil, fmt.Errorf("%w: %s", ErrConfirmationRequired, name)
 		}
 
-		userID := ctxValueOr(ctx, ctxKeyUserID, "anonymous")
-		sessionID := ctxValueOr(ctx, ctxKeySessionID, "")
+		userID := ctxValueOr(ctx, CtxKeyUserID, "anonymous")
+		sessionID := ctxValueOr(ctx, CtxKeySessionID, "")
 
 		validationParams := TokenParams{
 			UserID:     userID,

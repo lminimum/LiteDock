@@ -9,11 +9,23 @@ type Response struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
 func errorResponse(c *fiber.Ctx, httpStatus int, message string) error {
 	return c.Status(httpStatus).JSON(Response{
 		Code: httpStatus,
 		Msg:  message,
 		Data: nil,
+	})
+}
+
+func structuredErrorResponse(c *fiber.Ctx, httpStatus int, errCode string, message string) error {
+	return c.Status(httpStatus).JSON(ErrorResponse{
+		Error:   errCode,
+		Message: message,
 	})
 }
 

@@ -227,8 +227,8 @@ func TestExecuteWithConfirmation_TokenValidatorReceivesCorrectParams(t *testing.
 	reg := NewActionRegistryWithToken(tokenSvc)
 	require.NoError(t, reg.Register(newDestructiveMockAction("delete_image")))
 
-	ctx := context.WithValue(context.Background(), ctxKeyUserID, "user-42")
-	ctx = context.WithValue(ctx, ctxKeySessionID, "sess-abc")
+	ctx := context.WithValue(context.Background(), CtxKeyUserID, "user-42")
+	ctx = context.WithValue(ctx, CtxKeySessionID, "sess-abc")
 
 	params := map[string]interface{}{"image_id": "img-123"}
 	_, err := reg.ExecuteWithConfirmation(ctx, "delete_image", params, "valid-token")

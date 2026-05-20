@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"strings"
@@ -288,8 +289,9 @@ type StreamRequest struct {
 
 // ExecuteRequest represents a request to execute a confirmed action.
 type ExecuteRequest struct {
-	Action string            `json:"action"`
-	Params map[string]string `json:"params"`
+	Action            string            `json:"action"`
+	Params            map[string]string `json:"params"`
+	ConfirmationToken string            `json:"confirmation_token"`
 }
 
 // Stream handles POST /v1/assistant/stream — SSE streaming chat completion.
@@ -414,7 +416,12 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			break
 		}
 
-		if h.rateLimiter != nil && !h.rateLimiter.Allow("ws:"+c.LocalAddr().String()) {
+		rateLimitKey := "ws:" + c.RemoteAddr().String()
+		if uid, ok := c.Locals("userID").(string); ok && uid != "" {
+			rateLimitKey = "user:" + uid
+		}
+
+		if h.rateLimiter != nil && !h.rateLimiter.Allow(rateLimitKey) {
 			c.WriteJSON(map[string]interface{}{"error": assistant.MapErrorToUserMessage(assistant.ErrRateLimited)})
 			continue
 		}
@@ -570,23 +577,89 @@ func (h *AssistantHandler) ExecuteAction(c *fiber.Ctx) error {
 	var req ExecuteRequest
 	if err := c.BodyParser(&req); err != nil {
 		h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - BodyParser: %w", err), "")
-		return errorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+		return structuredErrorResponse(c, fiber.StatusBadRequest, "bad_request", "Invalid request body")
 	}
 
 	if req.Action == "" {
-		return errorResponse(c, fiber.StatusBadRequest, "action is required")
+		return structuredErrorResponse(c, fiber.StatusBadRequest, "bad_request", "action is required")
 	}
 
-	// Convert string params to interface{} for the action system
+	userID, _ := c.Locals("userID").(string)
+	if userID == "" {
+		return structuredErrorResponse(c, fiber.StatusUnauthorized, "unauthorized", "authentication required")
+	}
+
+	sessionID, _ := c.Locals("sessionID").(string)
+
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("user:"+userID) {
+		return structuredErrorResponse(c, fiber.StatusTooManyRequests, "rate_limited", "too many requests, please try again later")
+	}
+
+	act, found := h.registry.Get(req.Action)
+	if !found {
+		return structuredErrorResponse(c, fiber.StatusBadRequest, "bad_request", "unknown action: "+req.Action)
+	}
+
 	params := make(map[string]interface{}, len(req.Params))
 	for k, v := range req.Params {
 		params[k] = v
 	}
 
-	result, err := h.registry.ExecuteConfirmed(c.Context(), req.Action, params)
+	ctx := c.UserContext()
+	if userID != "" {
+		ctx = context.WithValue(ctx, action.CtxKeyUserID, userID)
+	}
+	if sessionID != "" {
+		ctx = context.WithValue(ctx, action.CtxKeySessionID, sessionID)
+	}
+
+	result, err := h.registry.ExecuteWithConfirmation(ctx, req.Action, params, req.ConfirmationToken)
 	if err != nil {
-		h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - registry.ExecuteConfirmed: %w", err), "")
-		return errorResponse(c, fiber.StatusInternalServerError, "Failed to execute action: "+err.Error())
+		if errors.Is(err, action.ErrConfirmationRequired) && strings.Contains(err.Error(), "no token service configured") {
+			isDestructive := act.Destructive(params)
+			if isDestructive {
+				if req.ConfirmationToken == "" {
+					return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_required", "a confirmation token is required for this action")
+				}
+
+				if h.tokenService == nil {
+					return structuredErrorResponse(c, fiber.StatusInternalServerError, "internal_error", "token service not configured")
+				}
+
+				hash := h.tokenService.ParamsHash(req.Params)
+				validationParams := assistant.ActionConfirmationToken{
+					UserID:     userID,
+					SessionID:  sessionID,
+					Action:     req.Action,
+					ParamsHash: hash,
+					RiskLevel:  string(entity.RiskLevelDangerous),
+				}
+
+				if vErr := h.tokenService.Validate(req.ConfirmationToken, validationParams); vErr != nil {
+					h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - tokenService.Validate: %w", vErr), "")
+					return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_token_invalid", "confirmation token is invalid or expired")
+				}
+			}
+
+			result, err = h.registry.ExecuteConfirmed(ctx, req.Action, params)
+			if err != nil {
+				h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - registry.ExecuteConfirmed: %w", err), "")
+				return structuredErrorResponse(c, fiber.StatusBadRequest, "execution_failed", "Failed to execute action: "+err.Error())
+			}
+
+			return successResponse(c, result)
+		}
+
+		if errors.Is(err, action.ErrConfirmationRequired) {
+			return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_required", err.Error())
+		}
+
+		if errors.Is(err, action.ErrInvalidToken) || errors.Is(err, action.ErrTokenExpired) {
+			return structuredErrorResponse(c, fiber.StatusForbidden, "confirmation_token_invalid", "confirmation token is invalid or expired")
+		}
+
+		h.l.Error(fmt.Errorf("AssistantHandler - ExecuteAction - registry.ExecuteWithConfirmation: %w", err), "")
+		return structuredErrorResponse(c, fiber.StatusBadRequest, "execution_failed", "Failed to execute action: "+err.Error())
 	}
 
 	return successResponse(c, result)
