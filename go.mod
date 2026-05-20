@@ -16,7 +16,7 @@ tool (
 
 require (
 	github.com/ansrivas/fiberprometheus/v2 v2.15.0
-	github.com/caarlos0/env/v11 v11.3.1
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/go-playground/validator/v10 v10.30.1
