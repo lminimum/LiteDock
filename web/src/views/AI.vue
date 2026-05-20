@@ -127,28 +127,20 @@
       </main>
     </div>
     <!-- Confirmation modal overlay -->
-    <Teleport to="body">
-      <div v-if="showConfirmModal" class="confirm-overlay" @click.self="cancelAction">
-        <div class="confirm-modal card">
-          <div class="confirm-header">
-            <AlertTriangle :size="20" class="confirm-icon" />
-            <span class="confirm-title">{{ t('assistant.confirmation.title') }}</span>
-          </div>
-          <div class="confirm-body">
-            <p class="confirm-message">{{ pendingConfirmMessage }}</p>
-          </div>
-          <div class="confirm-footer">
-            <button class="btn btn-ghost" :disabled="executingConfirm" @click="cancelAction">
-              {{ t('assistant.confirmation.cancel') }}
-            </button>
-            <button class="btn btn-danger" :disabled="executingConfirm" @click="confirmAction">
-              <Loader2 v-if="executingConfirm" :size="14" class="spin" />
-              <span>{{ executingConfirm ? t('assistant.confirmation.waiting') : t('assistant.confirmation.confirm') }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <ActionConfirmationModal
+      :show="showConfirmModal"
+      :executing="executingConfirm"
+      :message="pendingConfirmMessage"
+      :action-name="pendingActionName"
+      :action-params="pendingActionParams"
+      :risk-level="pendingRiskLevel"
+      :typed-required="typedConfirmationRequired"
+      :expected-text="typedConfirmationExpected"
+      :model-value="typedConfirmationInput"
+      @update:model-value="typedConfirmationInput = $event"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
 
@@ -162,7 +154,9 @@ import {
 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useActionConfirmation } from '@/composables/useActionConfirmation'
 import { stripShellChars } from '@/utils/sanitize'
+import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 import type { Component } from 'vue'
 
 interface ChatMessage {
@@ -196,11 +190,21 @@ const { t } = useI18n()
 
 /* ── State ────────────────────────────────────────────────── */
 
-const showConfirmModal = ref(false)
-const executingConfirm = ref(false)
-const pendingConfirmMessage = ref('')
-const pendingActionName = ref('')
-const pendingActionParams = ref<Record<string, string>>({})
+const {
+  showConfirmModal,
+  executingConfirm,
+  pendingConfirmMessage,
+  pendingActionName,
+  pendingActionParams,
+  pendingRiskLevel,
+  typedConfirmationInput,
+  typedConfirmationRequired,
+  typedConfirmationExpected,
+  triggerConfirmation,
+  confirmAction: composableConfirm,
+  cancelAction: composableCancel,
+} = useActionConfirmation()
+
 let pendingMessageIndex = -1
 
 const inputText = ref('')
@@ -484,61 +488,73 @@ async function sendMessage(): Promise<void> {
 
 /* ── Confirmation actions ─────────────────────────────────── */
 
-async function confirmAction(): Promise<void> {
-  if (executingConfirm.value || pendingMessageIndex < 0) return
-  executingConfirm.value = true
+function triggerActionConfirmation(
+  actionName: string,
+  params: Record<string, string>,
+  message: string,
+  riskLevel: 'safe' | 'caution' | 'dangerous',
+  token: string,
+  messageIndex: number,
+): void {
+  pendingMessageIndex = messageIndex
 
-  const conv = conversations.value.find(c => c.id === activeConversationId.value)
-  if (!conv || pendingMessageIndex >= conv.messages.length) {
-    executingConfirm.value = false
-    showConfirmModal.value = false
-    return
-  }
+  triggerConfirmation(
+    actionName,
+    params,
+    message,
+    riskLevel,
+    token,
+    async () => {
+      const conv = conversations.value.find(c => c.id === activeConversationId.value)
+      if (!conv || pendingMessageIndex < 0 || pendingMessageIndex >= conv.messages.length) return
 
-  const msg = conv.messages[pendingMessageIndex]
-  msg.status = 'executing'
-  msg.text = t('assistant.response.thinking')
-  showConfirmModal.value = false
-  saveConversations()
+      const msg = conv.messages[pendingMessageIndex]
+      msg.status = 'executing'
+      msg.text = t('assistant.response.thinking')
+      saveConversations()
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resp = await api.post<any>('/assistant/execute', {
-      action: pendingActionName.value,
-      params: pendingActionParams.value,
-    }, {
-      timeout: 30000,
-    })
-    msg.text = resp?.message || 'Action executed successfully'
-    msg.status = 'completed'
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    msg.text = err?.response?.data?.msg || err?.response?.data?.error || 'Failed to execute action'
-    msg.status = 'failed'
-  } finally {
-    executingConfirm.value = false
-    pendingMessageIndex = -1
-    conv.updatedAt = Date.now()
-    saveConversations()
-    scrollToBottom()
-  }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resp = await api.post<any>('/assistant/execute', {
+          action: actionName,
+          params,
+        }, {
+          timeout: 30000,
+        })
+        msg.text = resp?.message || 'Action executed successfully'
+        msg.status = 'completed'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        msg.text = err?.response?.data?.msg || err?.response?.data?.error || 'Failed to execute action'
+        msg.status = 'failed'
+      } finally {
+        pendingMessageIndex = -1
+        conv.updatedAt = Date.now()
+        saveConversations()
+        scrollToBottom()
+      }
+    },
+    () => {
+      if (pendingMessageIndex >= 0) {
+        const conv = conversations.value.find(c => c.id === activeConversationId.value)
+        if (conv && pendingMessageIndex < conv.messages.length) {
+          const msg = conv.messages[pendingMessageIndex]
+          msg.status = 'failed'
+          msg.text = 'Action cancelled'
+          saveConversations()
+        }
+      }
+      pendingMessageIndex = -1
+    },
+  )
 }
 
-function cancelAction(): void {
-  showConfirmModal.value = false
-  executingConfirm.value = false
+async function handleConfirm(): Promise<void> {
+  await composableConfirm()
+}
 
-  if (pendingMessageIndex >= 0) {
-    const conv = conversations.value.find(c => c.id === activeConversationId.value)
-    if (conv && pendingMessageIndex < conv.messages.length) {
-      const msg = conv.messages[pendingMessageIndex]
-      msg.status = 'failed'
-      msg.text = 'Action cancelled'
-      saveConversations()
-    }
-  }
-
-  pendingMessageIndex = -1
+function handleCancel(): void {
+  composableCancel()
 }
 
 onUnmounted(() => {
@@ -943,59 +959,6 @@ onMounted(() => {
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
-
-/* ── Confirmation modal ───────────────────────────────────── */
-
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.confirm-modal {
-  width: 420px;
-  max-width: 90vw;
-  padding: var(--space-6);
-}
-
-.confirm-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.confirm-icon {
-  color: var(--color-warning);
-  flex-shrink: 0;
-}
-
-.confirm-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-}
-
-.confirm-body {
-  margin-bottom: var(--space-6);
-}
-
-.confirm-message {
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  line-height: var(--line-height-relaxed);
-  margin: 0;
-}
-
-.confirm-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
 
 @media (max-width: 767px) {
   .ai-layout {

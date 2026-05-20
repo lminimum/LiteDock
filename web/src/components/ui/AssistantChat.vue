@@ -91,6 +91,21 @@
         </button>
       </div>
     </template>
+
+    <ActionConfirmationModal
+      :show="showConfirmModal"
+      :executing="executingConfirm"
+      :message="pendingConfirmMessage"
+      :action-name="pendingActionName"
+      :action-params="pendingActionParams"
+      :risk-level="pendingRiskLevel"
+      :typed-required="typedConfirmationRequired"
+      :expected-text="typedConfirmationExpected"
+      :model-value="typedConfirmationInput"
+      @update:model-value="typedConfirmationInput = $event"
+      @confirm="composableConfirm"
+      @cancel="composableCancel"
+    />
   </div>
 </template>
 
@@ -104,6 +119,8 @@ import {
 import type { Component } from 'vue'
 import api from '@/utils/api'
 import { stripShellChars } from '@/utils/sanitize'
+import { useActionConfirmation } from '@/composables/useActionConfirmation'
+import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -125,6 +142,20 @@ const loading = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 const abortController = ref<AbortController | null>(null)
+
+const {
+  showConfirmModal,
+  executingConfirm,
+  pendingConfirmMessage,
+  pendingActionName,
+  pendingActionParams,
+  pendingRiskLevel,
+  typedConfirmationInput,
+  typedConfirmationRequired,
+  typedConfirmationExpected,
+  confirmAction: composableConfirm,
+  cancelAction: composableCancel,
+} = useActionConfirmation()
 
 // Drag state
 const DIALOG_WIDTH = 380
