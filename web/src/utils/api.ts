@@ -44,7 +44,10 @@ instance.interceptors.response.use(
     if (body.code >= 200 && body.code < 300) {
       return body.data
     }
-    return Promise.reject(new Error(body.msg || 'Request failed'))
+    // Preserve response structure so callers can access err.response.data.msg
+    const err = new Error(body.msg || 'Request failed')
+    ;(err as any).response = { data: body }
+    return Promise.reject(err)
   },
   (error): any => {
     if (error.response?.status === 401) {
@@ -52,8 +55,10 @@ instance.interceptors.response.use(
       authStore.logout()
       redirectToLogin()
     }
-    const msg = error.response?.data?.msg || error.message
-    return Promise.reject(new Error(msg))
+    if (error.response?.data?.msg) {
+      error.message = error.response.data.msg
+    }
+    return Promise.reject(error)
   }
 )
 

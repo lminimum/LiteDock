@@ -52,10 +52,11 @@ func (m *mockRemoteMachineRepo) Delete(ctx context.Context, id string) error {
 }
 
 func (m *mockRemoteMachineRepo) GetByHost(ctx context.Context, host string) (*entity.RemoteMachine, error) {
-	if m.getByHostFn != nil {
-		return m.getByHostFn(ctx, host)
-	}
 	return nil, nil
+}
+
+func (m *mockRemoteMachineRepo) UpdateStatus(_ context.Context, _ string, _ string) error {
+	return nil
 }
 
 func (m *mockRemoteMachineRepo) Count(ctx context.Context) (int64, error) {

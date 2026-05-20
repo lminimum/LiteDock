@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/lminimum/LiteDock/config"
+	"github.com/lminimum/LiteDock/internal/action"
 	"github.com/lminimum/LiteDock/internal/controller/restapi"
+	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo/persistent"
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
@@ -23,6 +25,9 @@ import (
 	"github.com/lminimum/LiteDock/internal/usecase/network"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/internal/usecase/volume"
+	"github.com/lminimum/LiteDock/internal/usecase/assistant"
+	assistant_engine "github.com/lminimum/LiteDock/pkg/assistant/engine"
+	assistant_rules "github.com/lminimum/LiteDock/pkg/assistant/rules"
 	"github.com/lminimum/LiteDock/pkg/collector"
 	"github.com/lminimum/LiteDock/pkg/database"
 	apperrors "github.com/lminimum/LiteDock/pkg/errors"
@@ -58,7 +63,7 @@ func Run(cfg *config.Config) {
 	authUseCase := auth.New(userRepo, l, cfg.Auth.JWTSecret)
 
 	// Container UseCase (placeholder for Docker management)
-	containerUseCase := container.New(containerRepo, l)
+	containerUseCase := container.New(containerRepo, remoteMachineRepo, l)
 
 	// Network UseCase
 	networkRepo := persistent.NewNetworkRepo(db)
@@ -88,9 +93,56 @@ func Run(cfg *config.Config) {
 	metricsCollector := collector.NewMetricsCollector(systemMetricsRepo, l, 2*time.Second)
 	go metricsCollector.Start()
 
+	// Assistant UseCase - NL parsing, fault diagnosis, config recommendations
+	tokenizer, err := assistant.NewNLParserTokenizer()
+	if err != nil {
+		l.Error(fmt.Errorf("app - Run - assistant.NewNLParserTokenizer: %w", err))
+	} else {
+		defer tokenizer.Close()
+	}
+
+	rulesLoader := assistant_rules.NewLoader()
+	nlRules, err := rulesLoader.LoadNLRules("config/rules/nl_parsing.yaml")
+	if err != nil {
+		l.Error(fmt.Errorf("app - Run - load NL rules: %w", err))
+	}
+
+	engineRules := make([]assistant_engine.Rule, 0, len(nlRules))
+	for _, r := range nlRules {
+		engineRules = append(engineRules, assistant_engine.Rule{
+			Name:        r.Name,
+			Patterns:    r.Keywords,
+			Intent:      r.Intent,
+			Action:      r.Name,
+			Description: r.Description,
+		})
+	}
+
+	nlEngine := assistant_engine.NewEngine(engineRules, tokenizer)
+	nlParserUseCase := assistant.NewNLParserUseCase(nlEngine, tokenizer, l)
+	defer nlParserUseCase.Close()
+	faultDiagnosisUseCase := assistant.NewFaultDiagnosisUseCase(l)
+	configRecommendUseCase := assistant.NewConfigRecommendUseCase(l)
+
+	settingsStore := v1.NewAISettingsStore(cfg.AI.APIEndpoint, cfg.AI.APIKey, cfg.AI.ModelName)
+
+	// Action registry - register AI-callable operations
+	actionRegistry := action.NewActionRegistry()
+	if err := actionRegistry.Register(action.NewContainerAction(containerUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register container action: %w", err))
+	}
+	if err := actionRegistry.Register(action.NewImageAction(imageUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register image action: %w", err))
+	}
+	// Wire the action registry into the NL parser for LLM tool-calling support
+	nlParserUseCase.SetActionRegistry(actionRegistry)
+
+	assistantRateLimiter := assistant.NewRateLimiter()
+	defer assistantRateLimiter.Close()
+
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, nlParserUseCase, faultDiagnosisUseCase, configRecommendUseCase, actionRegistry, settingsStore, assistantRateLimiter, l)
 
 	// Start servers
 	httpServer.Start()

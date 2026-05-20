@@ -75,6 +75,11 @@ const router = createRouter({
           path: 'settings',
           name: 'Settings',
           component: () => import('@/views/Settings.vue')
+        },
+        {
+          path: 'ai',
+          name: 'AI',
+          component: () => import('@/views/AI.vue')
         }
       ]
     },

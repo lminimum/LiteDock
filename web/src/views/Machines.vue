@@ -11,16 +11,16 @@
       </button>
     </PageHeader>
 
-    <div class="filters">
-      <div class="search-box">
-        <input
-          v-model="searchQuery"
-          :placeholder="t('machines.searchPlaceholder')"
-          type="text"
-          class="input"
-        />
-      </div>
-    </div>
+    <CollapsibleFilters
+      v-model="searchQuery"
+      :search-placeholder="t('machines.searchPlaceholder')"
+      search-label="Search"
+      :has-filters="false"
+    >
+      <template #right>
+        <ViewToggle v-model="viewMode" />
+      </template>
+    </CollapsibleFilters>
 
     <div v-if="machines.length === 0 && !loading" class="empty-state">
       <Server :size="48" class="empty-icon" />
@@ -31,68 +31,99 @@
       </button>
     </div>
 
-    <div v-else class="machines-grid">
-      <div
-        v-for="machine in filteredMachines"
-        :key="machine.id"
-        class="machine-card"
-        :class="{ 'status-online': machine.status === 'online', 'machine-local': machine.id === 'local' }"
-      >
-        <div class="machine-header">
-          <div class="machine-name">
-            {{ machine.name }}
-            <span v-if="machine.id === 'local'" class="badge badge-primary badge-sm" style="margin-left: 8px;">本地</span>
+    <Transition name="view-fade" mode="out-in">
+      <div v-if="viewMode === 'card'" class="machines-grid" key="card">
+        <div
+          v-for="machine in filteredMachines"
+          :key="machine.id"
+          class="machine-card"
+          :class="{ 'status-online': machine.status === 'online', 'machine-local': machine.id === 'local' }"
+        >
+          <div class="machine-header">
+            <div class="machine-name">
+              {{ machine.name }}
+              <span v-if="machine.id === 'local'" class="badge badge-primary badge-sm" style="margin-left: 8px;">本地</span>
+            </div>
+            <div class="badge" :class="getStatusClass(machine.status)">
+              {{ t(`machines.status.${machine.status}`) }}
+            </div>
           </div>
-          <div class="badge" :class="getStatusClass(machine.status)">
-            {{ t(`machines.status.${machine.status}`) }}
-          </div>
-        </div>
 
-        <div class="machine-info">
-          <div v-if="machine.id !== 'local'" class="info-item">
-            <span class="label">{{ t('machines.host') }}</span>
-            <span class="value">{{ machine.host }}:{{ machine.port }}</span>
+          <div class="machine-info">
+            <div v-if="machine.id !== 'local'" class="info-item">
+              <span class="label">{{ t('machines.host') }}</span>
+              <span class="value">{{ machine.host }}:{{ machine.port }}</span>
+            </div>
+            <div v-if="machine.id !== 'local'" class="info-item">
+              <span class="label">{{ t('machines.username') }}</span>
+              <span class="value">{{ machine.username }}</span>
+            </div>
+            <div v-if="machine.id !== 'local'" class="info-item">
+              <span class="label">{{ t('machines.authMethod') }}</span>
+              <span class="badge" :class="machine.auth_method === 'password' ? 'badge-info' : 'badge-success'">
+                {{ machine.auth_method === 'password' ? 'Password' : 'SSH Key' }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="label">{{ t('machines.dockerHost') }}</span>
+              <span class="value mono">{{ machine.docker_host }}</span>
+            </div>
+            <div v-if="machine.id === 'local'" class="info-item">
+              <span class="label">连接方式</span>
+              <span class="badge badge-primary">Unix Socket（本机）</span>
+            </div>
           </div>
-          <div v-if="machine.id !== 'local'" class="info-item">
-            <span class="label">{{ t('machines.username') }}</span>
-            <span class="value">{{ machine.username }}</span>
-          </div>
-          <div v-if="machine.id !== 'local'" class="info-item">
-            <span class="label">{{ t('machines.authMethod') }}</span>
-            <span class="badge" :class="machine.auth_method === 'password' ? 'badge-info' : 'badge-success'">
-              {{ machine.auth_method === 'password' ? 'Password' : 'SSH Key' }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="label">{{ t('machines.dockerHost') }}</span>
-            <span class="value mono">{{ machine.docker_host }}</span>
-          </div>
-          <div v-if="machine.id === 'local'" class="info-item">
-            <span class="label">连接方式</span>
-            <span class="badge badge-primary">Unix Socket（本机）</span>
-          </div>
-        </div>
 
-        <div class="machine-actions">
-          <button @click="testConnection(machine.id)" class="btn btn-sm btn-secondary" :disabled="testingId === machine.id">
-            <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" />
-            {{ t('machines.test') }}
-          </button>
-          <button @click="openEditModal(machine)" class="btn btn-sm btn-secondary" :disabled="machine.id === 'local'">
-            <Pencil :size="14" />
-            {{ t('machines.edit') }}
-          </button>
-          <button @click="viewContainers(machine.id)" class="btn btn-sm btn-secondary">
-            <Box :size="14" />
-            {{ t('machines.containers') }}
-          </button>
-          <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
-            <Trash2 :size="14" />
-            {{ t('machines.delete') }}
-          </button>
+          <div class="machine-actions">
+            <button @click="testConnection(machine.id)" class="btn btn-sm btn-ghost" :disabled="testingId === machine.id">
+              <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" />
+              {{ t('machines.test') }}
+            </button>
+            <button @click="openEditModal(machine)" class="btn btn-sm btn-ghost" :disabled="machine.id === 'local'">
+              <Pencil :size="14" />
+              {{ t('machines.edit') }}
+            </button>
+            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-ghost">
+              <Box :size="14" />
+              {{ t('machines.containers') }}
+            </button>
+            <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
+              <Trash2 :size="14" />
+              {{ t('machines.delete') }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div v-else class="item-list" key="list">
+        <div v-for="machine in filteredMachines" :key="machine.id" class="item-list-row">
+          <div class="item-list-info">
+            <div class="item-list-title">{{ machine.name }}</div>
+            <div class="item-list-meta">
+              <span class="badge" :class="machine.status === 'online' ? 'badge-success' : 'badge-error'">{{ machine.status }}</span>
+              <span v-if="machine.id !== 'local'" class="text-muted">{{ machine.host }}:{{ machine.port }}</span>
+              <span class="text-muted">{{ machine.docker_host }}</span>
+              <span v-if="machine.id === 'local'" class="badge badge-primary">本机</span>
+              <span v-else class="badge" :class="machine.auth_method === 'password' ? 'badge-info' : 'badge-success'">{{ machine.auth_method === 'password' ? 'Password' : 'SSH Key' }}</span>
+            </div>
+          </div>
+          <div class="item-list-actions">
+            <button @click="testConnection(machine.id)" class="btn btn-sm btn-ghost" :disabled="testingId === machine.id">
+              <Wifi :size="14" :class="{ 'spinning': testingId === machine.id }" /> {{ t('machines.test') }}
+            </button>
+            <button @click="openEditModal(machine)" class="btn btn-sm btn-ghost" :disabled="machine.id === 'local'">
+              <Pencil :size="14" /> {{ t('machines.edit') }}
+            </button>
+            <button @click="viewContainers(machine.id)" class="btn btn-sm btn-ghost">
+              <Box :size="14" /> {{ t('machines.containers') }}
+            </button>
+            <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
+              <Trash2 :size="14" /> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
@@ -193,6 +224,9 @@ import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { RemoteMachine, CreateMachineRequest, UpdateMachineRequest } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import ViewToggle from '@/components/ui/ViewToggle.vue'
+import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
+import { useViewMode } from '@/composables/useViewMode'
 
 const router = useRouter()
 
@@ -205,6 +239,7 @@ const showModal = ref(false)
 const editingMachine = ref<RemoteMachine | null>(null)
 const showPassword = ref(false)
 const formError = ref('')
+const viewMode = useViewMode('machines')
 
 const form = ref({
   name: '',
@@ -377,20 +412,6 @@ onMounted(() => refreshMachines())
 .machines-page {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.filters {
-  display: flex;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
-  background: var(--color-background);
-  border: 1px solid var(--color-border-weak);
-  border-radius: var(--radius-sm);
-}
-
-.search-box {
-  flex: 1;
 }
 
 .empty-state {
@@ -610,12 +631,20 @@ onMounted(() => refreshMachines())
     grid-template-columns: 1fr;
   }
 
-  .filters {
-    flex-direction: column;
-  }
-
   .machine-actions {
     justify-content: center;
+  }
+
+  .item-list-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .item-list-actions {
+    justify-content: flex-end;
+  }
+  .item-list-actions .btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
   }
 }
 </style>

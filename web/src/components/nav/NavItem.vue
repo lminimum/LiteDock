@@ -89,13 +89,12 @@ const handleClick = () => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-6);
   color: var(--color-text-weak);
   text-decoration: none;
   font-size: var(--font-size-sm);
-  transition: color 0.15s ease, background-color 0.15s ease;
-  border-left: 2px solid transparent;
-  margin: 1px 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: var(--space-1) 0;
   box-sizing: border-box;
   cursor: pointer;
   user-select: none;
@@ -103,13 +102,11 @@ const handleClick = () => {
 
 .nav-item:hover {
   color: var(--color-text-strong);
-  background: var(--color-background-weak);
 }
 
 .nav-item.active {
   color: var(--color-text-strong);
-  background: var(--color-background-weak);
-  border-left-color: var(--color-text-strong);
+  background: var(--color-background-hover);
 }
 
 .nav-icon {
@@ -182,15 +179,13 @@ const handleClick = () => {
 }
 
 .nav-child {
-  padding-left: calc(var(--space-4) + 12px);
-  margin: 1px 0;
-  font-size: var(--font-size-sm);
-  border-left: 2px solid transparent;
+  padding-left: calc(var(--space-6) + 24px);
+  margin: var(--space-1) 0;
+  font-size: var(--font-size-xs);
 }
 
 .nav-child.active {
-  border-left-color: var(--color-text-strong);
-  background: var(--color-background-hover);
+  color: var(--color-text-strong);
 }
 
 .nav-child-icon {

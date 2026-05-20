@@ -1,6 +1,20 @@
 <!-- web/src/components/nav/SidebarNav.vue -->
 <template>
   <nav class="sidebar-nav" :class="{ collapsed, 'mobile-mode': isMobile }">
+    <!-- Brand Header (Replacing SidebarLogo) -->
+    <div class="brand-header" :class="{ collapsed, 'mobile-mode': isMobile }">
+      <div v-if="!collapsed" class="logo">
+        <span class="logo-text">LiteDock</span>
+      </div>
+      <div v-else class="logo-collapsed">
+        <span class="logo-text">LD</span>
+      </div>
+
+      <button v-if="isMobile" class="close-btn" @click="$emit('close-mobile')">
+        <X :size="20" />
+      </button>
+    </div>
+
     <div class="nav-section">
       <div class="nav-section-header" v-if="!isMobile && !collapsed">
         <div class="nav-section-title">{{ t('nav.main') }}</div>
@@ -42,6 +56,14 @@
     </div>
 
     <div class="nav-section theme-section">
+      <NavItem
+        :to="'/settings'"
+        :icon="Settings"
+        :label="t('nav.settings')"
+        :active="currentRouteName === 'Settings'"
+        :collapsed="collapsed"
+        :is-mobile="isMobile"
+      />
       <button
         class="nav-item theme-toggle"
         :class="{ collapsed, 'mobile-mode': isMobile }"
@@ -70,8 +92,10 @@ import {
   Image as ImageIcon,
   HardDrive,
   Globe,
+  Bot,
   Sun,
   Moon,
+  X,
 } from 'lucide-vue-next'
 import { useTheme } from '@/themes'
 
@@ -100,6 +124,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'navigate'): void
+  (e: 'close-mobile'): void
 }>()
 
 const route = useRoute()
@@ -119,14 +144,6 @@ const toggleTheme = () => {
 
 // Track which menus are expanded
 const expandedMenus = ref<Record<string, boolean>>({})
-const parentMenuNames = ['Docker', 'Infrastructure']
-
-// Default expand all menus
-onMounted(() => {
-  parentMenuNames.forEach(name => {
-    expandedMenus.value[name] = true
-  })
-})
 
 const toggleMenu = (name: string) => {
   expandedMenus.value[name] = !expandedMenus.value[name]
@@ -158,10 +175,15 @@ const mainNavItems = computed<NavItemDef[]>(() => [
 ])
 
 const systemNavItems = computed<NavItemDef[]>(() => [
-  { name: 'Settings', path: '/settings', label: t('nav.settings'), icon: Settings },
+  { name: 'AI', path: '/ai', label: t('nav.ai'), icon: Bot },
 ])
 
 onMounted(async () => {
+  // Initialize theme
+  currentTheme.value = currentTheme.value || 'dark'
+  document.documentElement.setAttribute('data-theme', currentTheme.value)
+
+  // Fetch container count
   try {
     const { default: api } = await import('@/utils/api')
     const data: any = await api.get('/dashboard/stats')
@@ -177,9 +199,56 @@ onMounted(async () => {
 <style scoped>
 .sidebar-nav {
   flex: 1;
-  padding: var(--space-3) 0;
+  padding: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brand Header */
+.brand-header {
+  padding: 0 var(--space-6);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.brand-header.collapsed {
+  padding: 0;
+}
+
+.logo-text {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-text-weak);
+  cursor: pointer;
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  background: var(--color-background-weak);
+  color: var(--color-text-strong);
 }
 
 .nav-section {
@@ -189,20 +258,19 @@ onMounted(async () => {
 .nav-section-header {
   display: flex;
   align-items: center;
-  height: 24px;
-  margin: 1px 0;
-  padding: 0 var(--space-4);
+  height: 32px;
+  padding: 0 var(--space-6);
   box-sizing: border-box;
 }
 
 .nav-section-title {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-weaker);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
   white-space: nowrap;
-  opacity: 1;
+  opacity: 0.6;
   transition: opacity 0.2s ease;
   line-height: 1;
 }
@@ -229,28 +297,24 @@ onMounted(async () => {
 /* Theme toggle */
 .theme-section {
   margin-top: auto;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-weak);
+  padding: var(--space-4) 0;
 }
 
 .theme-toggle {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-6);
   color: var(--color-text-weak);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   cursor: pointer;
   user-select: none;
   width: 100%;
   text-align: left;
   background: none;
-  border: 2px solid transparent;
-  border-left-width: 0;
-  border-right-width: 0;
+  border: none;
   font-family: inherit;
-  transition: color 0.15s ease, background-color 0.15s ease;
-  margin: 1px 0;
+  transition: all 0.2s ease;
   box-sizing: border-box;
 }
 

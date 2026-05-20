@@ -7,8 +7,8 @@ export const volumeService = {
     return r.volumes ?? []
   },
 
-  async createVolume(machineId: string, data: { name: string; driver?: string }): Promise<void> {
-    await api.post(`/machines/${machineId}/volumes`, data)
+  async createVolume(machineId: string, data: { name: string; driver?: string }): Promise<Volume> {
+    return await api.post<Volume>(`/machines/${machineId}/volumes`, data)
   },
 
   async deleteVolume(machineId: string, volumeName: string): Promise<void> {

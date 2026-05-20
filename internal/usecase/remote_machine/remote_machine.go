@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
@@ -108,6 +109,33 @@ func (uc *UseCase) List(ctx context.Context) ([]entity.RemoteMachine, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "UseCase.List.repo.List")
 	}
+
+	// Connectivity check for each machine (parallel per machine)
+	for i := range machines {
+		m := &machines[i]
+
+		pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		var status string
+
+		cli, err := uc.getDockerClient(pingCtx, m.ID)
+		if err != nil {
+			uc.l.Warn("UseCase.List.getDockerClient(%s): %v", m.ID, err)
+			status = "offline"
+		} else {
+			err = cli.Ping(pingCtx)
+			cli.Close()
+			if err != nil {
+				uc.l.Warn("UseCase.List.Ping(%s): %v", m.ID, err)
+				status = "offline"
+			} else {
+				status = "online"
+			}
+		}
+		cancel()
+
+		m.Status = status
+	}
+
 	return machines, nil
 }
 
@@ -152,15 +180,18 @@ func (uc *UseCase) GetByHost(ctx context.Context, host string) (*entity.RemoteMa
 func (uc *UseCase) TestConnection(ctx context.Context, id string) error {
 	cli, err := uc.getDockerClient(ctx, id)
 	if err != nil {
+		_ = uc.repo.UpdateStatus(ctx, id, "offline")
 		return errors.Wrap(err, "UseCase.TestConnection.getDockerClient")
 	}
 	defer cli.Close()
 
 	err = cli.Ping(ctx)
 	if err != nil {
+		_ = uc.repo.UpdateStatus(ctx, id, "offline")
 		return errors.Wrap(err, "UseCase.TestConnection.cli.Ping")
 	}
 
+	_ = uc.repo.UpdateStatus(ctx, id, "online")
 	return nil
 }
 
@@ -275,6 +306,22 @@ func (uc *UseCase) ExecContainer(ctx context.Context, machineID, containerID str
 	}
 
 	return output, nil
+}
+
+func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *container.Config, hostCfg *container.HostConfig, name string) (*container.CreateResponse, error) {
+	cli, err := uc.getDockerClient(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.CreateContainer.getDockerClient")
+	}
+	defer cli.Close()
+
+	resp, err := cli.ContainerCreate(ctx, cfg, hostCfg, name)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.CreateContainer.cli.ContainerCreate")
+	}
+
+	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
+	return resp, nil
 }
 
 func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID string) error {

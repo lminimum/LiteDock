@@ -34,6 +34,14 @@ type PullImageRequest struct {
 }
 
 // List handles GET /v1/machines/:id/images
+// @Summary List images on a machine
+// @Description Get all Docker images from a remote machine
+// @Tags images
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/images [get]
 func (h *ImageHandler) List(c *fiber.Ctx) error {
 	machineID := c.Params("id")
 
@@ -48,6 +56,15 @@ func (h *ImageHandler) List(c *fiber.Ctx) error {
 }
 
 // Inspect handles GET /v1/machines/:id/images/:imageID
+// @Summary Inspect an image
+// @Description Get detailed information about a Docker image
+// @Tags images
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param imageID path string true "Image ID or name"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/images/{imageID} [get]
 func (h *ImageHandler) Inspect(c *fiber.Ctx) error {
 	machineID := c.Params("id")
 	imageID := c.Params("imageID")
@@ -61,6 +78,17 @@ func (h *ImageHandler) Inspect(c *fiber.Ctx) error {
 }
 
 // Pull handles POST /v1/machines/:id/images/pull
+// @Summary Pull an image
+// @Description Pull a Docker image on a remote machine
+// @Tags images
+// @Accept json
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param request body PullImageRequest true "Image pull request"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/images/pull [post]
 func (h *ImageHandler) Pull(c *fiber.Ctx) error {
 	machineID := c.Params("id")
 
@@ -82,6 +110,15 @@ func (h *ImageHandler) Pull(c *fiber.Ctx) error {
 }
 
 // Delete handles DELETE /v1/machines/:id/images/:imageID
+// @Summary Delete an image
+// @Description Delete a Docker image from a remote machine
+// @Tags images
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param imageID path string true "Image ID or name"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/images/{imageID} [delete]
 func (h *ImageHandler) Delete(c *fiber.Ctx) error {
 	machineID := c.Params("id")
 	imageID := c.Params("imageID")
@@ -95,6 +132,14 @@ func (h *ImageHandler) Delete(c *fiber.Ctx) error {
 }
 
 // Prune handles POST /v1/machines/:id/images/prune
+// @Summary Prune unused images
+// @Description Remove unused Docker images from a remote machine
+// @Tags images
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/images/prune [post]
 func (h *ImageHandler) Prune(c *fiber.Ctx) error {
 	machineID := c.Params("id")
 

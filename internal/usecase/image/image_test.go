@@ -121,6 +121,10 @@ func (m *mockRemoteMachineRepo) GetByHost(_ context.Context, _ string) (*entity.
 	return nil, nil
 }
 
+func (m *mockRemoteMachineRepo) UpdateStatus(_ context.Context, _ string, _ string) error {
+	return nil
+}
+
 var _ repo.RemoteMachineRepo = (*mockRemoteMachineRepo)(nil)
 
 // --- mockDockerClient ---
@@ -156,6 +160,10 @@ func (m *mockDockerClient) ContainerRestart(_ context.Context, _ string, _ time.
 }
 func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ bool) error { return nil }
 func (m *mockDockerClient) ContainerInspect(_ context.Context, _ string) (*container.InspectResponse, error) {
+	return nil, nil
+}
+
+func (m *mockDockerClient) ContainerCreate(_ context.Context, _ *container.Config, _ *container.HostConfig, _ string) (*container.CreateResponse, error) {
 	return nil, nil
 }
 

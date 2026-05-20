@@ -44,6 +44,7 @@ type (
 		Update(context.Context, *entity.RemoteMachine) error
 		Delete(context.Context, string) error
 		GetByHost(context.Context, string) (*entity.RemoteMachine, error)
+		UpdateStatus(ctx context.Context, id string, status string) error
 	}
 
 	SystemMetricsRepo interface {

@@ -105,8 +105,13 @@ const authStore = useAuthStore()
   color: var(--color-text-strong);
 }
 
-/* Collapsed state - user info fades out but space remains */
-.sidebar-footer.collapsed .user-info {
-  opacity: 0;
+/* Collapsed state - hide user info and center toggle */
+.sidebar-footer.collapsed {
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+
+.sidebar-footer.collapsed .user-info-wrapper {
+  display: none;
 }
 </style>

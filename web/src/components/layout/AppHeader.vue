@@ -17,12 +17,6 @@
           <RefreshCw :size="18" :class="{ spinning: refreshing }" />
         </button>
         <LanguageSwitcher />
-        <div class="notification-dropdown" ref="notifRef">
-          <button @click="toggleNotifications" class="btn btn-ghost" :title="t('common.notifications')">
-            <Bell :size="18" />
-            <span class="notification-badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
-          </button>
-        </div>
       </div>
 
       <UserMenu />
@@ -31,13 +25,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { t } from '@/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import UserMenu from '@/components/layout/UserMenu.vue'
-import { RefreshCw, Bell, Menu } from 'lucide-vue-next'
+import { RefreshCw, Menu } from 'lucide-vue-next'
 
 defineEmits<{
   (e: 'toggle-sidebar'): void
@@ -46,11 +40,7 @@ defineEmits<{
 const route = useRoute()
 
 const refreshing = ref(false)
-const notificationsOpen = ref(false)
-const unreadCount = ref(3)
-const notifRef = ref<HTMLElement | null>(null)
 
-// Simplified nav items — only name + label needed for title/breadcrumb resolution
 const allNavItems = computed(() => [
   { name: 'Dashboard', label: t('nav.overview') },
   { name: 'Containers', label: t('nav.containers') },
@@ -58,6 +48,8 @@ const allNavItems = computed(() => [
   { name: 'Images', label: t('nav.images') },
   { name: 'Networks', label: t('nav.networks') },
   { name: 'Volumes', label: t('nav.volumes') },
+  { name: 'Machines', label: t('nav.machines') },
+  { name: 'MachineDetail', label: t('nav.machines') },
   { name: 'Settings', label: t('nav.settings') },
 ])
 
@@ -67,8 +59,37 @@ const currentPageTitle = computed(() => {
 })
 
 const breadcrumbs = computed(() => {
-  const item = allNavItems.value.find(item => item.name === route.name)
-  return item ? ['LiteDock', item.label] : ['LiteDock']
+  const crumbs: string[] = ['LiteDock']
+
+  const path = route.path
+  const segments = path.split('/').filter(Boolean)
+
+  if (segments.length === 0) {
+    return crumbs
+  }
+
+  const segmentLabelMap: Record<string, string> = {
+    containers: t('nav.containers'),
+    images: t('nav.images'),
+    networks: t('nav.networks'),
+    volumes: t('nav.volumes'),
+    orchestration: t('nav.orchestration'),
+    machines: t('nav.machines'),
+    settings: t('nav.settings'),
+  }
+
+  for (const segment of segments) {
+    if (segment.startsWith(':') || /^[a-f0-9-]{8,}$/.test(segment)) {
+      crumbs.push(route.params.id as string || segment)
+      continue
+    }
+    const label = segmentLabelMap[segment]
+    if (label) {
+      crumbs.push(label)
+    }
+  }
+
+  return crumbs
 })
 
 const refreshData = async () => {
@@ -80,29 +101,18 @@ const refreshData = async () => {
   }
 }
 
-const toggleNotifications = () => {
-  notificationsOpen.value = !notificationsOpen.value
-}
 
-const handleClickOutside = (event: Event) => {
-  if (notifRef.value && !notifRef.value.contains(event.target as Node)) {
-    notificationsOpen.value = false
-  }
-}
-
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <style scoped>
 .top-header {
   height: var(--header-height);
-  border-bottom: 1px solid var(--color-border-weak);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
-  background: var(--color-background);
+  padding: 0 var(--space-8);
+  background: transparent;
+  z-index: 10;
 }
 
 .menu-toggle {
@@ -173,25 +183,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   to { transform: rotate(360deg); }
 }
 
-.notification-dropdown {
-  position: relative;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  background: var(--color-error);
-  color: #fdfcfc;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 @media (max-width: 767px) {
   .top-header {
     padding: 0 var(--space-4);
@@ -206,10 +197,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   }
 
   .header-breadcrumb {
-    display: none;
-  }
-
-  .header-actions .notification-dropdown {
     display: none;
   }
 }
