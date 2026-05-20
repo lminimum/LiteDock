@@ -4,6 +4,14 @@
       <h3 class="modal-title">Pull Image</h3>
 
       <form @submit.prevent="handlePull">
+        <TargetMachineSelect
+          v-model="selectedMachineId"
+          select-id="image-target-machine"
+          :options="machineOptions"
+          :disabled="submitting"
+          hint="Image will be pulled on the selected Docker host."
+        />
+
         <div class="form-field">
           <label class="form-label">Repository</label>
           <input
@@ -49,12 +57,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { imageService } from '@/services/imageService'
-import type { Image } from '@/types'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { Image, RemoteMachine } from '@/types'
 
 const props = defineProps<{
   machineId: string
+  machines: RemoteMachine[]
   show: boolean
 }>()
 
@@ -67,6 +77,13 @@ const repository = ref('')
 const tag = ref('latest')
 const error = ref('')
 const submitting = ref(false)
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 watch(() => props.show, (val) => {
   if (val) {
@@ -74,7 +91,13 @@ watch(() => props.show, (val) => {
     tag.value = 'latest'
     error.value = ''
     submitting.value = false
+    selectedMachineId.value = props.machineId
   }
+})
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.show) return
+  selectedMachineId.value = machineId
 })
 
 const handlePull = async () => {
@@ -83,11 +106,16 @@ const handlePull = async () => {
     return
   }
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
   try {
-    const image = await imageService.pull(props.machineId, {
+    const image = await imageService.pull(selectedMachineId.value, {
       repository: repository.value.trim(),
       tag: tag.value.trim() || 'latest',
     })

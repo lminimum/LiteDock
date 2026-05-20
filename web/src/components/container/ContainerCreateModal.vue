@@ -4,6 +4,14 @@
       <h3 class="modal-title">Create Container</h3>
 
       <form @submit.prevent="handleSubmit">
+        <TargetMachineSelect
+          v-model="selectedMachineId"
+          select-id="container-target-machine"
+          :options="machineOptions"
+          :disabled="submitting"
+          hint="Container will be created on the selected Docker host."
+        />
+
         <div class="form-field">
           <label class="form-label">Name</label>
           <input
@@ -101,12 +109,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { t } from '@/i18n'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { RemoteMachine } from '@/types'
 
 const props = defineProps<{
   machineId: string
+  machines: RemoteMachine[]
   visible: boolean
 }>()
 
@@ -124,6 +135,13 @@ const volumesInput = ref('')
 const network = ref('')
 const error = ref('')
 const submitting = ref(false)
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -136,7 +154,13 @@ watch(() => props.visible, (val) => {
     network.value = ''
     error.value = ''
     submitting.value = false
+    selectedMachineId.value = props.machineId
   }
+})
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.visible) return
+  selectedMachineId.value = machineId
 })
 
 function parseLines(input: string): string[] {
@@ -152,6 +176,11 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
@@ -161,7 +190,7 @@ const handleSubmit = async () => {
     const ports = parseLines(portsInput.value)
     const volumes = parseLines(volumesInput.value)
 
-    const result = await remoteMachineService.createContainer(props.machineId, {
+    const result = await remoteMachineService.createContainer(selectedMachineId.value, {
       name: name.value.trim() || undefined,
       image: image.value.trim(),
       env: env.length > 0 ? env : undefined,
@@ -175,7 +204,7 @@ const handleSubmit = async () => {
       id: result.id,
       name: name.value.trim() || result.id.substring(0, 12),
       image: image.value.trim(),
-      machineId: props.machineId,
+      machineId: selectedMachineId.value,
     })
     emit('close')
   } catch (e: unknown) {

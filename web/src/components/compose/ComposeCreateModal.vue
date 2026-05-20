@@ -20,6 +20,14 @@
         </button>
       </div>
 
+      <TargetMachineSelect
+        v-model="selectedMachineId"
+        select-id="compose-target-machine"
+        :options="machineOptions"
+        :disabled="submitting"
+        hint="Compose project will be created on the selected Docker host."
+      />
+
       <div v-if="tab === 'template'">
         <div class="template-grid grid grid-cols-2 gap-3">
           <div
@@ -89,11 +97,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { composeService } from '@/services/composeService'
-import type { ComposeProject, ComposeTemplate } from '@/types'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { ComposeProject, ComposeTemplate, RemoteMachine } from '@/types'
 
 const props = defineProps<{
   show: boolean
   machineId: string
+  machines: RemoteMachine[]
   templates: ComposeTemplate[]
 }>()
 
@@ -109,6 +119,13 @@ const yamlContent = ref('')
 const filePath = ref('')
 const submitting = ref(false)
 const error = ref('')
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 const isValid = computed(() => {
   return projectName.value.trim().length > 0 && yamlContent.value.trim().length > 0
@@ -128,11 +145,16 @@ function selectTemplate(t: ComposeTemplate) {
 async function create() {
   if (!isValid.value) return
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
   try {
-    const project = await composeService.createProject(props.machineId, {
+    const project = await composeService.createProject(selectedMachineId.value, {
       name: projectName.value.trim(),
       content: yamlContent.value,
       file_path: filePath.value || undefined,
@@ -158,9 +180,15 @@ watch(
       filePath.value = ''
       error.value = ''
       submitting.value = false
+      selectedMachineId.value = props.machineId
     }
   }
 )
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.show) return
+  selectedMachineId.value = machineId
+})
 </script>
 
 <style scoped>

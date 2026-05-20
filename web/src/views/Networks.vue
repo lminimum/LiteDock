@@ -144,7 +144,8 @@
 
     <NetworkCreateModal
       v-if="machines.length > 0"
-      :machine-id="machines[0]!.id"
+      :machine-id="defaultCreateMachineId"
+      :machines="machines"
       :visible="showCreateModal"
       @created="onNetworkCreated"
       @close="showCreateModal = false"
@@ -234,6 +235,11 @@ const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
   (n) => n.machineId,
   (n) => n.machine,
 )
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return machines.value[0]?.id ?? ''
+})
 
 const refreshNetworks = async () => {
   loading.value = true

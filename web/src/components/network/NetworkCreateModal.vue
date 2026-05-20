@@ -4,6 +4,14 @@
       <h3 class="modal-title">Create Network</h3>
 
       <form @submit.prevent="handleSubmit">
+        <TargetMachineSelect
+          v-model="selectedMachineId"
+          select-id="network-target-machine"
+          :options="machineOptions"
+          :disabled="submitting"
+          hint="Network will be created on the selected Docker host."
+        />
+
         <div class="form-field">
           <label class="form-label">Name</label>
           <input
@@ -46,12 +54,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { networkService } from '@/services/networkService'
-import type { Network } from '@/types'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { Network, RemoteMachine } from '@/types'
 
 const props = defineProps<{
   machineId: string
+  machines: RemoteMachine[]
   visible: boolean
 }>()
 
@@ -66,6 +76,13 @@ const name = ref('')
 const driver = ref('bridge')
 const error = ref('')
 const submitting = ref(false)
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -73,7 +90,13 @@ watch(() => props.visible, (val) => {
     driver.value = 'bridge'
     error.value = ''
     submitting.value = false
+    selectedMachineId.value = props.machineId
   }
+})
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.visible) return
+  selectedMachineId.value = machineId
 })
 
 const handleSubmit = async () => {
@@ -82,11 +105,16 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
   try {
-    const network = await networkService.createNetwork(props.machineId, {
+    const network = await networkService.createNetwork(selectedMachineId.value, {
       name: name.value.trim(),
       driver: driver.value
     })

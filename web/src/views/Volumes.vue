@@ -126,7 +126,8 @@
 
     <VolumeCreateModal
       v-if="machines.length > 0"
-      :machine-id="machines[0]!.id"
+      :machine-id="defaultCreateMachineId"
+      :machines="machines"
       :visible="showCreateModal"
       @created="onVolumeCreated"
       @close="showCreateModal = false"
@@ -205,6 +206,11 @@ const filteredVolumes = computed(() => {
 })
 
 const { machineFilter, machineOptions, groupedItems } = useMachineFilter(filteredVolumes, machines, (v) => v.machineId, (v) => v.machine)
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return machines.value[0]?.id ?? ''
+})
 
 const refreshVolumes = async () => {
   loading.value = true
