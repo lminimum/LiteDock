@@ -38,12 +38,12 @@ type mockTestAction struct {
 	confirmMsg   string
 }
 
-func (m *mockTestAction) Name() string                                           { return m.name }
-func (m *mockTestAction) Description() string                                    { return m.description }
-func (m *mockTestAction) Params() []action.ParamDef                              { return m.actionParams }
-func (m *mockTestAction) Validate(_ map[string]interface{}) error                { return nil }
-func (m *mockTestAction) Destructive(_ map[string]interface{}) bool              { return m.destructive }
-func (m *mockTestAction) ConfirmationMessage(_ map[string]interface{}) string    { return m.confirmMsg }
+func (m *mockTestAction) Name() string                                        { return m.name }
+func (m *mockTestAction) Description() string                                 { return m.description }
+func (m *mockTestAction) Params() []action.ParamDef                           { return m.actionParams }
+func (m *mockTestAction) Validate(_ map[string]interface{}) error             { return nil }
+func (m *mockTestAction) Destructive(_ map[string]interface{}) bool           { return m.destructive }
+func (m *mockTestAction) ConfirmationMessage(_ map[string]interface{}) string { return m.confirmMsg }
 func (m *mockTestAction) Execute(_ context.Context, _ map[string]interface{}) (*action.ActionResult, error) {
 	return &action.ActionResult{Success: true}, nil
 }
@@ -54,48 +54,69 @@ func testNLRules() []engine.Rule {
 	return []engine.Rule{
 		{
 			Name:        "start_container",
-			Patterns:    []string{"start nginx container", "start redis container", "start web app"},
+			Patterns:    []string{"start nginx container", "start redis container", "start web app", "启动 nginx 容器", "启动 redis 容器"},
 			Intent:      "container_start",
 			Action:      "start_container",
 			Description: "启动容器",
 		},
 		{
 			Name:        "stop_container",
-			Patterns:    []string{"stop nginx container", "stop redis container"},
+			Patterns:    []string{"stop nginx container", "stop redis container", "停止 nginx 容器", "关掉 nginx 容器"},
 			Intent:      "container_stop",
 			Action:      "stop_container",
 			Description: "停止容器",
 		},
 		{
+			Name:        "restart_container",
+			Patterns:    []string{"restart nginx container", "重启 nginx 容器"},
+			Intent:      "container_restart",
+			Action:      "restart_container",
+			Description: "重启容器",
+		},
+		{
 			Name:        "list_containers",
-			Patterns:    []string{"list containers", "show containers"},
+			Patterns:    []string{"list containers", "show containers", "列表", "列出容器"},
 			Intent:      "container_list",
 			Action:      "list_containers",
 			Description: "查看容器列表",
 		},
 		{
 			Name:        "delete_image",
-			Patterns:    []string{"delete nginx image", "remove redis image"},
+			Patterns:    []string{"delete nginx image", "remove redis image", "删除 nginx 镜像"},
 			Intent:      "image_delete",
 			Action:      "delete_image",
 			Description: "删除镜像",
 		},
 		{
 			Name:        "prune_images",
-			Patterns:    []string{"prune unused images", "clean up images"},
+			Patterns:    []string{"prune unused images", "clean up images", "清理未使用的镜像"},
 			Intent:      "image_prune",
 			Action:      "prune_images",
 			Description: "清理未使用的镜像",
+		},
+		{
+			Name:        "view_logs",
+			Patterns:    []string{"logs of nginx", "tail nginx", "查看 nginx 日志", "查看 nginx 最后 100 行日志"},
+			Intent:      "container_logs",
+			Action:      "view_logs",
+			Description: "查看容器日志",
+		},
+		{
+			Name:        "delete_container",
+			Patterns:    []string{"delete nginx container", "删除 nginx 容器"},
+			Intent:      "container_delete",
+			Action:      "delete_container",
+			Description: "删除容器",
 		},
 	}
 }
 
 // mockOperationAction implements action.Action with operation-based destructiveness.
 type mockOperationAction struct {
-	name             string
-	description      string
-	actionParams     []action.ParamDef
-	destructiveOps   map[string]bool
+	name           string
+	description    string
+	actionParams   []action.ParamDef
+	destructiveOps map[string]bool
 }
 
 func (m *mockOperationAction) Name() string                            { return m.name }
@@ -122,9 +143,9 @@ func newTestRegistry() *action.ActionRegistry {
 			{Name: "container_id", Type: "string", Required: true, Description: "Container ID or name"},
 		},
 		destructiveOps: map[string]bool{
-			"stop_container":      true,
-			"restart_container":   true,
-			"delete_container":    true,
+			"stop_container":    true,
+			"restart_container": true,
+			"delete_container":  true,
 		},
 	})
 	_ = reg.Register(&mockOperationAction{
@@ -606,4 +627,80 @@ func TestNLParser_Parse_TFIDF_ReadOnlyStillWorks(t *testing.T) {
 	require.Equal(t, "container", resp.Action)
 	require.False(t, resp.RequiresConfirmation)
 	require.Equal(t, "list_containers", resp.Params["operation"])
+}
+
+func TestNLParser_ExtractParams_ChineseStopContainer(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "停止 nginx 容器")
+
+	require.NoError(t, err)
+	require.Equal(t, "container_stop", resp.Intent)
+	require.Equal(t, "stop_container", resp.Action)
+	require.Contains(t, resp.Params, "container_name")
+	require.Equal(t, "nginx", resp.Params["container_name"])
+}
+
+func TestNLParser_ExtractParams_ChineseRestartContainer(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "重启 redis 容器")
+
+	require.NoError(t, err)
+	require.Equal(t, "container_restart", resp.Intent)
+	require.Equal(t, "restart_container", resp.Action)
+	require.Contains(t, resp.Params, "container_name")
+	require.Equal(t, "redis", resp.Params["container_name"])
+}
+
+func TestNLParser_ExtractParams_LogTailCount(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "查看 nginx 最后 100 行日志")
+
+	require.NoError(t, err)
+	require.Equal(t, "container_logs", resp.Intent)
+	require.Contains(t, resp.Params, "container_name")
+	require.Equal(t, "nginx", resp.Params["container_name"])
+	require.Contains(t, resp.Params, "tail")
+	require.Equal(t, "100", resp.Params["tail"])
+}
+
+func TestNLParser_ExtractParams_LogTailCountEnglish(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "tail nginx 50")
+
+	require.NoError(t, err)
+	require.Equal(t, "container_logs", resp.Intent)
+	require.Contains(t, resp.Params, "container_name")
+	require.Equal(t, "nginx", resp.Params["container_name"])
+	require.Contains(t, resp.Params, "tail")
+	require.Equal(t, "50", resp.Params["tail"])
+}
+
+func TestNLParser_ExtractParams_ContainerID(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "stop abc123def456")
+
+	require.NoError(t, err)
+	require.Contains(t, resp.Params, "container_id")
+	require.Equal(t, "abc123def456", resp.Params["container_id"])
+}
+
+func TestNLParser_ExtractParams_MachineID(t *testing.T) {
+	eng := engine.NewEngine(testNLRules(), &mockNLTTokenizer{})
+	uc := NewNLParserUseCase(eng, &mockNLTTokenizer{}, &mockLogger{})
+
+	resp, err := uc.Parse(context.Background(), "stop nginx machine-uuid host-001")
+
+	require.NoError(t, err)
+	require.Contains(t, resp.Params, "machine_id")
+	require.Equal(t, "host-001", resp.Params["machine_id"])
 }

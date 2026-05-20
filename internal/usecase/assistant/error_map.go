@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	MsgTimeout            = "AI 服务响应超时，请稍后重试"
-	MsgAuthFailed         = "AI 服务认证失败，请在设置中检查 API Key"
-	MsgRateLimited        = "请求过于频繁，请稍后再试"
-	MsgContainerNotFound   = "容器 '%s' 不存在"
-	MsgGeneralError       = "操作失败，请稍后重试"
+	MsgTimeout           = "AI 服务响应超时，请稍后重试"
+	MsgAuthFailed        = "AI 服务认证失败，请在设置中检查 API Key"
+	MsgRateLimited       = "请求过于频繁，请稍后再试"
+	MsgContainerNotFound = "容器 '%s' 不存在"
+	MsgGeneralError      = "操作失败，请稍后重试"
 )
 
 var ErrRateLimited = errors.New("rate limited")

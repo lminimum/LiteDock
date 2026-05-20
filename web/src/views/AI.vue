@@ -418,26 +418,94 @@ async function sendMessage(): Promise<void> {
 
     // Wait for streaming response via temporary message listener
     await new Promise<void>((resolve) => {
+      let resolved = false
+
+      function cleanup() {
+        if (resolved) return
+        resolved = true
+        wsConn.removeEventListener('message', messageHandler)
+        wsConn.removeEventListener('close', closeHandler)
+      }
+
       const messageHandler = (event: MessageEvent) => {
         try {
-          const data = JSON.parse(event.data)
+          const raw = JSON.parse(event.data)
 
-          if (data.done) {
-            wsConn.removeEventListener('message', messageHandler)
-            wsConn.removeEventListener('close', closeHandler)
+          // ── Versioned envelope (v:1) ──────────────────────────
+          if (raw.v === 1 && raw.type) {
+            switch (raw.type) {
+              case 'content': {
+                const p = raw.payload || {}
+                if (p.content) {
+                  conv.messages[assistantMsgIdx].text += p.content
+                  conv.updatedAt = Date.now()
+                  scrollToBottom()
+                }
+                if (p.done) {
+                  cleanup()
+                  if (!conv.messages[assistantMsgIdx].text) {
+                    conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+                  }
+                  conv.messages[assistantMsgIdx].status = 'completed'
+                  resolve()
+                }
+                break
+              }
+              case 'action_required': {
+                const intent = raw.payload || {}
+                cleanup()
+                conv.messages[assistantMsgIdx].status = 'requires_confirmation'
+                conv.messages[assistantMsgIdx].text = intent.confirmation_message || `Action required: ${intent.action}`
+                conv.updatedAt = Date.now()
+                scrollToBottom()
+                // Keep loading true — resolution happens on confirm/cancel
+                triggerActionConfirmation(
+                  intent.action || '',
+                  intent.params || {},
+                  intent.confirmation_message || `Execute ${intent.action}?`,
+                  intent.risk_level === 'dangerous' ? 'dangerous' : intent.risk_level === 'modify' ? 'caution' : 'safe',
+                  intent.confirmation_token || '',
+                  assistantMsgIdx,
+                )
+                resolve()
+                break
+              }
+              case 'error': {
+                const p = raw.payload || {}
+                cleanup()
+                conv.messages[assistantMsgIdx].text = p.message || t('assistant.error.general')
+                conv.messages[assistantMsgIdx].status = 'failed'
+                resolve()
+                break
+              }
+              case 'done': {
+                cleanup()
+                if (!conv.messages[assistantMsgIdx].text) {
+                  conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+                }
+                conv.messages[assistantMsgIdx].status = 'completed'
+                resolve()
+                break
+              }
+            }
+            return
+          }
+
+          // ── Legacy unversioned format (backwards-compat) ─────
+          if (raw.done) {
+            cleanup()
             if (!conv.messages[assistantMsgIdx].text) {
               conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
             }
             conv.messages[assistantMsgIdx].status = 'completed'
             resolve()
-          } else if (data.error) {
-            wsConn.removeEventListener('message', messageHandler)
-            wsConn.removeEventListener('close', closeHandler)
-            conv.messages[assistantMsgIdx].text = data.error
+          } else if (raw.error) {
+            cleanup()
+            conv.messages[assistantMsgIdx].text = raw.error
             conv.messages[assistantMsgIdx].status = 'failed'
             resolve()
-          } else if (data.content) {
-            conv.messages[assistantMsgIdx].text += data.content
+          } else if (raw.content) {
+            conv.messages[assistantMsgIdx].text += raw.content
             conv.updatedAt = Date.now()
             scrollToBottom()
           }
@@ -447,8 +515,7 @@ async function sendMessage(): Promise<void> {
       }
 
       const closeHandler = () => {
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
+        cleanup()
         if (!conv.messages[assistantMsgIdx].text) {
           conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
         }
@@ -463,8 +530,7 @@ async function sendMessage(): Promise<void> {
 
       // Safety timeout
       setTimeout(() => {
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
+        cleanup()
         if (!conv.messages[assistantMsgIdx].text) {
           conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
         }
@@ -518,6 +584,7 @@ function triggerActionConfirmation(
         const resp = await api.post<any>('/assistant/execute', {
           action: actionName,
           params,
+          confirmation_token: token,
         }, {
           timeout: 30000,
         })

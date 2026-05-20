@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +21,97 @@ const (
 	// _systemPrompt instructs the LLM on how to respond and when to use tools.
 	_systemPrompt = "You are LiteDock AI Assistant. You help users manage Docker containers, images, networks, and volumes. When users request an action, use the available tools. Otherwise, answer conversationally."
 )
+
+// _chineseSynonyms maps Chinese/English action keywords to their normalized action names.
+var _chineseSynonyms = map[string]string{
+	"停止":       "stop_container",
+	"关掉":       "stop_container",
+	"停掉":       "stop_container",
+	"关闭":       "stop_container",
+	"shutdown": "stop_container",
+	"stop":     "stop_container",
+	"重启":       "restart_container",
+	"重新启动":     "restart_container",
+	"restart":  "restart_container",
+	"reload":   "restart_container",
+	"删除":       "delete_container",
+	"移除":       "delete_container",
+	"销毁":       "delete_container",
+	"delete":   "delete_container",
+	"remove":   "delete_container",
+	"destroy":  "delete_container",
+	"查看日志":     "get_container_logs",
+	"日志":       "get_container_logs",
+	"logs":     "get_container_logs",
+	"tail":     "get_container_logs",
+	"输出":       "get_container_logs",
+	"查看":       "view_logs",
+	"列出":       "list_containers",
+	"列表":       "list_containers",
+	"查看列表":     "list_containers",
+	"list":     "list_containers",
+	"ls":       "list_containers",
+	"show":     "list_containers",
+	"启动":       "start_container",
+	"开启":       "start_container",
+	"运行":       "start_container",
+	"开始":       "start_container",
+	"start":    "start_container",
+	"创建":       "create_container",
+	"新建":       "create_container",
+	"新增":       "create_container",
+	"create":   "create_container",
+	"new":      "create_container",
+	"拉取":       "pull_image",
+	"下载镜像":     "pull_image",
+	"pull":     "pull_image",
+	"fetch":    "pull_image",
+	"网络":       "network_inspect",
+	"网络详情":     "network_inspect",
+	"network":  "network_inspect",
+	"net":      "network_inspect",
+	"卷":        "volume_operations",
+	"存储卷":      "volume_operations",
+	"volume":   "volume_operations",
+	"存储":       "volume_operations",
+	"状态":       "container_stats",
+	"资源":       "container_stats",
+	"统计":       "container_stats",
+	"stats":    "container_stats",
+	"资源使用":     "container_stats",
+	"检查":       "container_inspect",
+	"详情":       "container_inspect",
+	"inspect":  "container_inspect",
+	"详情信息":     "container_inspect",
+}
+
+// _logTailPatterns are regex patterns for extracting log tail count.
+var _logTailPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`最后\s*(\d+)\s*(?:行|条|个)?`),
+	regexp.MustCompile(`(\d+)\s*行\s*(?:日志|log|logs)?`),
+	regexp.MustCompile(`last\s+(\d+)\s*(?:lines?|log|logs)?`),
+	regexp.MustCompile(`tail\s+[a-zA-Z0-9_-]+\s+(\d+)`),
+	regexp.MustCompile(`tail\s+(\d+)`),
+	regexp.MustCompile(`最近\s*(\d+)\s*(?:行)?(?:日志)?`),
+	regexp.MustCompile(`(\d+)\s*(?:lines?|log|logs)`),
+}
+
+// _containerIDPatterns are regex patterns for extracting container IDs (partial hex strings).
+var _containerIDPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`([0-9a-f]{6,12})`),
+}
+
+// _machineIDPatterns are regex patterns for extracting machine IDs.
+var _machineIDPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`machine[-_]?uuid[:\s]+([a-zA-Z0-9_-]+)`),
+}
+
+// _containerNamePatterns are regex patterns for extracting container names from Chinese queries.
+// These are applied AFTER finding the action keyword in the text.
+var _containerNamePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:停止|关闭|停掉|重启|删除|查看|列出|启动|查看日志|stop|start|restart|delete|list|logs?|tail)\s+([a-zA-Z0-9_-]+)`),
+	regexp.MustCompile(`(?:的\s*(?:日志|状态|详情|容器))?([a-zA-Z0-9_-]+)`),
+}
 
 // ActionRequest represents a parsed tool call from the LLM.
 type ActionRequest struct {
@@ -62,13 +154,23 @@ func containsDestructiveKeyword(text string) bool {
 // Otherwise, it tries to find a registered action by extracting suffixes
 // (e.g., "stop_container" → "container") and returns the normalized name
 // with the original ruleAction as the "operation" parameter.
+// It also handles Chinese synonyms by looking up _chineseSynonyms map.
 func (uc *NLParserUseCase) normalizeAction(ruleAction string) (actionName string, extraParams map[string]string) {
 	if uc.actionRegistry == nil {
+		if normalized, ok := _chineseSynonyms[strings.ToLower(ruleAction)]; ok {
+			return normalized, nil
+		}
 		return ruleAction, nil
 	}
 
 	if _, ok := uc.actionRegistry.Get(ruleAction); ok {
 		return ruleAction, nil
+	}
+
+	if normalized, ok := _chineseSynonyms[strings.ToLower(ruleAction)]; ok {
+		if _, exists := uc.actionRegistry.Get(normalized); exists {
+			return normalized, nil
+		}
 	}
 
 	parts := strings.Split(ruleAction, "_")
@@ -309,6 +411,7 @@ func (uc *NLParserUseCase) parseWithTFIDF(text string) (entity.ParseResponse, er
 // extractParams finds potential parameter values in the input text after the action keyword.
 // For compound actions like "start_container", it extracts the verb prefix ("start")
 // to locate the action keyword in the user's text.
+// It also handles Chinese patterns for container name extraction and log tail count.
 func (uc *NLParserUseCase) extractParams(text string, action string) map[string]string {
 	params := make(map[string]string)
 
@@ -322,33 +425,136 @@ func (uc *NLParserUseCase) extractParams(text string, action string) map[string]
 
 	idx := strings.Index(textLower, searchKey)
 	if idx < 0 {
-		return params
+		chineseKey := uc.findChineseKeywordForAction(actionLower)
+		if chineseKey != "" {
+			searchKey = chineseKey
+			idx = strings.Index(textLower, searchKey)
+		}
+		if idx < 0 {
+			uc.extractContainerNameFromRemaining(textLower, params)
+			uc.extractLogTail(textLower, params)
+			uc.extractContainerID(textLower, params)
+			uc.extractMachineID(textLower, params)
+			return params
+		}
 	}
 
 	remaining := strings.TrimSpace(text[idx+len(searchKey):])
+
+	uc.extractLogTail(remaining, params)
+	uc.extractContainerID(remaining, params)
+	uc.extractMachineID(remaining, params)
+	uc.extractContainerNameFromRemaining(remaining, params)
+
 	if remaining == "" {
 		return params
 	}
 
-	tokens, err := uc.tokenizer.Tokenize(remaining)
-	if err != nil {
-		uc.logger.Warn(fmt.Sprintf("NLParserUseCase - extractParams - tokenize remaining text: %v", err))
-
-		return params
-	}
-
-	for _, token := range tokens {
-		lower := strings.ToLower(token)
-		if _stopWords[lower] {
-			continue
+	if _, exists := params["container_name"]; !exists {
+		tokens, err := uc.tokenizer.Tokenize(remaining)
+		if err != nil {
+			uc.logger.Warn(fmt.Sprintf("NLParserUseCase - extractParams - tokenize remaining text: %v", err))
+			return params
 		}
 
-		params["container_name"] = lower
+		for _, token := range tokens {
+			lower := strings.ToLower(token)
+			if _stopWords[lower] {
+				continue
+			}
 
-		break
+			params["container_name"] = lower
+			break
+		}
 	}
 
 	return params
+}
+
+// findChineseKeywordForAction finds a Chinese keyword that maps to the given action prefix.
+// It prefers Chinese keywords over English ones for better NL parsing.
+func (uc *NLParserUseCase) findChineseKeywordForAction(action string) string {
+	actionLower := strings.ToLower(action)
+	prefix := actionLower
+	if idx := strings.Index(actionLower, "_"); idx > 0 {
+		prefix = actionLower[:idx]
+	}
+
+	var chineseKey, englishKey string
+	for key, value := range _chineseSynonyms {
+		if value == prefix || value == actionLower || strings.HasPrefix(value, prefix+"_") {
+			isChinese := len(key) > 0 && []rune(key)[0] > 127
+			if isChinese && chineseKey == "" {
+				chineseKey = key
+			} else if !isChinese && englishKey == "" {
+				englishKey = key
+			}
+		}
+	}
+	if chineseKey != "" {
+		return chineseKey
+	}
+	return englishKey
+}
+
+// extractLogTail extracts log tail count from text using regex patterns.
+func (uc *NLParserUseCase) extractLogTail(text string, params map[string]string) {
+	for _, pattern := range _logTailPatterns {
+		if matches := pattern.FindStringSubmatch(text); len(matches) > 1 {
+			params["tail"] = matches[1]
+			return
+		}
+	}
+}
+
+// extractContainerNameFromRemaining extracts container name from remaining text using Chinese/English patterns.
+func (uc *NLParserUseCase) extractContainerNameFromRemaining(remaining string, params map[string]string) {
+	if len(remaining) == 0 {
+		return
+	}
+
+	tokens, err := uc.tokenizer.Tokenize(remaining)
+	if err != nil || len(tokens) == 0 {
+		return
+	}
+
+	firstToken := strings.ToLower(tokens[0])
+	if _stopWords[firstToken] {
+		return
+	}
+
+	for _, pattern := range _containerNamePatterns {
+		if matches := pattern.FindStringSubmatch(remaining); len(matches) > 1 {
+			if _, exists := params["container_name"]; !exists {
+				params["container_name"] = matches[1]
+			}
+			return
+		}
+	}
+}
+
+// extractContainerID extracts container ID (partial hex string) from text.
+func (uc *NLParserUseCase) extractContainerID(text string, params map[string]string) {
+	for _, pattern := range _containerIDPatterns {
+		if matches := pattern.FindStringSubmatch(text); len(matches) > 1 {
+			if _, exists := params["container_id"]; !exists {
+				params["container_id"] = matches[1]
+			}
+			return
+		}
+	}
+}
+
+// extractMachineID extracts machine ID from patterns like "machine-uuid xxx".
+func (uc *NLParserUseCase) extractMachineID(text string, params map[string]string) {
+	for _, pattern := range _machineIDPatterns {
+		if matches := pattern.FindStringSubmatch(text); len(matches) > 1 {
+			if _, exists := params["machine_id"]; !exists {
+				params["machine_id"] = matches[1]
+			}
+			return
+		}
+	}
 }
 
 // NewNLParserTokenizer creates a new Tokenizer instance for NL parsing.

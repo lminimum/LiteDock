@@ -17,7 +17,9 @@ import (
 	"github.com/lminimum/LiteDock/internal/controller/restapi"
 	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
 	"github.com/lminimum/LiteDock/internal/entity"
+	"github.com/lminimum/LiteDock/internal/mcp"
 	"github.com/lminimum/LiteDock/internal/repo/persistent"
+	"github.com/lminimum/LiteDock/internal/usecase/assistant"
 	"github.com/lminimum/LiteDock/internal/usecase/auth"
 	composeUseCase "github.com/lminimum/LiteDock/internal/usecase/compose"
 	"github.com/lminimum/LiteDock/internal/usecase/container"
@@ -25,7 +27,6 @@ import (
 	"github.com/lminimum/LiteDock/internal/usecase/network"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/internal/usecase/volume"
-	"github.com/lminimum/LiteDock/internal/usecase/assistant"
 	assistant_engine "github.com/lminimum/LiteDock/pkg/assistant/engine"
 	assistant_rules "github.com/lminimum/LiteDock/pkg/assistant/rules"
 	"github.com/lminimum/LiteDock/pkg/collector"
@@ -140,9 +141,12 @@ func Run(cfg *config.Config) {
 	assistantRateLimiter := assistant.NewRateLimiter()
 	defer assistantRateLimiter.Close()
 
+	tokenService := assistant.NewTokenService("", 0)
+	mcpHandler := mcp.NewHandler(actionRegistry, tokenService, l)
+
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, nlParserUseCase, faultDiagnosisUseCase, configRecommendUseCase, actionRegistry, settingsStore, assistantRateLimiter, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, nlParserUseCase, faultDiagnosisUseCase, configRecommendUseCase, actionRegistry, settingsStore, assistantRateLimiter, mcpHandler, l)
 
 	// Start servers
 	httpServer.Start()

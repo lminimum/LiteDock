@@ -237,10 +237,10 @@ func TestRegistry_Execute_Destructive_RequiresConfirmation(t *testing.T) {
 	// Override Destructive to return true
 	aOrig := a
 	a = &mockAction{
-		name:       aOrig.name,
+		name:        aOrig.name,
 		description: aOrig.description,
-		validateFn: aOrig.validateFn,
-		executeFn:  aOrig.executeFn,
+		validateFn:  aOrig.validateFn,
+		executeFn:   aOrig.executeFn,
 	}
 	a.destructiveFn = func(_ map[string]interface{}) bool { return true }
 
@@ -331,5 +331,3 @@ func TestImageAction_DestructiveIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, result.Success)
 }
-
-

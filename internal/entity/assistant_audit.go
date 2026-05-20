@@ -27,17 +27,17 @@ const (
 )
 
 type AIAuditEvent struct {
-	Timestamp    time.Time  `json:"timestamp"`
-	UserID       string     `json:"user_id"`
-	SessionID    string     `json:"session_id"`
+	Timestamp    time.Time   `json:"timestamp"`
+	UserID       string      `json:"user_id"`
+	SessionID    string      `json:"session_id"`
 	Source       AuditSource `json:"source"`
-	Action       string     `json:"action"`
-	ParamsHash   string     `json:"params_hash"`
-	RiskLevel    RiskLevel  `json:"risk_level"`
+	Action       string      `json:"action"`
+	ParamsHash   string      `json:"params_hash"`
+	RiskLevel    RiskLevel   `json:"risk_level"`
 	Result       AuditResult `json:"result"`
-	ErrorMsg     string     `json:"error_msg,omitempty"`
-	TokenValid   bool       `json:"token_valid"`
-	TokenExpired bool       `json:"token_expired"`
+	ErrorMsg     string      `json:"error_msg,omitempty"`
+	TokenValid   bool        `json:"token_valid"`
+	TokenExpired bool        `json:"token_expired"`
 }
 
 func (e *AIAuditEvent) Validate() error {
