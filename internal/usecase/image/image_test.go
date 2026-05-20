@@ -14,6 +14,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
+	pkgErrors "github.com/lminimum/LiteDock/pkg/errors"
 	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/require"
@@ -494,7 +495,7 @@ func TestDelete_ImageInUse(t *testing.T) {
 	removeCalled := false
 	cacheInvalidated := false
 
-	deleteErr := errors.New("docker: conflict: unable to delete abc123 (must be forced) - image is being used by running container")
+	deleteErr := errors.New("ImageRemove.Error response from daemon: conflict: unable to delete a2919d0de38b (cannot be forced) - image is being used by running container 6fbb3934823a: docker: operation failed")
 
 	mockCli := &mockDockerClient{
 		imageRemoveFn: func(_ context.Context, id string, _ dockerImage.RemoveOptions) ([]dockerImage.DeleteResponse, error) {
@@ -516,7 +517,8 @@ func TestDelete_ImageInUse(t *testing.T) {
 	resp, err := uc.Delete(context.Background(), "local", "abc123")
 	require.Error(t, err)
 	require.Nil(t, resp)
-	require.ErrorIs(t, err, deleteErr)
+	require.ErrorIs(t, err, pkgErrors.ErrImageInUse)
+	require.Contains(t, err.Error(), "stop or remove the running container")
 	require.True(t, removeCalled, "expected Docker ImageRemove to be called")
 	require.False(t, cacheInvalidated, "expected cache NOT to be invalidated on error")
 }
