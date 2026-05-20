@@ -1,7 +1,18 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="show" class="modal-overlay">
     <div class="card modal-card" @click.stop>
-      <h3 class="modal-title">Create Compose Project</h3>
+      <div class="modal-header">
+        <h3 class="modal-title">Create Compose Project</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          @click="$emit('close')"
+          :disabled="submitting"
+          aria-label="Close"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <div class="tabs flex gap-2 mb-3">
         <button
@@ -96,6 +107,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { X } from 'lucide-vue-next'
 import { composeService } from '@/services/composeService'
 import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
 import type { ComposeProject, ComposeTemplate, RemoteMachine } from '@/types'
@@ -212,6 +224,17 @@ watch(() => props.machineId, (machineId) => {
   max-height: 90vh;
   overflow-y: auto;
   padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
 }
 
 .modal-title {

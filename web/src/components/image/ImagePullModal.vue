@@ -1,7 +1,18 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="show" class="modal-overlay">
     <div class="card modal-card" @click.stop>
-      <h3 class="modal-title">Pull Image</h3>
+      <div class="modal-header">
+        <h3 class="modal-title">Pull Image</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          @click="$emit('close')"
+          :disabled="submitting"
+          aria-label="Close"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <form @submit.prevent="handlePull">
         <TargetMachineSelect
@@ -58,6 +69,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { X } from 'lucide-vue-next'
 import { imageService } from '@/services/imageService'
 import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
 import type { Image, RemoteMachine } from '@/types'
@@ -149,6 +161,32 @@ const handlePull = async () => {
   max-width: 420px;
   width: 100%;
   padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
+}
+
+.modal-title {
+  margin-bottom: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
 }
 
 .modal-title {

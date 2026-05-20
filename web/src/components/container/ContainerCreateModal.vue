@@ -1,7 +1,18 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="visible" class="modal-overlay">
     <div class="card modal-card" @click.stop>
-      <h3 class="modal-title">Create Container</h3>
+      <div class="modal-header">
+        <h3 class="modal-title">Create Container</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          @click="$emit('close')"
+          :disabled="submitting"
+          aria-label="Close"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <form @submit.prevent="handleSubmit">
         <TargetMachineSelect
@@ -111,6 +122,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { X } from 'lucide-vue-next'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { t } from '@/i18n'
 import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
@@ -234,6 +246,17 @@ const handleSubmit = async () => {
   max-height: 90vh;
   overflow-y: auto;
   padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
 }
 
 .modal-title {
