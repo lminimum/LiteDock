@@ -59,18 +59,18 @@ func (uc *UseCase) getDockerClient(ctx context.Context, machineID string) (docke
 		return uc.testDockerClient, nil
 	}
 
-	m, err := uc.repo.GetByID(ctx, machineID)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
-	}
-
-	if isLocalMachine(m) {
+	if machineID == LocalMachineID {
 		cli, err := dockerclient.NewLocalClient()
 		if err != nil {
 			return nil, errors.Wrap(err, "UseCase.getDockerClient.NewLocalClient")
 		}
 		uc.l.Debug("UseCase.getDockerClient: using local Docker socket for machine %s", machineID)
 		return cli, nil
+	}
+
+	m, err := uc.repo.GetByID(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
 	}
 
 	sshCfg := uc.buildSSHConfig(m)

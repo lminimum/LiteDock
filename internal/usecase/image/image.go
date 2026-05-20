@@ -162,17 +162,17 @@ func (uc *ImageUseCase) getDockerClient(ctx context.Context, machineID string) (
 		return uc.testDockerClient, nil
 	}
 
-	m, err := uc.remoteMachineRepo.GetByID(ctx, machineID)
-	if err != nil {
-		return nil, fmt.Errorf("ImageUseCase.getDockerClient - remoteMachineRepo.GetByID: %w", err)
-	}
-
-	if m.ID == localMachineID {
+	if machineID == localMachineID {
 		cli, err := dockerclient.NewLocalClient()
 		if err != nil {
 			return nil, fmt.Errorf("ImageUseCase.getDockerClient - dockerclient.NewLocalClient: %w", err)
 		}
 		return cli, nil
+	}
+
+	m, err := uc.remoteMachineRepo.GetByID(ctx, machineID)
+	if err != nil {
+		return nil, fmt.Errorf("ImageUseCase.getDockerClient - remoteMachineRepo.GetByID: %w", err)
 	}
 
 	sshCfg := uc.buildSSHConfig(m)
