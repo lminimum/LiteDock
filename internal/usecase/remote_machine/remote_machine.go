@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
@@ -25,6 +26,10 @@ type UseCase struct {
 	containerRepo repo.ContainerRepo
 	cacheMaxAge   time.Duration
 	l             logger.Interface
+
+	// testDockerClient is a test hook for injecting a mock dockerclient.Client.
+	// It is nil in production and set only in tests.
+	testDockerClient dockerclient.Client
 }
 
 func New(repo repo.RemoteMachineRepo, containerRepo repo.ContainerRepo, cacheMaxAge time.Duration, l logger.Interface) *UseCase {
@@ -45,6 +50,10 @@ func isLocalMachine(m *entity.RemoteMachine) bool {
 // For local machines, it connects directly to the local Docker socket.
 // For remote machines, it connects via SSH tunnel.
 func (uc *UseCase) getDockerClient(ctx context.Context, machineID string) (dockerclient.Client, error) {
+	if uc.testDockerClient != nil {
+		return uc.testDockerClient, nil
+	}
+
 	m, err := uc.repo.GetByID(ctx, machineID)
 	if err != nil {
 		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
@@ -315,6 +324,10 @@ func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *c
 	}
 	defer cli.Close()
 
+	if err := uc.ensureImageAvailable(ctx, cli, cfg); err != nil {
+		return nil, errors.Wrap(err, "UseCase.CreateContainer.ensureImageAvailable")
+	}
+
 	resp, err := cli.ContainerCreate(ctx, cfg, hostCfg, name)
 	if err != nil {
 		return nil, errors.Wrap(err, "UseCase.CreateContainer.cli.ContainerCreate")
@@ -322,6 +335,22 @@ func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *c
 
 	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
 	return resp, nil
+}
+
+func (uc *UseCase) ensureImageAvailable(ctx context.Context, cli dockerclient.Client, cfg *container.Config) error {
+	if cfg == nil || cfg.Image == "" {
+		return nil
+	}
+
+	if _, err := cli.ImageInspect(ctx, cfg.Image); err == nil {
+		return nil
+	}
+
+	if err := cli.ImagePull(ctx, cfg.Image, dockerImage.PullOptions{}); err != nil {
+		return errors.Wrap(err, "UseCase.ensureImageAvailable.ImagePull")
+	}
+
+	return nil
 }
 
 func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID string) error {
