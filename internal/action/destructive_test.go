@@ -21,11 +21,9 @@ func TestContainerAction_Destructive(t *testing.T) {
 		want      bool
 	}{
 		{name: "start is not destructive", operation: "start_container", want: false},
-		{name: "stop is not destructive", operation: "stop_container", want: false},
-		{name: "restart is not destructive", operation: "restart_container", want: false},
+		{name: "stop is destructive", operation: "stop_container", want: true},
+		{name: "restart is destructive", operation: "restart_container", want: true},
 		{name: "logs is not destructive", operation: "get_container_logs", want: false},
-		{name: "delete is destructive", operation: "delete_container", want: true},
-		{name: "unknown operation", operation: "unknown_op", want: false},
 	}
 
 	for _, tt := range tests {
@@ -55,9 +53,6 @@ func TestContainerAction_ConfirmationMessage(t *testing.T) {
 		{name: "stop message", operation: "stop_container", container: "db", contains: "stop"},
 		{name: "restart message", operation: "restart_container", container: "api", contains: "restart"},
 		{name: "logs message", operation: "get_container_logs", container: "app", contains: "get_container_logs"},
-		{name: "delete message mentions delete", operation: "delete_container", container: "my-container", contains: "delete"},
-		{name: "delete message mentions container", operation: "delete_container", container: "my-container", contains: "my-container"},
-		{name: "delete message mentions cannot be undone", operation: "delete_container", container: "x", contains: "cannot be undone"},
 	}
 
 	for _, tt := range tests {

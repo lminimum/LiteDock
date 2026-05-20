@@ -43,9 +43,26 @@ type RecommendResponse struct {
 	Configs  []ConfigRecommendation `json:"configs"`
 }
 
-// ConfigRecommendation represents a single configuration recommendation.
 type ConfigRecommendation struct {
 	Key    string `json:"key"`
 	Value  string `json:"value"`
 	Reason string `json:"reason"`
+}
+
+type RiskLevel string
+
+const (
+	RiskLevelRead      RiskLevel = "read"
+	RiskLevelModify    RiskLevel = "modify"
+	RiskLevelDangerous RiskLevel = "dangerous"
+)
+
+type ActionIntent struct {
+	Action                       string            `json:"action"`
+	Params                       map[string]string `json:"params"`
+	RiskLevel                    RiskLevel         `json:"risk_level"`
+	RequiresConfirmation         bool              `json:"requires_confirmation"`
+	RequiresSecondConfirmation   bool              `json:"requires_second_confirmation,omitempty"`
+	ConfirmationMessage          string            `json:"confirmation_message,omitempty"`
+	ConfirmationToken            string            `json:"confirmation_token,omitempty"`
 }

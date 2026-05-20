@@ -12,6 +12,7 @@ import (
 	"github.com/lminimum/LiteDock/pkg/assistant/engine"
 	tknzr "github.com/lminimum/LiteDock/pkg/assistant/tokenizer"
 	"github.com/lminimum/LiteDock/pkg/logger"
+	"github.com/lminimum/LiteDock/pkg/sanitize"
 )
 
 const (
@@ -99,6 +100,7 @@ func NewNLParser(llmClient LLMClientInterface, actionRegistry *action.ActionRegi
 // When the LLM returns plain text, it is wrapped as a chat response.
 // When the LLM returns a tool_call, it is parsed into an action request.
 func (uc *NLParserUseCase) Parse(ctx context.Context, text string) (entity.ParseResponse, error) {
+	text = sanitize.StripShellChars(text)
 	trimmed := strings.TrimSpace(text)
 	if trimmed == "" {
 		return entity.ParseResponse{}, fmt.Errorf("请输入指令")

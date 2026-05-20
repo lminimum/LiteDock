@@ -55,6 +55,52 @@ type streamChunk struct {
 	Done    bool   `json:"done"`
 }
 
+// WSEventType represents the type of a WebSocket event envelope.
+type WSEventType string
+
+const (
+	WSEventContent       WSEventType = "content"
+	WSEventActionRequired WSEventType = "action_required"
+	WSEventError         WSEventType = "error"
+	WSEventDone          WSEventType = "done"
+)
+
+// WSPayloadContent is the payload for content events.
+type WSPayloadContent struct {
+	Content string `json:"content,omitempty"`
+	Done    bool   `json:"done,omitempty"`
+}
+
+// WSPayloadActionRequired is the payload for action_required events.
+type WSPayloadActionRequired struct {
+	Action string            `json:"action,omitempty"`
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// WSPayloadError is the payload for error events.
+type WSPayloadError struct {
+	Message string `json:"message,omitempty"`
+}
+
+// WSEventEnvelope is the versioned envelope for WebSocket events.
+type WSEventEnvelope struct {
+	V       int             `json:"v"`
+	Type    WSEventType     `json:"type"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+// sendWSEvent marshals and writes a WebSocket event to the given writer.
+func sendWSEvent(w *bufio.Writer, eventType WSEventType, payload interface{}) {
+	env := WSEventEnvelope{V: 1, Type: eventType}
+	if payload != nil {
+		payloadBytes, _ := json.Marshal(payload)
+		env.Payload = payloadBytes
+	}
+	envBytes, _ := json.Marshal(env)
+	fmt.Fprintf(w, "data: %s\n\n", envBytes)
+	w.Flush()
+}
+
 // StreamRequest is the request body for POST /v1/assistant/stream.
 type StreamRequest struct {
 	Messages []assistant.ChatMessage `json:"messages"`
