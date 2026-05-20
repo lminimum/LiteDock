@@ -4,6 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/internal/usecase"
+	pkgErrors "github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
@@ -125,7 +126,7 @@ func (h *ImageHandler) Delete(c *fiber.Ctx) error {
 
 	_, err := h.uc.Delete(c.Context(), machineID, imageID)
 	if err != nil {
-		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
+		return errorResponse(c, pkgErrors.HTTPStatus(err), err.Error())
 	}
 
 	return successMessage(c, "Image deleted successfully")
