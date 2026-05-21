@@ -32,6 +32,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import UserMenu from '@/components/layout/UserMenu.vue'
 import { RefreshCw, Menu } from 'lucide-vue-next'
+import { triggerRefresh } from '@/composables/useRefreshBus'
 
 defineEmits<{
   (e: 'toggle-sidebar'): void
@@ -55,11 +56,11 @@ const allNavItems = computed(() => [
 
 const currentPageTitle = computed(() => {
   const item = allNavItems.value.find(item => item.name === route.name)
-  return item?.label || 'LiteDock'
+  return item?.label || t('app.name')
 })
 
 const breadcrumbs = computed(() => {
-  const crumbs: string[] = ['LiteDock']
+  const crumbs: string[] = [t('app.name')]
 
   const path = route.path
   const segments = path.split('/').filter(Boolean)
@@ -95,7 +96,8 @@ const breadcrumbs = computed(() => {
 const refreshData = async () => {
   refreshing.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    triggerRefresh()
+    await new Promise(resolve => setTimeout(resolve, 500))
   } finally {
     refreshing.value = false
   }
