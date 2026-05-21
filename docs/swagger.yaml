@@ -1088,6 +1088,36 @@ paths:
       summary: Execute command in container
       tags:
       - machines
+  /machines/{id}/containers/{containerId}/kill:
+    post:
+      description: Force stop a Docker container with SIGKILL
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Kill a container
+      tags:
+      - machines
   /machines/{id}/containers/{containerId}/logs:
     get:
       description: Fetch Docker container logs
@@ -1121,6 +1151,36 @@ paths:
             additionalProperties: true
             type: object
       summary: Get container logs
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/pause:
+    post:
+      description: Pause a running Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Pause a container
       tags:
       - machines
   /machines/{id}/containers/{containerId}/restart:
@@ -1211,6 +1271,36 @@ paths:
             additionalProperties: true
             type: object
       summary: Stop a container
+      tags:
+      - machines
+  /machines/{id}/containers/{containerId}/unpause:
+    post:
+      description: Resume a paused Docker container
+      parameters:
+      - description: Machine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Container ID
+        in: path
+        name: containerId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Resume a container
       tags:
       - machines
   /machines/{id}/containers/create:

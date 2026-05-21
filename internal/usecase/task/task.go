@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"fmt"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/logger"
@@ -32,31 +31,32 @@ func (uc *UseCase) CreateTask(ctx context.Context, taskType, machineID, payload 
 }
 
 func (uc *UseCase) StartTask(ctx context.Context, id string) error {
-	t, err := uc.repo.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	t.Status = entity.TaskStatusRunning
-	return uc.repo.Update(ctx, t)
+	return uc.updateTask(ctx, id, func(t *entity.Task) {
+		t.Status = entity.TaskStatusRunning
+	})
 }
 
 func (uc *UseCase) CompleteTask(ctx context.Context, id, result string) error {
-	t, err := uc.repo.GetByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	t.Status = entity.TaskStatusCompleted
-	t.Result = result
-	return uc.repo.Update(ctx, t)
+	return uc.updateTask(ctx, id, func(t *entity.Task) {
+		t.Status = entity.TaskStatusCompleted
+		t.Result = result
+	})
 }
 
 func (uc *UseCase) FailTask(ctx context.Context, id, errMsg string) error {
+	return uc.updateTask(ctx, id, func(t *entity.Task) {
+		t.Status = entity.TaskStatusFailed
+		t.Error = errMsg
+	})
+}
+
+func (uc *UseCase) updateTask(ctx context.Context, id string, mutate func(*entity.Task)) error {
 	t, err := uc.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	t.Status = entity.TaskStatusFailed
-	t.Error = errMsg
+
+	mutate(t)
 	return uc.repo.Update(ctx, t)
 }
 
@@ -82,10 +82,9 @@ func NewTaskLogger(uc *UseCase, taskID string) *TaskLogger {
 }
 
 func (tl *TaskLogger) Write(p []byte) (n int, err error) {
-	msg := string(p)
-	err = tl.uc.AppendLogs(context.Background(), tl.taskID, msg)
-	if err != nil {
-		fmt.Printf("TaskLogger error: %v\n", err)
+	if err := tl.uc.AppendLogs(context.Background(), tl.taskID, string(p)); err != nil {
+		return 0, err
 	}
+
 	return len(p), nil
 }

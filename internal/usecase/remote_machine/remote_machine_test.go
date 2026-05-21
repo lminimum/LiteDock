@@ -113,6 +113,7 @@ var _ repo.ContainerRepo = (*mockContainerRepo)(nil)
 
 type mockDockerClient struct {
 	containerCreateFn func(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, containerName string) (*container.CreateResponse, error)
+	containerStartFn  func(ctx context.Context, containerID string) error
 	imagePullFn       func(ctx context.Context, ref string, opts dockerImage.PullOptions) error
 	imageInspectFn    func(ctx context.Context, id string) (dockerImage.InspectResponse, error)
 	closeFn           func() error
@@ -132,11 +133,22 @@ func (m *mockDockerClient) ContainerExec(context.Context, string, []string) (str
 	return "", nil
 }
 
-func (m *mockDockerClient) ContainerStart(context.Context, string) error { return nil }
+func (m *mockDockerClient) ContainerStart(ctx context.Context, containerID string) error {
+	if m.containerStartFn != nil {
+		return m.containerStartFn(ctx, containerID)
+	}
+	return nil
+}
 
 func (m *mockDockerClient) ContainerStop(context.Context, string, time.Duration) error { return nil }
 
 func (m *mockDockerClient) ContainerRestart(context.Context, string, time.Duration) error { return nil }
+
+func (m *mockDockerClient) ContainerPause(context.Context, string) error { return nil }
+
+func (m *mockDockerClient) ContainerUnpause(context.Context, string) error { return nil }
+
+func (m *mockDockerClient) ContainerKill(context.Context, string) error { return nil }
 
 func (m *mockDockerClient) ContainerRemove(context.Context, string, bool) error { return nil }
 
@@ -600,4 +612,60 @@ func TestCreateContainer_UsesExistingImageWithoutPull(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	require.False(t, pullCalled)
+}
+
+func TestCreateContainer_FailsTaskWhenStartFails(t *testing.T) {
+	doneChan := make(chan struct{})
+	taskRepo := &mockTaskRepo{
+		tasks: make(map[string]*entity.Task),
+		onUpdate: func(task *entity.Task) {
+			if task.Status == entity.TaskStatusCompleted || task.Status == entity.TaskStatusFailed {
+				select {
+				case <-doneChan:
+				default:
+					close(doneChan)
+				}
+			}
+		},
+	}
+	taskUC := task.New(taskRepo, &mockLogger{})
+
+	mockCli := &mockDockerClient{
+		imageInspectFn: func(_ context.Context, id string) (dockerImage.InspectResponse, error) {
+			require.Equal(t, "nginx:alpine", id)
+			return dockerImage.InspectResponse{}, nil
+		},
+		containerStartFn: func(context.Context, string) error {
+			return fmt.Errorf("start failed")
+		},
+	}
+
+	uc := &UseCase{
+		containerRepo:    &mockContainerRepo{},
+		taskUC:           taskUC,
+		l:                &mockLogger{},
+		testDockerClient: mockCli,
+	}
+
+	resp, err := uc.CreateContainer(
+		context.Background(),
+		LocalMachineID,
+		&container.Config{Image: "nginx:alpine"},
+		&container.HostConfig{},
+		"test-nginx",
+	)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, resp)
+
+	select {
+	case <-doneChan:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for background container creation task to complete")
+	}
+
+	task, err := taskRepo.GetByID(context.Background(), resp)
+	require.NoError(t, err)
+	require.Equal(t, entity.TaskStatusFailed, task.Status)
+	require.Equal(t, "start failed", task.Error)
 }
