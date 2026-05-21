@@ -59,7 +59,7 @@
           </div>
           <!-- Assistant response (left-aligned) -->
           <div v-else class="message-assistant">
-            <p>{{ msg.text }}</p>
+            <div class="assistant-markdown" v-html="renderMarkdown(msg.text)"></div>
             <div v-if="msg.status === 'executing'" class="msg-status msg-status-executing">
               <Loader2 :size="12" class="spin" />
               <span>{{ t('assistant.status.executing') }}</span>
@@ -130,6 +130,7 @@ import type { Component } from 'vue'
 import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { stripShellChars } from '@/utils/sanitize'
+import { renderMarkdown } from '@/utils/markdown'
 import { useActionConfirmation } from '@/composables/useActionConfirmation'
 import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 
@@ -354,6 +355,7 @@ async function sendMessage() {
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
   messages.value.push(assistantMsg)
   const assistantMsgIdx = messages.value.length - 1
+  const currentMsg = messages.value[assistantMsgIdx]!
 
   // Build messages payload excluding the placeholder just added
   const apiMessages = messages.value
@@ -388,8 +390,8 @@ async function sendMessage() {
       function cleanup() {
         if (resolved) return
         resolved = true
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
+        wsConn!.removeEventListener('message', messageHandler)
+        wsConn!.removeEventListener('close', closeHandler)
       }
 
       const messageHandler = (event: MessageEvent) => {
@@ -402,15 +404,15 @@ async function sendMessage() {
               case 'content': {
                 const p = raw.payload || {}
                 if (p.content) {
-                  messages.value[assistantMsgIdx].text += p.content
+                  currentMsg.text += p.content
                   scrollToBottom()
                 }
                 if (p.done) {
                   cleanup()
-                  if (!messages.value[assistantMsgIdx].text) {
-                    messages.value[assistantMsgIdx].text = t('assistant.response.noMatch')
+                  if (!currentMsg.text) {
+                    currentMsg.text = t('assistant.response.noMatch')
                   }
-                  messages.value[assistantMsgIdx].status = 'completed'
+                  currentMsg.status = 'completed'
                   resolve()
                 }
                 break
@@ -418,8 +420,8 @@ async function sendMessage() {
               case 'action_required': {
                 const intent = raw.payload || {}
                 cleanup()
-                messages.value[assistantMsgIdx].status = 'requires_confirmation'
-                messages.value[assistantMsgIdx].text = intent.confirmation_message || `Action required: ${intent.action}`
+                currentMsg.status = 'requires_confirmation'
+                currentMsg.text = intent.confirmation_message || `Action required: ${intent.action}`
                 scrollToBottom()
                 triggerActionConfirmation(
                   intent.action || '',
@@ -435,17 +437,17 @@ async function sendMessage() {
               case 'error': {
                 const p = raw.payload || {}
                 cleanup()
-                messages.value[assistantMsgIdx].text = p.message || t('assistant.error.general')
-                messages.value[assistantMsgIdx].status = 'failed'
+                currentMsg.text = p.message || t('assistant.error.general')
+                currentMsg.status = 'failed'
                 resolve()
                 break
               }
               case 'done': {
                 cleanup()
-                if (!messages.value[assistantMsgIdx].text) {
-                  messages.value[assistantMsgIdx].text = t('assistant.response.noMatch')
+                if (!currentMsg.text) {
+                  currentMsg.text = t('assistant.response.noMatch')
                 }
-                messages.value[assistantMsgIdx].status = 'completed'
+                currentMsg.status = 'completed'
                 resolve()
                 break
               }
@@ -456,18 +458,18 @@ async function sendMessage() {
           // ── Legacy unversioned format (backwards-compat) ─────
           if (raw.done) {
             cleanup()
-            if (!messages.value[assistantMsgIdx].text) {
-              messages.value[assistantMsgIdx].text = t('assistant.response.noMatch')
+            if (!currentMsg.text) {
+              currentMsg.text = t('assistant.response.noMatch')
             }
-            messages.value[assistantMsgIdx].status = 'completed'
+            currentMsg.status = 'completed'
             resolve()
           } else if (raw.error) {
             cleanup()
-            messages.value[assistantMsgIdx].text = raw.error
-            messages.value[assistantMsgIdx].status = 'failed'
+            currentMsg.text = raw.error
+            currentMsg.status = 'failed'
             resolve()
           } else if (raw.content) {
-            messages.value[assistantMsgIdx].text += raw.content
+            currentMsg.text += raw.content
             scrollToBottom()
           }
         } catch {
@@ -477,8 +479,8 @@ async function sendMessage() {
 
       const closeHandler = () => {
         cleanup()
-        if (!messages.value[assistantMsgIdx].text) {
-          messages.value[assistantMsgIdx].text = t('assistant.response.noMatch')
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }
@@ -492,19 +494,19 @@ async function sendMessage() {
       // Safety timeout
       setTimeout(() => {
         cleanup()
-        if (!messages.value[assistantMsgIdx].text) {
-          messages.value[assistantMsgIdx].text = t('assistant.response.noMatch')
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }, 60000)
     })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    messages.value[assistantMsgIdx].text = err?.message || t('assistant.error.general')
-    messages.value[assistantMsgIdx].status = 'failed'
+    currentMsg.text = err?.message || t('assistant.error.general')
+    currentMsg.status = 'failed'
   } finally {
-    if (messages.value[assistantMsgIdx].status === 'executing') {
-      messages.value[assistantMsgIdx].status = 'completed'
+    if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
     }
     loading.value = false
     scrollToBottom()
@@ -532,7 +534,7 @@ function triggerActionConfirmation(
     async () => {
       if (pendingMessageIndex < 0 || pendingMessageIndex >= messages.value.length) return
 
-      const msg = messages.value[pendingMessageIndex]
+      const msg = messages.value[pendingMessageIndex]!
       msg.status = 'executing'
       msg.text = t('assistant.response.thinking')
 
@@ -558,7 +560,7 @@ function triggerActionConfirmation(
     },
     () => {
       if (pendingMessageIndex >= 0 && pendingMessageIndex < messages.value.length) {
-        const msg = messages.value[pendingMessageIndex]
+        const msg = messages.value[pendingMessageIndex]!
         msg.status = 'failed'
         msg.text = 'Action cancelled'
       }
@@ -749,10 +751,6 @@ onUnmounted(() => {
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
-}
-
-.message-assistant p {
-  margin: 0;
 }
 
 /* ── Message status labels ─────────────────────────────────── */

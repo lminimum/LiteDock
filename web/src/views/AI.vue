@@ -58,7 +58,7 @@
                   <span>{{ msg.text }}</span>
                 </div>
                 <div v-else class="msg msg-assistant">
-                  <p>{{ msg.text }}</p>
+                  <div class="assistant-markdown" v-html="renderMarkdown(msg.text)"></div>
                   <div v-if="msg.status === 'executing'" class="msg-status msg-status-executing">
                     <Loader2 :size="12" class="spin" />
                     <span>{{ t('assistant.status.executing') }}</span>
@@ -156,6 +156,7 @@ import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useActionConfirmation } from '@/composables/useActionConfirmation'
 import { stripShellChars } from '@/utils/sanitize'
+import { renderMarkdown } from '@/utils/markdown'
 import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 import type { Component } from 'vue'
 
@@ -258,7 +259,7 @@ function getOrCreateActive(): string {
   if (conversations.value.length === 0) {
     return createConversation()
   }
-  return conversations.value[0].id
+  return conversations.value[0]!.id
 }
 
 function createConversation(): string {
@@ -318,7 +319,7 @@ function deleteConversation(id: string): void {
   if (id === activeConversationId.value) {
     if (conversations.value.length > 0) {
       const nextIdx = Math.min(idx, conversations.value.length - 1)
-      activeConversationId.value = conversations.value[nextIdx].id
+      activeConversationId.value = conversations.value[nextIdx]!.id
     } else {
       activeConversationId.value = createConversation()
     }
@@ -385,6 +386,7 @@ async function sendMessage(): Promise<void> {
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
   conv.messages.push(assistantMsg)
   const assistantMsgIdx = conv.messages.length - 1
+  const currentMsg = conv.messages[assistantMsgIdx]!
 
   conv.updatedAt = Date.now()
   saveConversations()
@@ -423,8 +425,8 @@ async function sendMessage(): Promise<void> {
       function cleanup() {
         if (resolved) return
         resolved = true
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
+        wsConn!.removeEventListener('message', messageHandler)
+        wsConn!.removeEventListener('close', closeHandler)
       }
 
       const messageHandler = (event: MessageEvent) => {
@@ -437,16 +439,16 @@ async function sendMessage(): Promise<void> {
               case 'content': {
                 const p = raw.payload || {}
                 if (p.content) {
-                  conv.messages[assistantMsgIdx].text += p.content
+                  currentMsg.text += p.content
                   conv.updatedAt = Date.now()
                   scrollToBottom()
                 }
                 if (p.done) {
                   cleanup()
-                  if (!conv.messages[assistantMsgIdx].text) {
-                    conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+                  if (!currentMsg.text) {
+                    currentMsg.text = t('assistant.response.noMatch')
                   }
-                  conv.messages[assistantMsgIdx].status = 'completed'
+                  currentMsg.status = 'completed'
                   resolve()
                 }
                 break
@@ -454,8 +456,8 @@ async function sendMessage(): Promise<void> {
               case 'action_required': {
                 const intent = raw.payload || {}
                 cleanup()
-                conv.messages[assistantMsgIdx].status = 'requires_confirmation'
-                conv.messages[assistantMsgIdx].text = intent.confirmation_message || `Action required: ${intent.action}`
+                currentMsg.status = 'requires_confirmation'
+                currentMsg.text = intent.confirmation_message || `Action required: ${intent.action}`
                 conv.updatedAt = Date.now()
                 scrollToBottom()
                 // Keep loading true — resolution happens on confirm/cancel
@@ -473,17 +475,17 @@ async function sendMessage(): Promise<void> {
               case 'error': {
                 const p = raw.payload || {}
                 cleanup()
-                conv.messages[assistantMsgIdx].text = p.message || t('assistant.error.general')
-                conv.messages[assistantMsgIdx].status = 'failed'
+                currentMsg.text = p.message || t('assistant.error.general')
+                currentMsg.status = 'failed'
                 resolve()
                 break
               }
               case 'done': {
                 cleanup()
-                if (!conv.messages[assistantMsgIdx].text) {
-                  conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+                if (!currentMsg.text) {
+                  currentMsg.text = t('assistant.response.noMatch')
                 }
-                conv.messages[assistantMsgIdx].status = 'completed'
+                currentMsg.status = 'completed'
                 resolve()
                 break
               }
@@ -494,18 +496,18 @@ async function sendMessage(): Promise<void> {
           // ── Legacy unversioned format (backwards-compat) ─────
           if (raw.done) {
             cleanup()
-            if (!conv.messages[assistantMsgIdx].text) {
-              conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+            if (!currentMsg.text) {
+              currentMsg.text = t('assistant.response.noMatch')
             }
-            conv.messages[assistantMsgIdx].status = 'completed'
+            currentMsg.status = 'completed'
             resolve()
           } else if (raw.error) {
             cleanup()
-            conv.messages[assistantMsgIdx].text = raw.error
-            conv.messages[assistantMsgIdx].status = 'failed'
+            currentMsg.text = raw.error
+            currentMsg.status = 'failed'
             resolve()
           } else if (raw.content) {
-            conv.messages[assistantMsgIdx].text += raw.content
+            currentMsg.text += raw.content
             conv.updatedAt = Date.now()
             scrollToBottom()
           }
@@ -516,8 +518,8 @@ async function sendMessage(): Promise<void> {
 
       const closeHandler = () => {
         cleanup()
-        if (!conv.messages[assistantMsgIdx].text) {
-          conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }
@@ -531,19 +533,19 @@ async function sendMessage(): Promise<void> {
       // Safety timeout
       setTimeout(() => {
         cleanup()
-        if (!conv.messages[assistantMsgIdx].text) {
-          conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }, 60000)
     })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    conv.messages[assistantMsgIdx].text = err?.message || t('assistant.error.general')
-    conv.messages[assistantMsgIdx].status = 'failed'
+    currentMsg.text = err?.message || t('assistant.error.general')
+    currentMsg.status = 'failed'
   } finally {
-    if (conv.messages[assistantMsgIdx].status === 'executing') {
-      conv.messages[assistantMsgIdx].status = 'completed'
+    if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
     }
     loading.value = false
     conv.updatedAt = Date.now()
@@ -574,7 +576,7 @@ function triggerActionConfirmation(
       const conv = conversations.value.find(c => c.id === activeConversationId.value)
       if (!conv || pendingMessageIndex < 0 || pendingMessageIndex >= conv.messages.length) return
 
-      const msg = conv.messages[pendingMessageIndex]
+      const msg = conv.messages[pendingMessageIndex]!
       msg.status = 'executing'
       msg.text = t('assistant.response.thinking')
       saveConversations()
@@ -605,7 +607,7 @@ function triggerActionConfirmation(
       if (pendingMessageIndex >= 0) {
         const conv = conversations.value.find(c => c.id === activeConversationId.value)
         if (conv && pendingMessageIndex < conv.messages.length) {
-          const msg = conv.messages[pendingMessageIndex]
+          const msg = conv.messages[pendingMessageIndex]!
           msg.status = 'failed'
           msg.text = 'Action cancelled'
           saveConversations()
@@ -848,10 +850,6 @@ onMounted(() => {
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
-}
-
-.msg p {
-  margin: 0;
 }
 
 .msg-user {
