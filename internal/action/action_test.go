@@ -9,19 +9,19 @@ import (
 )
 
 type mockAction struct {
-	name           string
-	description    string
-	params         []ParamDef
+	name          string
+	description   string
+	params        []ParamDef
 	validateFn    func(map[string]interface{}) error
 	destructiveFn func(map[string]interface{}) bool
 	confirmMsgFn  func(map[string]interface{}) string
 	executeFn     func(context.Context, map[string]interface{}) (*ActionResult, error)
 }
 
-func (m *mockAction) Name() string                                       { return m.name }
-func (m *mockAction) Description() string                                { return m.description }
-func (m *mockAction) Params() []ParamDef                                 { return m.params }
-func (m *mockAction) Validate(params map[string]interface{}) error       { return m.validateFn(params) }
+func (m *mockAction) Name() string                                 { return m.name }
+func (m *mockAction) Description() string                          { return m.description }
+func (m *mockAction) Params() []ParamDef                           { return m.params }
+func (m *mockAction) Validate(params map[string]interface{}) error { return m.validateFn(params) }
 func (m *mockAction) Destructive(params map[string]interface{}) bool {
 	if m.destructiveFn != nil {
 		return m.destructiveFn(params)

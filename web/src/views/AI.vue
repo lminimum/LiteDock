@@ -4,6 +4,23 @@
     <header class="ai-topbar">
       <Bot :size="18" :stroke-width="1.5" />
       <span class="ai-topbar-title">{{ t('assistant.title') }}</span>
+      <div class="ai-mode-toggle">
+        <button
+          class="mode-btn"
+          :class="{ active: !agentMode }"
+          @click="agentMode = false"
+        >
+          {{ t('ai.mode.assistant') }}
+        </button>
+        <button
+          class="mode-btn"
+          :class="{ active: agentMode }"
+          @click="agentMode = true"
+        >
+          <Zap :size="11" />
+          {{ t('ai.mode.agent') }}
+        </button>
+      </div>
     </header>
 
     <!-- Body: sidebar + main -->
@@ -58,7 +75,7 @@
                   <span>{{ msg.text }}</span>
                 </div>
                 <div v-else class="msg msg-assistant">
-                  <p>{{ msg.text }}</p>
+                  <div class="assistant-markdown" v-html="renderMarkdown(msg.text)"></div>
                   <div v-if="msg.status === 'executing'" class="msg-status msg-status-executing">
                     <Loader2 :size="12" class="spin" />
                     <span>{{ t('assistant.status.executing') }}</span>
@@ -74,6 +91,10 @@
                   <div v-else-if="msg.status === 'requires_confirmation'" class="msg-status msg-status-warning">
                     <AlertTriangle :size="12" />
                     <span>Awaiting confirmation</span>
+                  </div>
+                  <div v-else-if="msg.status === 'autonomous_executed'" class="msg-status msg-status-agent">
+                    <Zap :size="12" />
+                    <span>Auto-executed</span>
                   </div>
                 </div>
               </template>
@@ -127,48 +148,43 @@
       </main>
     </div>
     <!-- Confirmation modal overlay -->
-    <Teleport to="body">
-      <div v-if="showConfirmModal" class="confirm-overlay" @click.self="cancelAction">
-        <div class="confirm-modal card">
-          <div class="confirm-header">
-            <AlertTriangle :size="20" class="confirm-icon" />
-            <span class="confirm-title">{{ t('assistant.confirmation.title') }}</span>
-          </div>
-          <div class="confirm-body">
-            <p class="confirm-message">{{ pendingConfirmMessage }}</p>
-          </div>
-          <div class="confirm-footer">
-            <button class="btn btn-ghost" :disabled="executingConfirm" @click="cancelAction">
-              {{ t('assistant.confirmation.cancel') }}
-            </button>
-            <button class="btn btn-danger" :disabled="executingConfirm" @click="confirmAction">
-              <Loader2 v-if="executingConfirm" :size="14" class="spin" />
-              <span>{{ executingConfirm ? t('assistant.confirmation.waiting') : t('assistant.confirmation.confirm') }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <ActionConfirmationModal
+      :show="showConfirmModal"
+      :executing="executingConfirm"
+      :message="pendingConfirmMessage"
+      :action-name="pendingActionName"
+      :action-params="pendingActionParams"
+      :risk-level="pendingRiskLevel"
+      :typed-required="typedConfirmationRequired"
+      :expected-text="typedConfirmationExpected"
+      :model-value="typedConfirmationInput"
+      @update:model-value="typedConfirmationInput = $event"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted, onMounted, markRaw } from 'vue'
+import { ref, computed, nextTick, onUnmounted, onMounted, markRaw, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Bot, Play, FileText, Activity, Globe, HardDrive, Network,
   Send, Loader2, Plus, MessageSquare, Trash2, AlertTriangle,
-  CheckCircle2, XCircle, Square,
+  CheckCircle2, XCircle, Square, Zap,
 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useActionConfirmation } from '@/composables/useActionConfirmation'
 import { stripShellChars } from '@/utils/sanitize'
+import { renderMarkdown } from '@/utils/markdown'
+import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 import type { Component } from 'vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
-  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation'
+  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
   confirmationMessage?: string
   actionName?: string
   actionParams?: Record<string, string>
@@ -190,21 +206,33 @@ interface QuickAction {
 }
 
 const STORAGE_KEY = 'litdock-ai-conversations'
+const AGENT_MODE_KEY = 'litdock-ai-agent-mode'
 const DEFAULT_TITLE = 'New Chat'
 
 const { t } = useI18n()
 
 /* ── State ────────────────────────────────────────────────── */
 
-const showConfirmModal = ref(false)
-const executingConfirm = ref(false)
-const pendingConfirmMessage = ref('')
-const pendingActionName = ref('')
-const pendingActionParams = ref<Record<string, string>>({})
+const {
+  showConfirmModal,
+  executingConfirm,
+  pendingConfirmMessage,
+  pendingActionName,
+  pendingActionParams,
+  pendingRiskLevel,
+  typedConfirmationInput,
+  typedConfirmationRequired,
+  typedConfirmationExpected,
+  triggerConfirmation,
+  confirmAction: composableConfirm,
+  cancelAction: composableCancel,
+} = useActionConfirmation()
+
 let pendingMessageIndex = -1
 
 const inputText = ref('')
 const loading = ref(false)
+const agentMode = ref(localStorage.getItem(AGENT_MODE_KEY) === 'true')
 const messagesRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 const conversations = ref<Conversation[]>(loadConversations())
@@ -232,6 +260,10 @@ const { ws, isConnected, connect: connectWS, disconnect: disconnectWS } = useWeb
 
 /* ── Persistence ──────────────────────────────────────────── */
 
+watch(agentMode, (val) => {
+  localStorage.setItem(AGENT_MODE_KEY, String(val))
+})
+
 function loadConversations(): Conversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -254,7 +286,7 @@ function getOrCreateActive(): string {
   if (conversations.value.length === 0) {
     return createConversation()
   }
-  return conversations.value[0].id
+  return conversations.value[0]!.id
 }
 
 function createConversation(): string {
@@ -314,7 +346,7 @@ function deleteConversation(id: string): void {
   if (id === activeConversationId.value) {
     if (conversations.value.length > 0) {
       const nextIdx = Math.min(idx, conversations.value.length - 1)
-      activeConversationId.value = conversations.value[nextIdx].id
+      activeConversationId.value = conversations.value[nextIdx]!.id
     } else {
       activeConversationId.value = createConversation()
     }
@@ -344,6 +376,33 @@ function scrollToBottom(): void {
       messagesRef.value.scrollTop = messagesRef.value.scrollHeight
     }
   })
+}
+
+function formatActionResult(payload: Record<string, unknown>): string {
+  const result = payload.result
+  if (typeof result === 'string' && result.trim()) {
+    return result
+  }
+
+  const message = payload.message
+  if (typeof message === 'string' && message.trim()) {
+    return message
+  }
+
+  const data = payload.data
+  if (typeof data === 'string' && data.trim()) {
+    return data
+  }
+
+  if (data != null) {
+    try {
+      return JSON.stringify(data, null, 2)
+    } catch {
+      return 'Done'
+    }
+  }
+
+  return 'Done'
 }
 
 function runQuickAction(action: QuickAction): void {
@@ -381,6 +440,7 @@ async function sendMessage(): Promise<void> {
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
   conv.messages.push(assistantMsg)
   const assistantMsgIdx = conv.messages.length - 1
+  let currentMsg = conv.messages[assistantMsgIdx]!
 
   conv.updatedAt = Date.now()
   saveConversations()
@@ -414,26 +474,103 @@ async function sendMessage(): Promise<void> {
 
     // Wait for streaming response via temporary message listener
     await new Promise<void>((resolve) => {
+      let resolved = false
+
+      function cleanup() {
+        if (resolved) return
+        resolved = true
+        wsConn!.removeEventListener('message', messageHandler)
+        wsConn!.removeEventListener('close', closeHandler)
+      }
+
       const messageHandler = (event: MessageEvent) => {
         try {
-          const data = JSON.parse(event.data)
+          const raw = JSON.parse(event.data)
 
-          if (data.done) {
-            wsConn.removeEventListener('message', messageHandler)
-            wsConn.removeEventListener('close', closeHandler)
-            if (!conv.messages[assistantMsgIdx].text) {
-              conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+          // ── Versioned envelope (v:1) ──────────────────────────
+          if (raw.v === 1 && raw.type) {
+            switch (raw.type) {
+              case 'content': {
+                const p = raw.payload || {}
+                if (p.content) {
+                  currentMsg.text += p.content
+                  conv.updatedAt = Date.now()
+                  scrollToBottom()
+                }
+                if (p.done) {
+                  cleanup()
+                  if (!currentMsg.text) {
+                    currentMsg.text = t('assistant.response.noMatch')
+                  }
+                  currentMsg.status = 'completed'
+                  resolve()
+                }
+                break
+              }
+              case 'action_required': {
+                const intent = raw.payload || {}
+                cleanup()
+                currentMsg.status = 'requires_confirmation'
+                currentMsg.text = intent.confirmation_message || `Action required: ${intent.action}`
+                conv.updatedAt = Date.now()
+                scrollToBottom()
+                triggerActionConfirmation(
+                  intent.action || '',
+                  intent.params || {},
+                  intent.confirmation_message || `Execute ${intent.action}?`,
+                  intent.risk_level === 'dangerous' ? 'dangerous' : intent.risk_level === 'modify' ? 'caution' : 'safe',
+                  intent.confirmation_token || '',
+                  assistantMsgIdx,
+                )
+                resolve()
+                break
+              }
+              case 'action_result': {
+                const p = (raw.payload || {}) as Record<string, unknown>
+                const actionName = typeof p.action === 'string' && p.action ? p.action : 'Action'
+                currentMsg.text += `\n**${actionName}** result:\n${formatActionResult(p)}`
+                currentMsg.status = 'autonomous_executed'
+                conv.updatedAt = Date.now()
+                saveConversations()
+                scrollToBottom()
+                break
+              }
+              case 'error': {
+                const p = raw.payload || {}
+                cleanup()
+                currentMsg.text = p.message || t('assistant.error.general')
+                currentMsg.status = 'failed'
+                resolve()
+                break
+              }
+              case 'done': {
+                cleanup()
+                if (!currentMsg.text) {
+                  currentMsg.text = t('assistant.response.noMatch')
+                }
+                currentMsg.status = 'completed'
+                resolve()
+                break
+              }
             }
-            conv.messages[assistantMsgIdx].status = 'completed'
+            return
+          }
+
+          // ── Legacy unversioned format (backwards-compat) ─────
+          if (raw.done) {
+            cleanup()
+            if (!currentMsg.text) {
+              currentMsg.text = t('assistant.response.noMatch')
+            }
+            currentMsg.status = 'completed'
             resolve()
-          } else if (data.error) {
-            wsConn.removeEventListener('message', messageHandler)
-            wsConn.removeEventListener('close', closeHandler)
-            conv.messages[assistantMsgIdx].text = data.error
-            conv.messages[assistantMsgIdx].status = 'failed'
+          } else if (raw.error) {
+            cleanup()
+            currentMsg.text = raw.error
+            currentMsg.status = 'failed'
             resolve()
-          } else if (data.content) {
-            conv.messages[assistantMsgIdx].text += data.content
+          } else if (raw.content) {
+            currentMsg.text += raw.content
             conv.updatedAt = Date.now()
             scrollToBottom()
           }
@@ -443,10 +580,9 @@ async function sendMessage(): Promise<void> {
       }
 
       const closeHandler = () => {
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
-        if (!conv.messages[assistantMsgIdx].text) {
-          conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+        cleanup()
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }
@@ -455,25 +591,27 @@ async function sendMessage(): Promise<void> {
       wsConn.addEventListener('close', closeHandler)
 
       // Send the request
-      wsConn.send(JSON.stringify({ messages: apiMessages }))
+      wsConn.send(JSON.stringify({ messages: apiMessages, autonomous: agentMode.value }))
 
       // Safety timeout
       setTimeout(() => {
-        wsConn.removeEventListener('message', messageHandler)
-        wsConn.removeEventListener('close', closeHandler)
-        if (!conv.messages[assistantMsgIdx].text) {
-          conv.messages[assistantMsgIdx].text = t('assistant.response.noMatch')
+        cleanup()
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
         }
         resolve()
       }, 60000)
     })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    conv.messages[assistantMsgIdx].text = err?.message || t('assistant.error.general')
-    conv.messages[assistantMsgIdx].status = 'failed'
+    currentMsg.text = err?.message || t('assistant.error.general')
+    currentMsg.status = 'failed'
   } finally {
-    if (conv.messages[assistantMsgIdx].status === 'executing') {
-      conv.messages[assistantMsgIdx].status = 'completed'
+    if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
+    }
+    if (currentMsg.status === 'autonomous_executed') {
+      currentMsg.status = 'completed'
     }
     loading.value = false
     conv.updatedAt = Date.now()
@@ -484,61 +622,74 @@ async function sendMessage(): Promise<void> {
 
 /* ── Confirmation actions ─────────────────────────────────── */
 
-async function confirmAction(): Promise<void> {
-  if (executingConfirm.value || pendingMessageIndex < 0) return
-  executingConfirm.value = true
+function triggerActionConfirmation(
+  actionName: string,
+  params: Record<string, string>,
+  message: string,
+  riskLevel: 'safe' | 'caution' | 'dangerous',
+  token: string,
+  messageIndex: number,
+): void {
+  pendingMessageIndex = messageIndex
 
-  const conv = conversations.value.find(c => c.id === activeConversationId.value)
-  if (!conv || pendingMessageIndex >= conv.messages.length) {
-    executingConfirm.value = false
-    showConfirmModal.value = false
-    return
-  }
+  triggerConfirmation(
+    actionName,
+    params,
+    message,
+    riskLevel,
+    token,
+    async () => {
+      const conv = conversations.value.find(c => c.id === activeConversationId.value)
+      if (!conv || pendingMessageIndex < 0 || pendingMessageIndex >= conv.messages.length) return
 
-  const msg = conv.messages[pendingMessageIndex]
-  msg.status = 'executing'
-  msg.text = t('assistant.response.thinking')
-  showConfirmModal.value = false
-  saveConversations()
+      const msg = conv.messages[pendingMessageIndex]!
+      msg.status = 'executing'
+      msg.text = t('assistant.response.thinking')
+      saveConversations()
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resp = await api.post<any>('/assistant/execute', {
-      action: pendingActionName.value,
-      params: pendingActionParams.value,
-    }, {
-      timeout: 30000,
-    })
-    msg.text = resp?.message || 'Action executed successfully'
-    msg.status = 'completed'
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    msg.text = err?.response?.data?.msg || err?.response?.data?.error || 'Failed to execute action'
-    msg.status = 'failed'
-  } finally {
-    executingConfirm.value = false
-    pendingMessageIndex = -1
-    conv.updatedAt = Date.now()
-    saveConversations()
-    scrollToBottom()
-  }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resp = await api.post<any>('/assistant/execute', {
+          action: actionName,
+          params,
+          confirmation_token: token,
+        }, {
+          timeout: 30000,
+        })
+        msg.text = resp?.message || 'Action executed successfully'
+        msg.status = 'completed'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        msg.text = err?.response?.data?.msg || err?.response?.data?.error || 'Failed to execute action'
+        msg.status = 'failed'
+      } finally {
+        pendingMessageIndex = -1
+        conv.updatedAt = Date.now()
+        saveConversations()
+        scrollToBottom()
+      }
+    },
+    () => {
+      if (pendingMessageIndex >= 0) {
+        const conv = conversations.value.find(c => c.id === activeConversationId.value)
+        if (conv && pendingMessageIndex < conv.messages.length) {
+          const msg = conv.messages[pendingMessageIndex]!
+          msg.status = 'failed'
+          msg.text = 'Action cancelled'
+          saveConversations()
+        }
+      }
+      pendingMessageIndex = -1
+    },
+  )
 }
 
-function cancelAction(): void {
-  showConfirmModal.value = false
-  executingConfirm.value = false
+async function handleConfirm(): Promise<void> {
+  await composableConfirm()
+}
 
-  if (pendingMessageIndex >= 0) {
-    const conv = conversations.value.find(c => c.id === activeConversationId.value)
-    if (conv && pendingMessageIndex < conv.messages.length) {
-      const msg = conv.messages[pendingMessageIndex]
-      msg.status = 'failed'
-      msg.text = 'Action cancelled'
-      saveConversations()
-    }
-  }
-
-  pendingMessageIndex = -1
+function handleCancel(): void {
+  composableCancel()
 }
 
 onUnmounted(() => {
@@ -580,6 +731,46 @@ onMounted(() => {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-strong);
+}
+
+.ai-mode-toggle {
+  margin-left: auto;
+  display: flex;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-weaker);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.mode-btn.active {
+  background: var(--color-background-strong);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+.ai-mode-toggle:has(.mode-btn:nth-child(2).active) .mode-btn.active {
+  background: var(--color-accent);
+  color: #fff;
 }
 
 /* ── Body (sidebar + main) ─────────────────────────────────── */
@@ -767,10 +958,6 @@ onMounted(() => {
   line-height: var(--line-height-normal);
 }
 
-.msg p {
-  margin: 0;
-}
-
 .msg-user {
   align-self: flex-end;
   background: var(--color-accent);
@@ -817,6 +1004,10 @@ onMounted(() => {
 
 .msg-status-warning {
   color: var(--color-warning);
+}
+
+.msg-status-agent {
+  color: var(--color-accent);
 }
 
 /* ── Conversation switching transition ─────────────────────── */
@@ -943,59 +1134,6 @@ onMounted(() => {
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
-
-/* ── Confirmation modal ───────────────────────────────────── */
-
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.confirm-modal {
-  width: 420px;
-  max-width: 90vw;
-  padding: var(--space-6);
-}
-
-.confirm-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.confirm-icon {
-  color: var(--color-warning);
-  flex-shrink: 0;
-}
-
-.confirm-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-strong);
-}
-
-.confirm-body {
-  margin-bottom: var(--space-6);
-}
-
-.confirm-message {
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  line-height: var(--line-height-relaxed);
-  margin: 0;
-}
-
-.confirm-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
 
 @media (max-width: 767px) {
   .ai-layout {

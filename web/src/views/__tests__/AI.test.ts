@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { nextTick } from 'vue'
 
 // Mock vue-i18n
 vi.mock('vue-i18n', () => ({
@@ -90,7 +89,8 @@ describe('AI Chat Confirmation Modal', () => {
     vi.mocked(api.post).mockResolvedValueOnce(mockParseResponse)
 
     // Verify API was called correctly
-    const resp = await api.post('/assistant/parse', { text: 'prune all unused images' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/parse', { text: 'prune all unused images' })
     expect(resp.requires_confirmation).toBe(true)
     expect(resp.confirmation_message).toContain('permanently remove')
     expect(resp.action_name).toBe('prune_images')
@@ -107,7 +107,8 @@ describe('AI Chat Confirmation Modal', () => {
 
     vi.mocked(api.post).mockResolvedValueOnce(mockParseResponse)
 
-    const resp = await api.post('/assistant/parse', { text: 'list all images' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/parse', { text: 'list all images' })
     expect(resp.requires_confirmation).toBe(false)
   })
 
@@ -120,7 +121,8 @@ describe('AI Chat Confirmation Modal', () => {
 
     vi.mocked(api.post).mockResolvedValueOnce(mockExecuteResponse)
 
-    const resp = await api.post('/assistant/execute', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/execute', {
       action: 'prune_images',
       params: { machine_id: 'local' },
     })
@@ -157,7 +159,8 @@ describe('AI Chat Confirmation Modal', () => {
 
     vi.mocked(api.post).mockResolvedValueOnce(mockParseResponse)
 
-    const resp = await api.post('/assistant/parse', { text: 'hello, how are you?' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/parse', { text: 'hello, how are you?' })
     expect(resp.intent).toBe('chat')
     expect(resp.description).toContain('help')
     expect(resp.requires_confirmation).toBeUndefined()
@@ -176,7 +179,8 @@ describe('AI Chat Confirmation Modal', () => {
 
     vi.mocked(api.post).mockResolvedValueOnce(mockParseResponse)
 
-    const resp = await api.post('/assistant/parse', { text: 'delete my-app container' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/parse', { text: 'delete my-app container' })
     expect(resp.requires_confirmation).toBe(true)
     expect(resp.confirmation_message).toContain("delete container 'my-app'")
   })
@@ -189,7 +193,8 @@ describe('AI Chat Confirmation Modal', () => {
 
     vi.mocked(api.post).mockResolvedValueOnce(mockExecuteResponse)
 
-    const resp = await api.post('/assistant/execute', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resp = await api.post<any>('/assistant/execute', {
       action: 'stop_container',
       params: { container_id: 'my-app', machine_id: 'local' },
     })

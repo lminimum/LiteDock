@@ -517,6 +517,10 @@
   "ai": {
     "description": "AI 驱动的 Docker 助手",
     "emptyPrompt": "询问任何关于 Docker 容器的问题，或试试下面的快捷操作！",
+    "mode": {
+      "assistant": "助手",
+      "agent": "代理"
+    },
     "quick": {
       "startContainer": "启动容器",
       "checkLogs": "查看日志",

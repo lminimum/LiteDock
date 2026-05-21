@@ -14,8 +14,8 @@ import (
 
 // Retry constants
 const (
-	_maxRetries    = 2
-	_retryBackoff  = 1 * time.Second
+	_maxRetries   = 2
+	_retryBackoff = 1 * time.Second
 )
 
 // Retryable errors

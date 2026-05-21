@@ -106,12 +106,12 @@ func (a *ContainerAction) Validate(params map[string]interface{}) error {
 	return nil
 }
 
-// Destructive returns true if the container operation is destructive (e.g., delete_container).
-// Stop and restart are not considered destructive.
+// Destructive returns true if the container operation requires confirmation.
+// Stop and restart can cause data loss if not graceful.
 func (a *ContainerAction) Destructive(params map[string]interface{}) bool {
 	op, _ := params["operation"].(string)
 	switch op {
-	case "delete_container":
+	case "stop_container", "restart_container":
 		return true
 	default:
 		return false
@@ -126,8 +126,6 @@ func (a *ContainerAction) ConfirmationMessage(params map[string]interface{}) str
 		containerID = "unknown"
 	}
 	switch op {
-	case "delete_container":
-		return fmt.Sprintf("This will permanently delete container '%s' and all its data. This action cannot be undone.", containerID)
 	case "stop_container":
 		return fmt.Sprintf("This will stop container '%s'.", containerID)
 	case "restart_container":

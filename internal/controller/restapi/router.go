@@ -9,9 +9,10 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/lminimum/LiteDock/config"
 	_ "github.com/lminimum/LiteDock/docs" // Swagger docs.
+	"github.com/lminimum/LiteDock/internal/action"
 	"github.com/lminimum/LiteDock/internal/controller/restapi/middleware"
 	v1 "github.com/lminimum/LiteDock/internal/controller/restapi/v1"
-	"github.com/lminimum/LiteDock/internal/action"
+	"github.com/lminimum/LiteDock/internal/mcp"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/internal/usecase"
 	"github.com/lminimum/LiteDock/internal/usecase/assistant"
@@ -27,7 +28,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, taskUseCase *task.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, imageUseCase usecase.Image, composeUseCase usecase.Compose, parser *assistant.NLParserUseCase, diagnosis *assistant.FaultDiagnosisUseCase, recommend *assistant.ConfigRecommendUseCase, actionRegistry *action.ActionRegistry, settingsStore *v1.AISettingsStore, rateLimiter *assistant.RateLimiter, l logger.Interface) *v1.DashboardHandler {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, taskUseCase *task.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, imageUseCase usecase.Image, composeUseCase usecase.Compose, parser *assistant.NLParserUseCase, diagnosis *assistant.FaultDiagnosisUseCase, recommend *assistant.ConfigRecommendUseCase, actionRegistry *action.ActionRegistry, settingsStore *v1.AISettingsStore, rateLimiter *assistant.RateLimiter, mcpHandler *mcp.Handler, l logger.Interface) *v1.DashboardHandler {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -58,6 +59,7 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 	// Public routes FIRST — prevents protected group middleware from intercepting auth paths
 	{
 		v1.NewAuthRoutes(apiV1Group, auth, l, cfg)
+		v1.NewMCPRoutes(apiV1Group, mcpHandler)
 	}
 
 	// Protected routes (require authentication)

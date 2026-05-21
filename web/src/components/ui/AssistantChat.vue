@@ -25,14 +25,36 @@
         :class="{ 'chat-header--dragging': isDragging }"
         @mousedown="onDragStart"
       >
-        <span class="font-semibold text-sm">{{ t('assistant.title') }}</span>
-        <button
-          class="btn btn-ghost btn-sm"
-          :aria-label="t('assistant.chat.close')"
-          @click="closeChat"
-        >
-          <X :size="16" />
-        </button>
+        <div class="flex items-center gap-2">
+          <Bot :size="16" :stroke-width="2" />
+          <span class="font-semibold text-sm">{{ t('assistant.title') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="chat-mode-toggle">
+            <button
+              class="mode-btn"
+              :class="{ active: !agentMode }"
+              @click="agentMode = false"
+            >
+              {{ t('ai.mode.assistant') }}
+            </button>
+            <button
+              class="mode-btn"
+              :class="{ active: agentMode }"
+              @click="agentMode = true"
+            >
+              <Zap :size="10" />
+              {{ t('ai.mode.agent') }}
+            </button>
+          </div>
+          <button
+            class="btn btn-ghost btn-sm"
+            :aria-label="t('assistant.chat.close')"
+            @click="closeChat"
+          >
+            <X :size="16" />
+          </button>
+        </div>
       </div>
 
       <!-- Quick actions row -->
@@ -59,15 +81,29 @@
           </div>
           <!-- Assistant response (left-aligned) -->
           <div v-else class="message-assistant">
-            <p>{{ msg.text }}</p>
+            <div class="assistant-markdown" v-html="renderMarkdown(msg.text)"></div>
+            <div v-if="msg.status === 'executing'" class="msg-status msg-status-executing">
+              <Loader2 :size="12" class="spin" />
+              <span>{{ t('assistant.status.executing') }}</span>
+            </div>
+            <div v-else-if="msg.status === 'completed'" class="msg-status msg-status-completed">
+              <CheckCircle2 :size="12" />
+              <span>{{ t('assistant.status.completed') }}</span>
+            </div>
+            <div v-else-if="msg.status === 'failed'" class="msg-status msg-status-failed">
+              <XCircle :size="12" />
+              <span>{{ t('assistant.status.failed') }}</span>
+            </div>
+            <div v-else-if="msg.status === 'requires_confirmation'" class="msg-status msg-status-warning">
+              <AlertTriangle :size="12" />
+              <span>Awaiting confirmation</span>
+            </div>
+            <div v-else-if="msg.status === 'autonomous_executed'" class="msg-status msg-status-agent">
+              <Zap :size="12" />
+              <span>Auto-executed</span>
+            </div>
           </div>
         </template>
-
-        <!-- Loading indicator -->
-        <div v-if="loading" class="message-assistant flex items-center gap-2">
-          <Loader2 :size="16" class="spin" />
-          <span class="text-sm">{{ t('assistant.response.thinking') }}</span>
-        </div>
       </div>
 
       <!-- Input area -->
@@ -91,6 +127,21 @@
         </button>
       </div>
     </template>
+
+    <ActionConfirmationModal
+      :show="showConfirmModal"
+      :executing="executingConfirm"
+      :message="pendingConfirmMessage"
+      :action-name="pendingActionName"
+      :action-params="pendingActionParams"
+      :risk-level="pendingRiskLevel"
+      :typed-required="typedConfirmationRequired"
+      :expected-text="typedConfirmationExpected"
+      :model-value="typedConfirmationInput"
+      @update:model-value="typedConfirmationInput = $event"
+      @confirm="composableConfirm"
+      @cancel="composableCancel"
+    />
   </div>
 </template>
 
@@ -99,15 +150,20 @@ import { ref, computed, nextTick, onMounted, onUnmounted, markRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Bot, Play, FileText, Activity, Globe, HardDrive, Network,
-  X, Send, Loader2,
+  X, Send, Loader2, CheckCircle2, XCircle, AlertTriangle, Zap,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 import api from '@/utils/api'
+import { useWebSocket } from '@/composables/useWebSocket'
 import { stripShellChars } from '@/utils/sanitize'
+import { renderMarkdown } from '@/utils/markdown'
+import { useActionConfirmation } from '@/composables/useActionConfirmation'
+import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
+  status?: 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
 }
 
 interface QuickAction {
@@ -122,9 +178,43 @@ const isOpen = ref(false)
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const loading = ref(false)
+const agentMode = ref(localStorage.getItem('litdock-ai-agent-mode') === 'true')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
-const abortController = ref<AbortController | null>(null)
+
+const {
+  showConfirmModal,
+  executingConfirm,
+  pendingConfirmMessage,
+  pendingActionName,
+  pendingActionParams,
+  pendingRiskLevel,
+  typedConfirmationInput,
+  typedConfirmationRequired,
+  typedConfirmationExpected,
+  triggerConfirmation,
+  confirmAction: composableConfirm,
+  cancelAction: composableCancel,
+} = useActionConfirmation()
+
+let pendingMessageIndex = -1
+
+/* ── WebSocket ─────────────────────────────────────────────── */
+
+const token = localStorage.getItem('litedock-token') || ''
+const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/v1/assistant/stream/ws${token ? '?token=' + encodeURIComponent(token) : ''}`
+
+const { ws, isConnected, connect: connectWS, disconnect: disconnectWS } = useWebSocket({
+  url: wsUrl,
+  onError: () => {
+    loading.value = false
+    const lastMsg = messages.value[messages.value.length - 1]
+    if (lastMsg && lastMsg.role === 'assistant' && lastMsg.status === 'executing') {
+      lastMsg.status = 'failed'
+      lastMsg.text = 'Connection lost. Please try again.'
+    }
+  },
+})
 
 // Drag state
 const DIALOG_WIDTH = 380
@@ -262,6 +352,33 @@ function scrollToBottom() {
   })
 }
 
+function formatActionResult(payload: Record<string, unknown>): string {
+  const result = payload.result
+  if (typeof result === 'string' && result.trim()) {
+    return result
+  }
+
+  const message = payload.message
+  if (typeof message === 'string' && message.trim()) {
+    return message
+  }
+
+  const data = payload.data
+  if (typeof data === 'string' && data.trim()) {
+    return data
+  }
+
+  if (data != null) {
+    try {
+      return JSON.stringify(data, null, 2)
+    } catch {
+      return 'Done'
+    }
+  }
+
+  return 'Done'
+}
+
 function openChat() {
   if (dragDistance.value > 5) return // Ignore if it was a drag
   dialogX.value = computeInitialX()
@@ -288,28 +405,233 @@ async function sendMessage() {
   loading.value = true
   scrollToBottom()
 
-  // Cancel any in-flight request
-  if (abortController.value) {
-    abortController.value.abort()
-  }
-  abortController.value = new AbortController()
+  // Add placeholder for streaming assistant response
+  const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
+  messages.value.push(assistantMsg)
+  const assistantMsgIdx = messages.value.length - 1
+  let currentMsg = messages.value[assistantMsgIdx]!
+
+  // Build messages payload excluding the placeholder just added
+  const apiMessages = messages.value
+    .slice(0, -1)
+    .map(m => ({ role: m.role, content: m.text }))
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resp = await api.post<any>('/assistant/parse', { text }, {
-      timeout: 15000,
-      signal: abortController.value.signal,
+    // Connect or reuse WebSocket
+    if (!isConnected.value) {
+      connectWS()
+      // Wait for connection (up to 5s)
+      let attempts = 0
+      while (!isConnected.value && attempts < 100) {
+        await new Promise(r => setTimeout(r, 50))
+        attempts++
+      }
+    }
+
+    if (!isConnected.value) {
+      throw new Error('Failed to connect to AI service')
+    }
+
+    const wsConn = ws.value
+    if (!wsConn || wsConn.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected')
+    }
+
+    // Wait for streaming response via temporary message listener
+    await new Promise<void>((resolve) => {
+      let resolved = false
+
+      function cleanup() {
+        if (resolved) return
+        resolved = true
+        wsConn!.removeEventListener('message', messageHandler)
+        wsConn!.removeEventListener('close', closeHandler)
+      }
+
+      const messageHandler = (event: MessageEvent) => {
+        try {
+          const raw = JSON.parse(event.data)
+
+          // ── Versioned envelope (v:1) ──────────────────────────
+          if (raw.v === 1 && raw.type) {
+            switch (raw.type) {
+              case 'content': {
+                const p = raw.payload || {}
+                if (p.content) {
+                  currentMsg.text += p.content
+                  scrollToBottom()
+                }
+                if (p.done) {
+                  cleanup()
+                  if (!currentMsg.text) {
+                    currentMsg.text = t('assistant.response.noMatch')
+                  }
+                  currentMsg.status = 'completed'
+                  resolve()
+                }
+                break
+              }
+              case 'action_required': {
+                const intent = raw.payload || {}
+                cleanup()
+                currentMsg.status = 'requires_confirmation'
+                currentMsg.text = intent.confirmation_message || `Action required: ${intent.action}`
+                scrollToBottom()
+                triggerActionConfirmation(
+                  intent.action || '',
+                  intent.params || {},
+                  intent.confirmation_message || `Execute ${intent.action}?`,
+                  intent.risk_level === 'dangerous' ? 'dangerous' : intent.risk_level === 'modify' ? 'caution' : 'safe',
+                  intent.confirmation_token || '',
+                  assistantMsgIdx,
+                )
+                resolve()
+                break
+              }
+              case 'action_result': {
+                const p = (raw.payload || {}) as Record<string, unknown>
+                const actionName = typeof p.action === 'string' && p.action ? p.action : 'Action'
+                currentMsg.text += `\n**${actionName}** result:\n${formatActionResult(p)}`
+                currentMsg.status = 'autonomous_executed'
+                scrollToBottom()
+                break
+              }
+              case 'error': {
+                const p = raw.payload || {}
+                cleanup()
+                currentMsg.text = p.message || t('assistant.error.general')
+                currentMsg.status = 'failed'
+                resolve()
+                break
+              }
+              case 'done': {
+                cleanup()
+                if (!currentMsg.text) {
+                  currentMsg.text = t('assistant.response.noMatch')
+                }
+                currentMsg.status = 'completed'
+                resolve()
+                break
+              }
+            }
+            return
+          }
+
+          // ── Legacy unversioned format (backwards-compat) ─────
+          if (raw.done) {
+            cleanup()
+            if (!currentMsg.text) {
+              currentMsg.text = t('assistant.response.noMatch')
+            }
+            currentMsg.status = 'completed'
+            resolve()
+          } else if (raw.error) {
+            cleanup()
+            currentMsg.text = raw.error
+            currentMsg.status = 'failed'
+            resolve()
+          } else if (raw.content) {
+            currentMsg.text += raw.content
+            scrollToBottom()
+          }
+        } catch {
+          // skip malformed chunks
+        }
+      }
+
+      const closeHandler = () => {
+        cleanup()
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
+        }
+        resolve()
+      }
+
+      wsConn.addEventListener('message', messageHandler)
+      wsConn.addEventListener('close', closeHandler)
+
+      // Send the request
+      wsConn.send(JSON.stringify({ messages: apiMessages, autonomous: agentMode.value }))
+
+      // Safety timeout
+      setTimeout(() => {
+        cleanup()
+        if (!currentMsg.text) {
+          currentMsg.text = t('assistant.response.noMatch')
+        }
+        resolve()
+      }, 60000)
     })
-    const responseText = resp?.description || t('assistant.response.noMatch')
-    messages.value.push({ role: 'assistant', text: responseText })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    const msg = err?.response?.data?.msg || err?.response?.data?.error || t('assistant.error.general')
-    messages.value.push({ role: 'assistant', text: msg })
+    currentMsg.text = err?.message || t('assistant.error.general')
+    currentMsg.status = 'failed'
   } finally {
+    if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
+    }
+    if (currentMsg.status === 'autonomous_executed') {
+      currentMsg.status = 'completed'
+    }
     loading.value = false
     scrollToBottom()
   }
+}
+
+/* ── Confirmation actions ─────────────────────────────────── */
+
+function triggerActionConfirmation(
+  actionName: string,
+  params: Record<string, string>,
+  message: string,
+  riskLevel: 'safe' | 'caution' | 'dangerous',
+  confirmToken: string,
+  messageIndex: number,
+): void {
+  pendingMessageIndex = messageIndex
+
+  triggerConfirmation(
+    actionName,
+    params,
+    message,
+    riskLevel,
+    confirmToken,
+    async () => {
+      if (pendingMessageIndex < 0 || pendingMessageIndex >= messages.value.length) return
+
+      const msg = messages.value[pendingMessageIndex]!
+      msg.status = 'executing'
+      msg.text = t('assistant.response.thinking')
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resp = await api.post<any>('/assistant/execute', {
+          action: actionName,
+          params,
+          confirmation_token: confirmToken,
+        }, {
+          timeout: 30000,
+        })
+        msg.text = resp?.message || 'Action executed successfully'
+        msg.status = 'completed'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        msg.text = err?.response?.data?.msg || err?.response?.data?.error || 'Failed to execute action'
+        msg.status = 'failed'
+      } finally {
+        pendingMessageIndex = -1
+        scrollToBottom()
+      }
+    },
+    () => {
+      if (pendingMessageIndex >= 0 && pendingMessageIndex < messages.value.length) {
+        const msg = messages.value[pendingMessageIndex]!
+        msg.status = 'failed'
+        msg.text = 'Action cancelled'
+      }
+      pendingMessageIndex = -1
+    },
+  )
 }
 
 /* ── Keyboard ──────────────────────────────────────────────── */
@@ -327,9 +649,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
   cleanupDrag()
-  if (abortController.value) {
-    abortController.value.abort()
-  }
+  disconnectWS()
 })
 </script>
 
@@ -411,6 +731,40 @@ onUnmounted(() => {
 
 .chat-header--dragging {
   cursor: grabbing;
+}
+
+.chat-mode-toggle {
+  display: flex;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: 1px;
+  gap: 1px;
+}
+
+.chat-mode-toggle .mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-weaker);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chat-mode-toggle .mode-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.chat-mode-toggle .mode-btn.active {
+  background: var(--color-background-strong);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
 }
 
 /* ── Quick actions ─────────────────────────────────────────── */
@@ -498,8 +852,36 @@ onUnmounted(() => {
   line-height: var(--line-height-normal);
 }
 
-.message-assistant p {
-  margin: 0;
+/* ── Message status labels ─────────────────────────────────── */
+
+.msg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.msg-status-executing {
+  color: var(--color-info);
+}
+
+.msg-status-completed {
+  color: var(--color-success);
+}
+
+.msg-status-failed {
+  color: var(--color-error);
+}
+
+.msg-status-warning {
+  color: var(--color-warning);
+}
+
+.msg-status-agent {
+  color: var(--color-accent);
 }
 
 /* ── Input area ────────────────────────────────────────────── */

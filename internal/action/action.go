@@ -62,6 +62,15 @@ var ErrDestructiveAction = fmt.Errorf("destructive action requires confirmation"
 // ErrMaliciousInput is returned when user input contains potentially malicious content.
 var ErrMaliciousInput = fmt.Errorf("input contains potentially malicious content")
 
+// ErrConfirmationRequired is returned when a destructive action is attempted without a confirmation token.
+var ErrConfirmationRequired = fmt.Errorf("confirmation token required for this action")
+
+// ErrInvalidToken is returned when the confirmation token is invalid or tampered with.
+var ErrInvalidToken = fmt.Errorf("invalid confirmation token")
+
+// ErrTokenExpired is returned when the confirmation token has expired.
+var ErrTokenExpired = fmt.Errorf("confirmation token expired")
+
 var (
 	// Patterns that are rejected as potentially malicious.
 	_maliciousPatterns = []*regexp.Regexp{

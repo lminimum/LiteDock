@@ -114,8 +114,8 @@ integration-test: ### Run integration tests
 
 ##@ Mocks
 mock: ### Generate mocks with mockgen
-	mockgen -source ./internal/repo/contracts.go -package usecase_test > ./internal/usecase/mocks_repo_test.go
-	mockgen -source ./internal/usecase/contracts.go -package usecase_test > ./internal/usecase/mocks_usecase_test.go
+	go run go.uber.org/mock/mockgen -source ./internal/repo/contracts.go -package usecase_test > ./internal/usecase/mocks_repo_test.go
+	go run go.uber.org/mock/mockgen -source ./internal/usecase/contracts.go -package usecase_test > ./internal/usecase/mocks_usecase_test.go
 .PHONY: mock
 
 ##@ Database

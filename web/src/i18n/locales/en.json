@@ -533,6 +533,10 @@
   "ai": {
     "description": "AI-powered Docker assistant",
     "emptyPrompt": "Ask me anything about Docker containers, or try a quick action below!",
+    "mode": {
+      "assistant": "Assistant",
+      "agent": "Agent"
+    },
     "quick": {
       "startContainer": "Start Container",
       "checkLogs": "Check Logs",

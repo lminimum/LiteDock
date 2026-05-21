@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/lminimum/LiteDock/internal/entity"
 	dockerImage "github.com/docker/docker/api/types/image"
+	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/stretchr/testify/require"
 )
 

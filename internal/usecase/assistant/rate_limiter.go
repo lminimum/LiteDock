@@ -7,7 +7,7 @@ import (
 
 var (
 	_rateLimitMaxRequests = 5
-	_rateLimitWindow     = 10 * time.Second
+	_rateLimitWindow      = 10 * time.Second
 )
 
 type sessionLimiter struct {
