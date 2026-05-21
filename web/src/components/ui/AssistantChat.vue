@@ -25,14 +25,36 @@
         :class="{ 'chat-header--dragging': isDragging }"
         @mousedown="onDragStart"
       >
-        <span class="font-semibold text-sm">{{ t('assistant.title') }}</span>
-        <button
-          class="btn btn-ghost btn-sm"
-          :aria-label="t('assistant.chat.close')"
-          @click="closeChat"
-        >
-          <X :size="16" />
-        </button>
+        <div class="flex items-center gap-2">
+          <Bot :size="16" :stroke-width="2" />
+          <span class="font-semibold text-sm">{{ t('assistant.title') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="chat-mode-toggle">
+            <button
+              class="mode-btn"
+              :class="{ active: !agentMode }"
+              @click="agentMode = false"
+            >
+              {{ t('ai.mode.assistant') }}
+            </button>
+            <button
+              class="mode-btn"
+              :class="{ active: agentMode }"
+              @click="agentMode = true"
+            >
+              <Zap :size="10" />
+              {{ t('ai.mode.agent') }}
+            </button>
+          </div>
+          <button
+            class="btn btn-ghost btn-sm"
+            :aria-label="t('assistant.chat.close')"
+            @click="closeChat"
+          >
+            <X :size="16" />
+          </button>
+        </div>
       </div>
 
       <!-- Quick actions row -->
@@ -75,6 +97,10 @@
             <div v-else-if="msg.status === 'requires_confirmation'" class="msg-status msg-status-warning">
               <AlertTriangle :size="12" />
               <span>Awaiting confirmation</span>
+            </div>
+            <div v-else-if="msg.status === 'autonomous_executed'" class="msg-status msg-status-agent">
+              <Zap :size="12" />
+              <span>Auto-executed</span>
             </div>
           </div>
         </template>
@@ -124,7 +150,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, markRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Bot, Play, FileText, Activity, Globe, HardDrive, Network,
-  X, Send, Loader2, CheckCircle2, XCircle, AlertTriangle,
+  X, Send, Loader2, CheckCircle2, XCircle, AlertTriangle, Zap,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 import api from '@/utils/api'
@@ -137,7 +163,7 @@ import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
-  status?: 'executing' | 'completed' | 'failed' | 'requires_confirmation'
+  status?: 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
 }
 
 interface QuickAction {
@@ -152,6 +178,7 @@ const isOpen = ref(false)
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const loading = ref(false)
+const agentMode = ref(localStorage.getItem('litdock-ai-agent-mode') === 'true')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
@@ -325,6 +352,33 @@ function scrollToBottom() {
   })
 }
 
+function formatActionResult(payload: Record<string, unknown>): string {
+  const result = payload.result
+  if (typeof result === 'string' && result.trim()) {
+    return result
+  }
+
+  const message = payload.message
+  if (typeof message === 'string' && message.trim()) {
+    return message
+  }
+
+  const data = payload.data
+  if (typeof data === 'string' && data.trim()) {
+    return data
+  }
+
+  if (data != null) {
+    try {
+      return JSON.stringify(data, null, 2)
+    } catch {
+      return 'Done'
+    }
+  }
+
+  return 'Done'
+}
+
 function openChat() {
   if (dragDistance.value > 5) return // Ignore if it was a drag
   dialogX.value = computeInitialX()
@@ -355,7 +409,7 @@ async function sendMessage() {
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
   messages.value.push(assistantMsg)
   const assistantMsgIdx = messages.value.length - 1
-  const currentMsg = messages.value[assistantMsgIdx]!
+  let currentMsg = messages.value[assistantMsgIdx]!
 
   // Build messages payload excluding the placeholder just added
   const apiMessages = messages.value
@@ -434,6 +488,14 @@ async function sendMessage() {
                 resolve()
                 break
               }
+              case 'action_result': {
+                const p = (raw.payload || {}) as Record<string, unknown>
+                const actionName = typeof p.action === 'string' && p.action ? p.action : 'Action'
+                currentMsg.text += `\n**${actionName}** result:\n${formatActionResult(p)}`
+                currentMsg.status = 'autonomous_executed'
+                scrollToBottom()
+                break
+              }
               case 'error': {
                 const p = raw.payload || {}
                 cleanup()
@@ -489,7 +551,7 @@ async function sendMessage() {
       wsConn.addEventListener('close', closeHandler)
 
       // Send the request
-      wsConn.send(JSON.stringify({ messages: apiMessages }))
+      wsConn.send(JSON.stringify({ messages: apiMessages, autonomous: agentMode.value }))
 
       // Safety timeout
       setTimeout(() => {
@@ -506,6 +568,9 @@ async function sendMessage() {
     currentMsg.status = 'failed'
   } finally {
     if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
+    }
+    if (currentMsg.status === 'autonomous_executed') {
       currentMsg.status = 'completed'
     }
     loading.value = false
@@ -668,6 +733,40 @@ onUnmounted(() => {
   cursor: grabbing;
 }
 
+.chat-mode-toggle {
+  display: flex;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: 1px;
+  gap: 1px;
+}
+
+.chat-mode-toggle .mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-weaker);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chat-mode-toggle .mode-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.chat-mode-toggle .mode-btn.active {
+  background: var(--color-background-strong);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
 /* ── Quick actions ─────────────────────────────────────────── */
 
 .chat-quick-actions {
@@ -779,6 +878,10 @@ onUnmounted(() => {
 
 .msg-status-warning {
   color: var(--color-warning);
+}
+
+.msg-status-agent {
+  color: var(--color-accent);
 }
 
 /* ── Input area ────────────────────────────────────────────── */

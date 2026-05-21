@@ -4,6 +4,23 @@
     <header class="ai-topbar">
       <Bot :size="18" :stroke-width="1.5" />
       <span class="ai-topbar-title">{{ t('assistant.title') }}</span>
+      <div class="ai-mode-toggle">
+        <button
+          class="mode-btn"
+          :class="{ active: !agentMode }"
+          @click="agentMode = false"
+        >
+          {{ t('ai.mode.assistant') }}
+        </button>
+        <button
+          class="mode-btn"
+          :class="{ active: agentMode }"
+          @click="agentMode = true"
+        >
+          <Zap :size="11" />
+          {{ t('ai.mode.agent') }}
+        </button>
+      </div>
     </header>
 
     <!-- Body: sidebar + main -->
@@ -75,6 +92,10 @@
                     <AlertTriangle :size="12" />
                     <span>Awaiting confirmation</span>
                   </div>
+                  <div v-else-if="msg.status === 'autonomous_executed'" class="msg-status msg-status-agent">
+                    <Zap :size="12" />
+                    <span>Auto-executed</span>
+                  </div>
                 </div>
               </template>
             </div>
@@ -145,12 +166,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted, onMounted, markRaw } from 'vue'
+import { ref, computed, nextTick, onUnmounted, onMounted, markRaw, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Bot, Play, FileText, Activity, Globe, HardDrive, Network,
   Send, Loader2, Plus, MessageSquare, Trash2, AlertTriangle,
-  CheckCircle2, XCircle, Square,
+  CheckCircle2, XCircle, Square, Zap,
 } from 'lucide-vue-next'
 import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -163,7 +184,7 @@ import type { Component } from 'vue'
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
-  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation'
+  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
   confirmationMessage?: string
   actionName?: string
   actionParams?: Record<string, string>
@@ -185,6 +206,7 @@ interface QuickAction {
 }
 
 const STORAGE_KEY = 'litdock-ai-conversations'
+const AGENT_MODE_KEY = 'litdock-ai-agent-mode'
 const DEFAULT_TITLE = 'New Chat'
 
 const { t } = useI18n()
@@ -210,6 +232,7 @@ let pendingMessageIndex = -1
 
 const inputText = ref('')
 const loading = ref(false)
+const agentMode = ref(localStorage.getItem(AGENT_MODE_KEY) === 'true')
 const messagesRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 const conversations = ref<Conversation[]>(loadConversations())
@@ -236,6 +259,10 @@ const { ws, isConnected, connect: connectWS, disconnect: disconnectWS } = useWeb
 })
 
 /* ── Persistence ──────────────────────────────────────────── */
+
+watch(agentMode, (val) => {
+  localStorage.setItem(AGENT_MODE_KEY, String(val))
+})
 
 function loadConversations(): Conversation[] {
   try {
@@ -351,6 +378,33 @@ function scrollToBottom(): void {
   })
 }
 
+function formatActionResult(payload: Record<string, unknown>): string {
+  const result = payload.result
+  if (typeof result === 'string' && result.trim()) {
+    return result
+  }
+
+  const message = payload.message
+  if (typeof message === 'string' && message.trim()) {
+    return message
+  }
+
+  const data = payload.data
+  if (typeof data === 'string' && data.trim()) {
+    return data
+  }
+
+  if (data != null) {
+    try {
+      return JSON.stringify(data, null, 2)
+    } catch {
+      return 'Done'
+    }
+  }
+
+  return 'Done'
+}
+
 function runQuickAction(action: QuickAction): void {
   if (loading.value) return
   inputText.value = action.prompt
@@ -386,7 +440,7 @@ async function sendMessage(): Promise<void> {
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
   conv.messages.push(assistantMsg)
   const assistantMsgIdx = conv.messages.length - 1
-  const currentMsg = conv.messages[assistantMsgIdx]!
+  let currentMsg = conv.messages[assistantMsgIdx]!
 
   conv.updatedAt = Date.now()
   saveConversations()
@@ -460,7 +514,6 @@ async function sendMessage(): Promise<void> {
                 currentMsg.text = intent.confirmation_message || `Action required: ${intent.action}`
                 conv.updatedAt = Date.now()
                 scrollToBottom()
-                // Keep loading true — resolution happens on confirm/cancel
                 triggerActionConfirmation(
                   intent.action || '',
                   intent.params || {},
@@ -470,6 +523,16 @@ async function sendMessage(): Promise<void> {
                   assistantMsgIdx,
                 )
                 resolve()
+                break
+              }
+              case 'action_result': {
+                const p = (raw.payload || {}) as Record<string, unknown>
+                const actionName = typeof p.action === 'string' && p.action ? p.action : 'Action'
+                currentMsg.text += `\n**${actionName}** result:\n${formatActionResult(p)}`
+                currentMsg.status = 'autonomous_executed'
+                conv.updatedAt = Date.now()
+                saveConversations()
+                scrollToBottom()
                 break
               }
               case 'error': {
@@ -528,7 +591,7 @@ async function sendMessage(): Promise<void> {
       wsConn.addEventListener('close', closeHandler)
 
       // Send the request
-      wsConn.send(JSON.stringify({ messages: apiMessages }))
+      wsConn.send(JSON.stringify({ messages: apiMessages, autonomous: agentMode.value }))
 
       // Safety timeout
       setTimeout(() => {
@@ -545,6 +608,9 @@ async function sendMessage(): Promise<void> {
     currentMsg.status = 'failed'
   } finally {
     if (currentMsg.status === 'executing') {
+      currentMsg.status = 'completed'
+    }
+    if (currentMsg.status === 'autonomous_executed') {
       currentMsg.status = 'completed'
     }
     loading.value = false
@@ -665,6 +731,46 @@ onMounted(() => {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-strong);
+}
+
+.ai-mode-toggle {
+  margin-left: auto;
+  display: flex;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-weaker);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+
+.mode-btn.active {
+  background: var(--color-background-strong);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+.ai-mode-toggle:has(.mode-btn:nth-child(2).active) .mode-btn.active {
+  background: var(--color-accent);
+  color: #fff;
 }
 
 /* ── Body (sidebar + main) ─────────────────────────────────── */
@@ -898,6 +1004,10 @@ onMounted(() => {
 
 .msg-status-warning {
   color: var(--color-warning);
+}
+
+.msg-status-agent {
+  color: var(--color-accent);
 }
 
 /* ── Conversation switching transition ─────────────────────── */
