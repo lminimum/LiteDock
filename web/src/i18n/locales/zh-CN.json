@@ -487,6 +487,7 @@
   },
   "assistant": {
     "title": "AI 助手",
+    "greeting": "你好有什么可以帮助你",
     "input": {
       "placeholder": "描述您想执行的操作...",
       "send": "发送"
@@ -532,7 +533,7 @@
     },
     "quick": {
       "startContainer": "启动容器",
-      "checkLogs": "查看日志",
+      "checkLogs": "分析日志",
       "diagnose": "诊断问题",
       "deployWeb": "部署应用",
       "checkDisk": "存储检查",
@@ -540,7 +541,7 @@
     },
     "prompts": {
       "startContainer": "启动nginx容器",
-      "checkLogs": "查看nginx容器日志",
+      "checkLogs": "自动查看并分析nginx容器日志，找出错误、异常和可能原因",
       "diagnose": "诊断容器问题",
       "deployWeb": "部署Web应用",
       "checkDisk": "查看存储使用",

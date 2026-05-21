@@ -503,6 +503,7 @@
   },
   "assistant": {
     "title": "AI Assistant",
+    "greeting": "Hello, how can I help you?",
     "input": {
       "placeholder": "Describe what you want to do...",
       "send": "Send"
@@ -548,7 +549,7 @@
     },
     "quick": {
       "startContainer": "Start Container",
-      "checkLogs": "Check Logs",
+      "checkLogs": "Analyze Logs",
       "diagnose": "Diagnose",
       "deployWeb": "Deploy Web",
       "checkDisk": "Check Disk",
@@ -556,7 +557,7 @@
     },
     "prompts": {
       "startContainer": "start nginx container",
-      "checkLogs": "check nginx container logs",
+      "checkLogs": "analyze nginx container logs and summarize errors, warnings, and likely causes",
       "diagnose": "diagnose container issues",
       "deployWeb": "deploy web application",
       "checkDisk": "check storage usage",
