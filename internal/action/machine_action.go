@@ -142,13 +142,7 @@ func (a *MachineAction) Execute(ctx context.Context, params map[string]interface
 
 	case "test_machine_connection":
 		if err := a.uc.TestConnection(ctx, machineID); err != nil {
-			return &ActionResult{
-				Success: false,
-				Message: "Connection failed",
-				Data: map[string]interface{}{
-					"error": err.Error(),
-				},
-			}, nil
+			return nil, fmt.Errorf("MachineAction.Execute - test_machine_connection: %w", err)
 		}
 		return &ActionResult{
 			Success: true,
