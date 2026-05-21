@@ -48,12 +48,12 @@
       </template>
     </CollapsibleFilters>
 
-    <div v-if="loading" class="loading-state">
+    <div v-if="loading && networks.length === 0" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
       <span>{{ t('networks.refresh') }}...</span>
     </div>
 
-    <div v-else-if="error" class="error-state card text-center">
+    <div v-else-if="error && networks.length === 0" class="error-state card text-center">
       <p class="mb-4">{{ error }}</p>
       <button @click="refreshNetworks" class="btn btn-secondary">{{ t('common.refresh') }}</button>
     </div>
@@ -176,6 +176,7 @@ import NetworkCard from '@/components/network/NetworkCard.vue'
 import NetworkCreateModal from '@/components/network/NetworkCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
@@ -311,24 +312,37 @@ const defaultCreateMachineId = computed(() => {
 const refreshNetworks = async () => {
   loading.value = true
   error.value = ''
+  const hasExistingNetworks = networks.value.length > 0
   try {
     const allMachines = await remoteMachineService.list()
     machines.value = allMachines
 
-    const allNetworks: NetworkWithMachine[] = []
-    await Promise.all(
-      allMachines.map(async (m) => {
-        try {
-          const nets = await networkService.listNetworks(m.id)
-          for (const n of nets) {
-            allNetworks.push({ ...n, machineId: m.id, machine: m.name })
-          }
-        } catch {
-          // machine offline or unreachable — skip silently
-        }
-      })
+    const networksByKey = new Map(networks.value.map((network) => [`${network.machineId}:${network.id}`, network] as const))
+
+    const results = await Promise.allSettled(
+      allMachines.map(async (m) => ({
+        machineId: m.id,
+        machine: m.name,
+        networks: await networkService.listNetworks(m.id),
+      }))
     )
 
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+
+      const { machineId, machine, networks: fetchedNetworks } = result.value
+      for (const key of Array.from(networksByKey.keys())) {
+        if (key.startsWith(`${machineId}:`)) {
+          networksByKey.delete(key)
+        }
+      }
+
+      for (const network of fetchedNetworks) {
+        networksByKey.set(`${machineId}:${network.id}`, { ...network, machineId, machine })
+      }
+    }
+
+    const allNetworks = Array.from(networksByKey.values())
     allNetworks.sort((a, b) => {
       if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
       return a.name.localeCompare(b.name)
@@ -337,7 +351,11 @@ const refreshNetworks = async () => {
     networks.value = allNetworks
   } catch (e) {
     const msg = e instanceof Error ? e.message : t('errors.loginFailed')
-    error.value = msg
+    if (!hasExistingNetworks) {
+      error.value = msg
+    } else {
+      console.error('Failed to refresh networks:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -348,6 +366,8 @@ const onNetworkCreated = () => {
 }
 
 onMounted(() => refreshNetworks())
+
+useRefreshBus(refreshNetworks)
 </script>
 
 <style scoped>

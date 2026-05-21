@@ -41,12 +41,12 @@
       </template>
     </CollapsibleFilters>
 
-    <div v-if="loading" class="loading-state">
+    <div v-if="loading && volumes.length === 0" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
       <span>{{ t('volumes.refresh') }}...</span>
     </div>
 
-    <div v-else-if="error" class="error-state card text-center">
+    <div v-else-if="error && volumes.length === 0" class="error-state card text-center">
       <p class="mb-4">{{ error }}</p>
       <button @click="refreshVolumes" class="btn btn-secondary">{{ t('common.refresh') }}</button>
     </div>
@@ -158,6 +158,7 @@ import VolumeCard from '@/components/volume/VolumeCard.vue'
 import VolumeCreateModal from '@/components/volume/VolumeCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
@@ -284,24 +285,37 @@ const defaultCreateMachineId = computed(() => {
 const refreshVolumes = async () => {
   loading.value = true
   error.value = ''
+  const hasExistingVolumes = volumes.value.length > 0
   try {
     const allMachines = await remoteMachineService.list()
     machines.value = allMachines
 
-    const allVolumes: VolumeWithMachine[] = []
-    await Promise.all(
-      allMachines.map(async (m) => {
-        try {
-          const vols = await volumeService.listVolumes(m.id)
-          for (const v of vols) {
-            allVolumes.push({ ...v, machineId: m.id, machine: m.name })
-          }
-        } catch {
-          // machine offline or unreachable — skip silently
-        }
-      })
+    const volumesByKey = new Map(volumes.value.map((volume) => [`${volume.machineId}:${volume.name}`, volume] as const))
+
+    const results = await Promise.allSettled(
+      allMachines.map(async (m) => ({
+        machineId: m.id,
+        machine: m.name,
+        volumes: await volumeService.listVolumes(m.id),
+      }))
     )
 
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+
+      const { machineId, machine, volumes: fetchedVolumes } = result.value
+      for (const key of Array.from(volumesByKey.keys())) {
+        if (key.startsWith(`${machineId}:`)) {
+          volumesByKey.delete(key)
+        }
+      }
+
+      for (const volume of fetchedVolumes) {
+        volumesByKey.set(`${machineId}:${volume.name}`, { ...volume, machineId, machine })
+      }
+    }
+
+    const allVolumes = Array.from(volumesByKey.values())
     allVolumes.sort((a, b) => {
       if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
       return a.name.localeCompare(b.name)
@@ -310,7 +324,11 @@ const refreshVolumes = async () => {
     volumes.value = allVolumes
   } catch (e) {
     const msg = e instanceof Error ? e.message : t('errors.loginFailed')
-    error.value = msg
+    if (!hasExistingVolumes) {
+      error.value = msg
+    } else {
+      console.error('Failed to refresh volumes:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -321,6 +339,8 @@ const onVolumeCreated = () => {
 }
 
 onMounted(() => refreshVolumes())
+
+useRefreshBus(refreshVolumes)
 </script>
 
 <style scoped>

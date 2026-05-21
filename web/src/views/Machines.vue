@@ -22,7 +22,12 @@
       </template>
     </CollapsibleFilters>
 
-    <div v-if="machines.length === 0 && !loading" class="empty-state">
+    <div v-if="loading && machines.length === 0" class="loading-state">
+      <RefreshCw :size="24" class="spinning" />
+      <span>{{ t('machines.refresh') }}...</span>
+    </div>
+
+    <div v-else-if="machines.length === 0 && !loading" class="empty-state">
       <Server :size="48" class="empty-icon" />
       <p>{{ t('machines.empty') }}</p>
       <button @click="openAddModal" class="btn btn-primary">
@@ -42,7 +47,7 @@
           <div class="machine-header">
             <div class="machine-name">
               {{ machine.name }}
-              <span v-if="machine.id === 'local'" class="badge badge-primary badge-sm" style="margin-left: 8px;">本地</span>
+              <span v-if="machine.id === 'local'" class="badge badge-primary badge-sm" style="margin-left: 8px;">{{ t('common.local') }}</span>
             </div>
             <div class="badge" :class="getStatusClass(machine.status)">
               {{ t(`machines.status.${machine.status}`) }}
@@ -69,7 +74,7 @@
               <span class="value mono">{{ machine.docker_host }}</span>
             </div>
             <div v-if="machine.id === 'local'" class="info-item">
-              <span class="label">连接方式</span>
+              <span class="label">{{ t('machines.connection') }}</span>
               <span class="badge badge-primary">Unix Socket（本机）</span>
             </div>
           </div>
@@ -103,7 +108,7 @@
               <span class="badge" :class="machine.status === 'online' ? 'badge-success' : 'badge-error'">{{ machine.status }}</span>
               <span v-if="machine.id !== 'local'" class="text-muted">{{ machine.host }}:{{ machine.port }}</span>
               <span class="text-muted">{{ machine.docker_host }}</span>
-              <span v-if="machine.id === 'local'" class="badge badge-primary">本机</span>
+              <span v-if="machine.id === 'local'" class="badge badge-primary">{{ t('common.local') }}</span>
               <span v-else class="badge" :class="machine.auth_method === 'password' ? 'badge-info' : 'badge-success'">{{ machine.auth_method === 'password' ? 'Password' : 'SSH Key' }}</span>
             </div>
           </div>
@@ -117,11 +122,11 @@
             <button @click="viewContainers(machine.id)" class="btn btn-sm btn-ghost">
               <Box :size="14" /> {{ t('machines.containers') }}
             </button>
-            <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
-              <Trash2 :size="14" /> Delete
-            </button>
+              <button @click="deleteMachine(machine.id)" class="btn btn-sm btn-ghost btn-danger-text" :disabled="machine.id === 'local'">
+                <Trash2 :size="14" /> {{ t('common.delete') }}
+              </button>
+            </div>
           </div>
-        </div>
       </div>
     </Transition>
 
@@ -239,6 +244,7 @@ import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useViewMode } from '@/composables/useViewMode'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 const router = useRouter()
 
@@ -302,10 +308,16 @@ const getStatusClass = (status: string) => {
 
 const refreshMachines = async () => {
   loading.value = true
+  const hasExistingMachines = machines.value.length > 0
   try {
-    machines.value = await remoteMachineService.list()
+    const freshMachines = await remoteMachineService.list()
+    machines.value = freshMachines
   } catch (e) {
-    console.error('Failed to load machines:', e)
+    if (!hasExistingMachines) {
+      console.error('Failed to load machines:', e)
+    } else {
+      console.error('Failed to refresh machines:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -461,12 +473,24 @@ const showToast = (message: string, type: string) => {
 }
 
 onMounted(() => refreshMachines())
+
+useRefreshBus(refreshMachines)
 </script>
 
 <style scoped>
 .machines-page {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-16) 0;
+  color: var(--color-text-weak);
+  font-size: var(--font-size-sm);
 }
 
 .empty-state {

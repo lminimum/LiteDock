@@ -34,12 +34,12 @@
       </template>
     </CollapsibleFilters>
 
-    <div v-if="loading" class="loading-state">
+    <div v-if="loading && images.length === 0" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
       <span>{{ t('common.refresh') }}...</span>
     </div>
 
-    <div v-else-if="error" class="error-state card text-center">
+    <div v-else-if="error && images.length === 0" class="error-state card text-center">
       <p class="mb-4">{{ error }}</p>
       <button @click="fetchImages" class="btn btn-secondary">{{ t('common.refresh') }}</button>
     </div>
@@ -151,6 +151,7 @@ import ImageCard from '@/components/image/ImageCard.vue'
 import ImagePullModal from '@/components/image/ImagePullModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 import { formatSize, formatDate } from '@/utils/format'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
@@ -237,25 +238,37 @@ const handleInspect = (image: Image) => {
 const fetchImages = async () => {
   loading.value = true
   error.value = ''
+  const hasExistingImages = images.value.length > 0
   try {
     const allMachines = await remoteMachineService.list()
     machines.value = allMachines
 
-    const results = await Promise.all(
-      allMachines.map(async (m) => {
-        try {
-          const imgs = await imageService.list(m.id)
-          return imgs.map(img => ({ ...img, machineId: m.id, machine: m.name }))
-        } catch {
-          return [] as ImageWithMachine[]
-        }
-      })
+    const imagesByKey = new Map(images.value.map((img) => [`${img.machineId}:${img.id}`, img] as const))
+
+    const results = await Promise.allSettled(
+      allMachines.map(async (m) => ({
+        machineId: m.id,
+        machine: m.name,
+        images: await imageService.list(m.id),
+      }))
     )
 
-    const allImages: ImageWithMachine[] = []
-    for (const imgs of results) {
-      allImages.push(...imgs)
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+
+      const { machineId, machine, images: machineImages } = result.value
+      for (const key of Array.from(imagesByKey.keys())) {
+        if (key.startsWith(`${machineId}:`)) {
+          imagesByKey.delete(key)
+        }
+      }
+
+      for (const img of machineImages) {
+        imagesByKey.set(`${machineId}:${img.id}`, { ...img, machineId, machine })
+      }
     }
+
+    const allImages = Array.from(imagesByKey.values())
 
     allImages.sort((a, b) => {
       if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
@@ -267,7 +280,11 @@ const fetchImages = async () => {
     images.value = allImages
   } catch (e) {
     const msg = e instanceof Error ? e.message : t('errors.loginFailed')
-    error.value = msg
+    if (!hasExistingImages) {
+      error.value = msg
+    } else {
+      console.error('Failed to refresh images:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -373,6 +390,8 @@ const onImagePulled = () => {
 }
 
 onMounted(() => fetchImages())
+
+useRefreshBus(fetchImages)
 </script>
 
 <style scoped>
