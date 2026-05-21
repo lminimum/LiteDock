@@ -180,7 +180,7 @@ func (h *AssistantHandler) executeToolCallAction(
 // processStreamToolCalls converts accumulated tool calls into action_required or action_result events (SSE).
 // If autonomous is true, safe (non-destructive) actions are executed immediately and results are streamed as action_result.
 // Dangerous actions always require confirmation.
-func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map[int]*streamToolCall, autonomous bool) {
+func (h *AssistantHandler) processStreamToolCalls(ctx context.Context, w *bufio.Writer, toolCalls map[int]*streamToolCall, autonomous bool, messages []assistant.ChatMessage) {
 	if len(toolCalls) == 0 {
 		return
 	}
@@ -207,6 +207,7 @@ func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map
 		}
 
 		if result != nil {
+			result = h.maybeEnrichLogActionResult(ctx, messages, actionName, params, result)
 			env := WSEventEnvelope{V: 1, Type: WSEventActionResult, Payload: mustMarshal(map[string]interface{}{
 				"action":   actionName,
 				"params":   params,
@@ -271,7 +272,7 @@ func parseToolCallArgs(args string) (map[string]string, string) {
 // processWSToolCalls sends accumulated tool calls as action_result or action_required events over WebSocket.
 // If autonomous is true, safe (non-destructive) actions are executed immediately and results are sent as action_result.
 // Dangerous actions always require confirmation.
-func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[int]*streamToolCall, autonomous bool) {
+func (h *AssistantHandler) processWSToolCalls(ctx context.Context, c *websocket.Conn, toolCalls map[int]*streamToolCall, autonomous bool, messages []assistant.ChatMessage) {
 	if len(toolCalls) == 0 {
 		return
 	}
@@ -298,6 +299,7 @@ func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[i
 		}
 
 		if result != nil {
+			result = h.maybeEnrichLogActionResult(ctx, messages, actionName, params, result)
 			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventActionResult, Payload: mustMarshal(map[string]interface{}{
 				"action":   actionName,
 				"params":   params,
@@ -356,7 +358,7 @@ func (h *AssistantHandler) emitAudit(userID, sessionID, actionName string, param
 type StreamRequest struct {
 	Messages   []assistant.ChatMessage `json:"messages"`
 	Tools      []assistant.ToolDef     `json:"tools,omitempty"`
-	Autonomous bool                   `json:"autonomous,omitempty"`
+	Autonomous bool                    `json:"autonomous,omitempty"`
 }
 
 // ExecuteRequest represents a request to execute a confirmed action.
@@ -380,7 +382,11 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 	settings := h.settingsStore.Get()
 	client := assistant.NewLLMClient(settings.APIEndpoint, settings.APIKey, settings.ModelName)
 
-	resp, err := client.StreamChatCompletion(c.Context(), req.Messages, req.Tools)
+	messages := req.Messages
+	if req.Autonomous {
+		messages = prependAgentSystemPrompt(messages)
+	}
+	resp, err := client.StreamChatCompletion(c.Context(), messages, req.Tools)
 	if err != nil {
 		h.l.Error(err, "AssistantHandler - Stream - StreamChatCompletion")
 		return errorResponse(c, fiber.StatusBadGateway, "LLM stream request failed: "+err.Error())
@@ -406,7 +412,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
-				h.processStreamToolCalls(w, toolCalls, req.Autonomous)
+				h.processStreamToolCalls(context.Background(), w, toolCalls, req.Autonomous, messages)
 				chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 				fmt.Fprintf(w, "data: %s\n\n", chunk)
 				w.Flush()
@@ -448,7 +454,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			}
 
 			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
-				h.processStreamToolCalls(w, toolCalls, req.Autonomous)
+				h.processStreamToolCalls(context.Background(), w, toolCalls, req.Autonomous, messages)
 				toolCalls = make(map[int]*streamToolCall)
 			}
 
@@ -466,7 +472,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			h.l.Error(scanner.Err(), "AssistantHandler - Stream - scanner")
 		}
 
-		h.processStreamToolCalls(w, toolCalls, req.Autonomous)
+		h.processStreamToolCalls(context.Background(), w, toolCalls, req.Autonomous, messages)
 
 		chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 		fmt.Fprintf(w, "data: %s\n\n", chunk)
@@ -501,7 +507,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		var req struct {
 			Messages   []assistant.ChatMessage `json:"messages"`
 			Tools      []assistant.ToolDef     `json:"tools,omitempty"`
-			Autonomous bool                   `json:"autonomous,omitempty"`
+			Autonomous bool                    `json:"autonomous,omitempty"`
 		}
 		if err := json.Unmarshal(msgBytes, &req); err != nil || len(req.Messages) == 0 {
 			c.WriteJSON(map[string]interface{}{"error": "invalid request: messages required"})
@@ -528,7 +534,11 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		settings := h.settingsStore.Get()
 		client := assistant.NewLLMClient(settings.APIEndpoint, settings.APIKey, settings.ModelName)
 
-		resp, err := client.StreamChatCompletion(ctx, req.Messages, req.Tools)
+		messages := req.Messages
+		if req.Autonomous {
+			messages = prependAgentSystemPrompt(messages)
+		}
+		resp, err := client.StreamChatCompletion(ctx, messages, req.Tools)
 		if err != nil {
 			c.WriteJSON(map[string]interface{}{"error": "LLM request failed: " + assistant.MapErrorToUserMessage(err)})
 			h.l.Error(err, "AssistantHandler - StreamWS - StreamChatCompletion")
@@ -549,7 +559,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
-				h.processWSToolCalls(c, toolCalls, req.Autonomous)
+				h.processWSToolCalls(ctx, c, toolCalls, req.Autonomous, messages)
 				c.WriteJSON(map[string]interface{}{"done": true})
 				doneSent = true
 				break
@@ -589,7 +599,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			}
 
 			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
-				h.processWSToolCalls(c, toolCalls, req.Autonomous)
+				h.processWSToolCalls(ctx, c, toolCalls, req.Autonomous, messages)
 				toolCalls = make(map[int]*streamToolCall)
 			}
 
@@ -604,7 +614,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			h.l.Error(scanner.Err(), "AssistantHandler - StreamWS - scanner")
 		}
 
-		h.processWSToolCalls(c, toolCalls, req.Autonomous)
+		h.processWSToolCalls(ctx, c, toolCalls, req.Autonomous, messages)
 
 		if !doneSent {
 			c.WriteJSON(map[string]interface{}{"done": true})

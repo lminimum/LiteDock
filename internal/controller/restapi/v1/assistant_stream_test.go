@@ -216,6 +216,55 @@ func newMockLLMToolCallServer(t *testing.T) *httptest.Server {
 	}))
 }
 
+func newMockLLMLogAnalysisServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	requestCount := 0
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		bodyBytes, _ := io.ReadAll(r.Body)
+		body := string(bodyBytes)
+
+		switch requestCount {
+		case 1:
+			require.Contains(t, body, `"stream":true`)
+			require.Contains(t, body, "autonomous mode")
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+
+			chunks := []string{
+				`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_logs","type":"function","function":{"name":"container","arguments":""}}]}}]}`,
+				`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"operation\":\"get_container_logs\",\"machine_id\":\"local\",\"container_id\":\"nginx\",\"tail\":\"20\"}"}}]}}]}`,
+				`data: {"choices":[{"finish_reason":"tool_calls"}]}`,
+				`data: [DONE]`,
+			}
+			for _, chunk := range chunks {
+				fmt.Fprintf(w, "%s\n\n", chunk)
+				if f, ok := w.(http.Flusher); ok {
+					f.Flush()
+				}
+			}
+
+		case 2:
+			require.Contains(t, body, "log analysis assistant")
+			require.Contains(t, body, "Markdown report")
+			require.Contains(t, body, "### Summary")
+			require.Contains(t, body, "ERROR database connection refused")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"choices": []map[string]interface{}{{
+					"message": map[string]interface{}{
+						"content": "### Summary\nThe logs show a database connection failure.\n\n### Key errors and warnings\n- `ERROR database connection refused`\n- `WARN retrying connection`\n\n### Likely cause\n- The backend service is unavailable.\n\n### Next steps\n1. Restart the dependent service.\n2. Recheck connectivity.",
+					},
+				}},
+			})
+
+		default:
+			require.FailNow(t, "unexpected extra LLM request")
+		}
+	}))
+}
+
 func TestStreamHandler_ToolCall_ActionRequired(t *testing.T) {
 	mockLLM := newMockLLMToolCallServer(t)
 	defer mockLLM.Close()
@@ -356,4 +405,92 @@ func TestStreamHandler_ToolCall_UnknownTool(t *testing.T) {
 	}
 	require.NoError(t, scanner.Err())
 	require.True(t, foundError, "expected error event for unknown tool")
+}
+
+type testLogAction struct{}
+
+func (a *testLogAction) Name() string        { return "container" }
+func (a *testLogAction) Description() string { return "log analysis action" }
+func (a *testLogAction) Params() []action.ParamDef {
+	return []action.ParamDef{
+		{Name: "operation", Type: "string", Required: true, Description: "operation"},
+		{Name: "machine_id", Type: "string", Required: true, Description: "machine"},
+		{Name: "container_id", Type: "string", Required: true, Description: "container"},
+		{Name: "tail", Type: "string", Required: false, Description: "tail"},
+	}
+}
+func (a *testLogAction) Validate(_ map[string]interface{}) error             { return nil }
+func (a *testLogAction) Destructive(_ map[string]interface{}) bool           { return false }
+func (a *testLogAction) ConfirmationMessage(_ map[string]interface{}) string { return "confirm logs" }
+func (a *testLogAction) Execute(_ context.Context, _ map[string]interface{}) (*action.ActionResult, error) {
+	return &action.ActionResult{
+		Success: true,
+		Message: "Container logs retrieved successfully",
+		Data: map[string]interface{}{
+			"logs": "INFO starting nginx\nERROR database connection refused\nWARN retrying connection\n",
+		},
+	}, nil
+}
+
+var _ action.Action = (*testLogAction)(nil)
+
+func TestStreamHandler_AutonomousLogAction_AnalyzesLogs(t *testing.T) {
+	mockLLM := newMockLLMLogAnalysisServer(t)
+	defer mockLLM.Close()
+
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	store := NewAISettingsStore(mockLLM.URL, "test-key", "test-model")
+
+	reg := action.NewActionRegistry()
+	require.NoError(t, reg.Register(&testLogAction{}))
+
+	handler := &AssistantHandler{
+		settingsStore: store,
+		registry:      reg,
+		l:             &testLogger{},
+	}
+
+	app.Post("/stream", handler.Stream)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"messages":   []assistant.ChatMessage{{Role: "user", Content: "check nginx logs"}},
+		"autonomous": true,
+	})
+
+	req := httptest.NewRequest("POST", "/stream", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	foundActionResult := false
+	foundDone := false
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimPrefix(line, "data: ")
+
+		var env WSEventEnvelope
+		if err := json.Unmarshal([]byte(data), &env); err == nil && env.V == 1 && env.Type == WSEventActionResult {
+			foundActionResult = true
+			var payload map[string]interface{}
+			require.NoError(t, json.Unmarshal(env.Payload, &payload))
+			require.Equal(t, "container", payload["action"])
+			require.Contains(t, fmt.Sprintf("%v", payload["message"]), "### Summary")
+			require.Contains(t, fmt.Sprintf("%v", payload["message"]), "database connection failure")
+			continue
+		}
+
+		var chunk streamChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err == nil && chunk.Done {
+			foundDone = true
+		}
+	}
+	require.NoError(t, scanner.Err())
+	require.True(t, foundActionResult, "expected action_result event")
+	require.True(t, foundDone, "expected done event")
 }
