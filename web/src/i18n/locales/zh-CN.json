@@ -72,6 +72,9 @@
     "start": "启动",
     "stop": "停止",
     "restart": "重启",
+    "forceStop": "强制停止",
+    "pause": "暂停",
+    "resume": "恢复",
     "delete": "删除",
     "logs": "日志",
     "terminal": "终端",
@@ -85,6 +88,8 @@
     "machine": "所属机器:",
     "createdAt": "创建时间:",
     "confirmDelete": "确定要删除这个容器吗？",
+    "confirmForceDelete": "此容器正在运行，是否强制删除？",
+    "confirmKill": "确定要立即强制停止此容器吗？未保存的数据可能会丢失。",
     "noContainers": "未找到容器"
   },
   "networks": {
@@ -455,6 +460,9 @@
     "start": "启动",
     "stop": "停止",
     "restart": "重启",
+    "forceStop": "强制停止",
+    "pause": "暂停",
+    "resume": "恢复",
     "allMachines": "所有机器",
     "images": "镜像",
     "volumes": "存储卷",

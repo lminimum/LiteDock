@@ -75,7 +75,7 @@
 
         <div class="container-actions">
           <button
-            v-if="container.status !== 'running'"
+            v-if="isStartable(container.status)"
             @click="startContainer(container.id)"
             class="btn btn-sm btn-secondary"
           >
@@ -97,6 +97,30 @@
           >
             <RotateCcw :size="14" />
             {{ t('containers.restart') }}
+          </button>
+          <button
+            v-if="container.status === 'running'"
+            @click="killContainer(container.id)"
+            class="btn btn-sm btn-ghost btn-danger-text"
+          >
+            <Ban :size="14" />
+            {{ t('containers.forceStop') }}
+          </button>
+          <button
+            v-if="container.status === 'running'"
+            @click="pauseContainer(container.id)"
+            class="btn btn-sm btn-secondary"
+          >
+            <Pause :size="14" />
+            {{ t('containers.pause') }}
+          </button>
+          <button
+            v-if="container.status === 'paused'"
+            @click="resumeContainer(container.id)"
+            class="btn btn-sm btn-secondary"
+          >
+            <Play :size="14" />
+            {{ t('containers.resume') }}
           </button>
           <button
             @click="selectContainerForLogs(container)"
@@ -189,6 +213,8 @@ import {
   Play,
   Square,
   RotateCcw,
+  Ban,
+  Pause,
   FileText,
   Trash2,
   Box,
@@ -238,6 +264,8 @@ const filteredContainers = computed(() => {
   return filtered
 })
 
+const isStartable = (status: RemoteContainer['status']) => ['stopped', 'exited', 'created'].includes(status)
+
 const getContainerStatusClass = (status: string) => {
   const classMap: Record<string, string> = {
     running: 'badge-success',
@@ -264,6 +292,20 @@ const refreshAll = async () => {
     ])
     machine.value = m
     containers.value = c
+
+    // Check if redirecting from elsewhere for logs or exec
+    const queryContainerId = route.query.containerId as string
+    const queryAction = route.query.action as string
+    if (queryContainerId) {
+      const targetContainer = c.find((con) => con.id === queryContainerId)
+      if (targetContainer) {
+        if (queryAction === 'exec') {
+          selectContainerForExec(targetContainer)
+        } else {
+          selectContainerForLogs(targetContainer)
+        }
+      }
+    }
 
     // Test connection and update status
     try {
@@ -353,13 +395,72 @@ const restartContainer = async (id: string) => {
   }
 }
 
-const removeContainer = async (id: string) => {
-  if (!confirm(t('containers.confirmDelete'))) return
+const killContainer = async (id: string) => {
+  if (!confirm(t('containers.confirmKill'))) return
   try {
-    await remoteMachineService.removeContainer(machineId, id)
+    await remoteMachineService.killContainer(machineId, id)
     await refreshAll()
   } catch (e) {
+    console.error('Failed to force stop container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to force stop container')
+  }
+}
+
+const pauseContainer = async (id: string) => {
+  try {
+    await remoteMachineService.pauseContainer(machineId, id)
+    await refreshAll()
+  } catch (e) {
+    console.error('Failed to pause container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to pause container')
+  }
+}
+
+const resumeContainer = async (id: string) => {
+  try {
+    await remoteMachineService.resumeContainer(machineId, id)
+    await refreshAll()
+  } catch (e) {
+    console.error('Failed to resume container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to resume container')
+  }
+}
+
+const removeContainer = async (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+
+  let force = false
+  if (container.status === 'running') {
+    if (!confirm(t('containers.confirmForceDelete'))) {
+      return
+    }
+    force = true
+  } else {
+    if (!confirm(t('containers.confirmDelete'))) {
+      return
+    }
+  }
+
+  try {
+    await remoteMachineService.removeContainer(machineId, id, force)
+    await refreshAll()
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e)
+    if (!force && (errorMsg.includes('running') || errorMsg.includes('stop the container') || errorMsg.includes('force remove'))) {
+      if (confirm(t('containers.confirmForceDelete'))) {
+        try {
+          await remoteMachineService.removeContainer(machineId, id, true)
+          await refreshAll()
+          return
+        } catch (retryErr) {
+          alert(retryErr instanceof Error ? retryErr.message : 'Failed to force delete container')
+          return
+        }
+      }
+    }
     console.error('Failed to remove container:', e)
+    alert(errorMsg)
   }
 }
 
