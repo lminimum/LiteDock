@@ -103,6 +103,7 @@ import { taskService } from '@/services/taskService'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { Task, RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 const route = useRoute()
 const router = useRouter()
@@ -117,7 +118,8 @@ const autoScroll = ref(true)
 let pollTimer: number | null = null
 
 const fetchTask = async () => {
-  if (!task.value) loading.value = true
+  const hasExistingTask = !!task.value
+  if (!hasExistingTask) loading.value = true
   try {
     const data = await taskService.get(taskId)
     task.value = data
@@ -133,8 +135,12 @@ const fetchTask = async () => {
       scrollToBottom()
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : t('common.error')
-    stopPolling()
+    if (!hasExistingTask) {
+      error.value = e instanceof Error ? e.message : t('common.error')
+      stopPolling()
+    } else {
+      console.error('Failed to refresh task:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -159,7 +165,7 @@ const getStatusBadgeClass = (status: Task['status']) => {
 }
 
 const getMachineName = (id: string) => {
-  if (id === 'local') return 'Local'
+  if (id === 'local') return t('common.local')
   const machine = machines.value.find(m => m.id === id)
   return machine ? machine.name : id
 }
@@ -206,6 +212,11 @@ watch(() => task.value?.logs, () => {
 onMounted(() => {
   fetchTask()
   fetchMachines()
+})
+
+useRefreshBus(() => {
+  void fetchTask()
+  void fetchMachines()
 })
 
 onUnmounted(() => {

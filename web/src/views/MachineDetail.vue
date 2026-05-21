@@ -236,6 +236,7 @@ import { remoteMachineService } from '@/services/remoteMachineService'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import type { RemoteMachine, RemoteContainer } from '@/types'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 const router = useRouter()
 const route = useRoute()
@@ -428,11 +429,16 @@ const confirmAction = async () => {
 
 const loadLogs = async () => {
   if (!selectedContainerId.value) return
+  const hadLogs = !!logs.value
   logsLoading.value = true
   try {
     logs.value = await remoteMachineService.getContainerLogs(machineId, selectedContainerId.value, logsTail.value)
   } catch (e) {
-    logs.value = `Error loading logs: ${e}`
+    if (!hadLogs) {
+      logs.value = `Error loading logs: ${e}`
+    } else {
+      console.error('Failed to refresh logs:', e)
+    }
   } finally {
     logsLoading.value = false
   }
@@ -549,6 +555,8 @@ watch(autoRefreshLogs, (val) => {
 onMounted(() => {
   refreshAll()
 })
+
+useRefreshBus(() => refreshAll({ preserveOnEmpty: true }))
 
 onUnmounted(() => {
   if (logsInterval) {

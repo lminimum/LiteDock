@@ -39,12 +39,12 @@
       </template>
     </CollapsibleFilters>
 
-    <div v-if="loading" class="loading-state">
+    <div v-if="loading && containers.length === 0" class="loading-state">
       <RefreshCw :size="24" class="spinning" />
       <span>{{ t('containers.refresh') }}...</span>
     </div>
 
-    <div v-else-if="error" class="error-state card text-center">
+    <div v-else-if="error && containers.length === 0" class="error-state card text-center">
       <p class="mb-4">{{ error }}</p>
       <button @click="refreshContainers" class="btn btn-secondary">{{ t('common.refresh') }}</button>
     </div>
@@ -178,6 +178,7 @@ import ContainerCard from '@/components/container/ContainerCard.vue'
 import ContainerCreateModal from '@/components/container/ContainerCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 import { useViewMode } from '@/composables/useViewMode'
 import { useMachineFilter } from '@/composables/useMachineFilter'
 
@@ -578,6 +579,8 @@ const onContainerCreated = (_container: { id: string; name: string; image: strin
 }
 
 onMounted(() => refreshContainers())
+
+useRefreshBus(() => refreshContainers({ preserveOnEmptyMachineIds: new Set(containers.value.map((container) => container.machineId)) }))
 </script>
 
 <style scoped>

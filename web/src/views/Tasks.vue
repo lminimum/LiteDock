@@ -32,7 +32,7 @@
       <span>{{ t('common.loading') }}...</span>
     </div>
 
-    <div v-else-if="error" class="error-state card text-center">
+    <div v-else-if="error && tasks.length === 0" class="error-state card text-center">
       <p class="mb-4 text-error">{{ error }}</p>
       <button @click="fetchTasks" class="btn btn-secondary">{{ t('common.refresh') }}</button>
     </div>
@@ -238,6 +238,7 @@ import { taskService } from '@/services/taskService'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import type { Task, RemoteMachine } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
@@ -255,17 +256,37 @@ let pollTimer: number | null = null
 const fetchTasks = async () => {
   loading.value = true
   error.value = ''
+  const hasExistingTasks = tasks.value.length > 0 || machines.value.length > 0
   try {
-    const [tasksData, machinesData] = await Promise.all([
+    const [tasksResult, machinesResult] = await Promise.allSettled([
       taskService.list(),
       remoteMachineService.list()
     ])
-    tasks.value = tasksData.sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    machines.value = machinesData
+
+    if (tasksResult.status === 'fulfilled') {
+      tasks.value = tasksResult.value.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    }
+
+    if (machinesResult.status === 'fulfilled') {
+      machines.value = machinesResult.value
+    }
+
+    const failure = tasksResult.status === 'rejected' ? tasksResult.reason : machinesResult.status === 'rejected' ? machinesResult.reason : null
+    if (failure) {
+      if (!hasExistingTasks) {
+        error.value = failure instanceof Error ? failure.message : t('common.error')
+      } else {
+        console.error('Failed to refresh tasks:', failure)
+      }
+    }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : t('common.error')
+    if (!hasExistingTasks) {
+      error.value = e instanceof Error ? e.message : t('common.error')
+    } else {
+      console.error('Failed to refresh tasks:', e)
+    }
   } finally {
     loading.value = false
   }
@@ -309,7 +330,7 @@ const getStatusBadgeClass = (status: Task['status']) => {
 }
 
 const getMachineName = (id: string) => {
-  if (id === 'local') return 'Local'
+  if (id === 'local') return t('common.local')
   const machine = machines.value.find(m => m.id === id)
   return machine ? machine.name : id
 }
@@ -338,6 +359,8 @@ onMounted(() => {
   fetchTasks()
   startPolling()
 })
+
+useRefreshBus(fetchTasks)
 
 onUnmounted(() => {
   stopPolling()
