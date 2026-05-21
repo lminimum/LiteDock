@@ -49,6 +49,7 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} hr ago",
     "daysAgo": "{n} day ago",
+    "noActivity": "No recent activity available",
     "containerStarted": "Container {name} started",
     "imagePulled": "Image {name} pulled",
     "containerStopped": "Container {name} stopped",
@@ -58,6 +59,9 @@
       "compose": "Compose Projects"
     },
     "composeProjects": "Compose Projects"
+  },
+  "app": {
+    "name": "LiteDock"
   },
   "containers": {
     "title": "Containers",
@@ -230,7 +234,9 @@
     "localDocker": "Local Docker",
     "remoteDocker": "Remote Docker",
     "remoteHost": "Remote Host Address",
+    "remoteHostPlaceholder": "tcp://remote-host:2375",
     "defaultRegistry": "Default Image Registry",
+    "defaultRegistryPlaceholder": "docker.io",
     "autoPrune": "Auto-prune unused images",
     "sessionTimeout": "Session Timeout (minutes)",
     "enableTwoFactor": "Enable two-factor authentication",
@@ -246,8 +252,11 @@
     "ai": {
       "title": "AI",
       "apiEndpoint": "API Endpoint",
+      "apiEndpointPlaceholder": "https://api.openai.com",
       "apiKey": "API Key",
-      "modelName": "Model Name"
+      "apiKeyPlaceholder": "sk-...",
+      "modelName": "Model Name",
+      "modelNamePlaceholder": "gpt-4o"
     }
   },
   "theme": {

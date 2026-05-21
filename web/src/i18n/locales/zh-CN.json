@@ -49,6 +49,7 @@
     "minutesAgo": "{n} 分钟前",
     "hoursAgo": "{n} 小时前",
     "daysAgo": "{n} 天前",
+    "noActivity": "暂无最近活动",
     "containerStarted": "容器 {name} 已启动",
     "imagePulled": "镜像 {name} 已拉取",
     "containerStopped": "容器 {name} 已停止",
@@ -58,6 +59,9 @@
       "compose": "编排项目"
     },
     "composeProjects": "编排项目"
+  },
+  "app": {
+    "name": "LiteDock"
   },
   "containers": {
     "title": "容器管理",
@@ -214,7 +218,9 @@
     "localDocker": "本地 Docker",
     "remoteDocker": "远程 Docker",
     "remoteHost": "远程主机地址",
+    "remoteHostPlaceholder": "tcp://remote-host:2375",
     "defaultRegistry": "默认镜像仓库",
+    "defaultRegistryPlaceholder": "docker.io",
     "autoPrune": "自动清理未使用的镜像",
     "sessionTimeout": "会话超时 (分钟)",
     "enableTwoFactor": "启用双因素认证",
@@ -230,8 +236,11 @@
     "ai": {
       "title": "AI",
       "apiEndpoint": "API 端点",
+      "apiEndpointPlaceholder": "https://api.openai.com",
       "apiKey": "API 密钥",
-      "modelName": "模型名称"
+      "apiKeyPlaceholder": "sk-...",
+      "modelName": "模型名称",
+      "modelNamePlaceholder": "gpt-4o"
     }
   },
   "theme": {

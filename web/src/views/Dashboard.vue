@@ -136,8 +136,8 @@
           <div class="status-list">
             <div class="status-item">
               <span class="status-label">{{ t('dashboard.dockerService') }}</span>
-              <span class="badge" :class="systemStatus.docker ? 'badge-success' : 'badge-error'">
-                {{ systemStatus.docker ? t('dashboard.online') : t('dashboard.offline') }}
+              <span class="badge" :class="getServiceStatusClass(systemStatus.docker)">
+                {{ getServiceStatusLabel(systemStatus.docker) }}
               </span>
             </div>
             <div class="status-item">
@@ -146,14 +146,14 @@
             </div>
             <div class="status-item">
               <span class="status-label">{{ t('dashboard.database') }}</span>
-              <span class="badge" :class="systemStatus.database ? 'badge-success' : 'badge-error'">
-                {{ systemStatus.database ? t('dashboard.online') : t('dashboard.offline') }}
+              <span class="badge" :class="getServiceStatusClass(systemStatus.database)">
+                {{ getServiceStatusLabel(systemStatus.database) }}
               </span>
             </div>
             <div class="status-item">
               <span class="status-label">{{ t('dashboard.messageQueue') }}</span>
-              <span class="badge" :class="systemStatus.messageQueue ? 'badge-success' : 'badge-error'">
-                {{ systemStatus.messageQueue ? t('dashboard.online') : t('dashboard.offline') }}
+              <span class="badge" :class="getServiceStatusClass(systemStatus.messageQueue)">
+                {{ getServiceStatusLabel(systemStatus.messageQueue) }}
               </span>
             </div>
           </div>
@@ -191,7 +191,7 @@
           <router-link to="/containers" class="view-all">{{ t('dashboard.viewAll') }}</router-link>
         </div>
         <div class="card-body">
-          <div class="activity-list">
+          <div v-if="recentActivities.length > 0" class="activity-list">
             <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
               <div class="activity-dot" :class="'activity-dot--' + activity.type"></div>
               <div class="activity-content">
@@ -200,6 +200,7 @@
               </div>
             </div>
           </div>
+          <p v-else class="activity-empty">{{ t('dashboard.noActivity') }}</p>
         </div>
       </div>
     </section>
@@ -226,6 +227,8 @@ import type { CubeData } from '@/components/dashboard/CubeArray.vue'
 import MinimalProgress from '@/components/dashboard/MinimalProgress.vue'
 import api from '@/utils/api'
 import { imageService } from '@/services/imageService'
+import { networkService } from '@/services/networkService'
+import { volumeService } from '@/services/volumeService'
 import { composeService } from '@/services/composeService'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { formatSize } from '@/utils/format'
@@ -233,6 +236,7 @@ import type { RemoteMachine } from '@/types'
 import { useChart } from '@/composables/useChart'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAuthStore } from '@/stores/auth'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
@@ -244,7 +248,11 @@ const stats = reactive({
 })
 
 const remoteMachines = ref<RemoteMachine[]>([])
-const systemStatus = reactive({ docker: true, database: true, messageQueue: true })
+const systemStatus = reactive({
+  docker: 'unknown' as 'online' | 'offline' | 'unknown',
+  database: 'unknown' as 'online' | 'offline' | 'unknown',
+  messageQueue: 'unknown' as 'online' | 'offline' | 'unknown',
+})
 
 // Cube Section
 const cubeData = computed<CubeData[]>(() => {
@@ -253,7 +261,7 @@ const cubeData = computed<CubeData[]>(() => {
   // Host machine — always first (hardcoded)
   cubes.push({ 
     id: 'local', 
-    name: 'Local Host', 
+    name: t('common.local'), 
     status: 'local' 
   })
   
@@ -317,21 +325,29 @@ const refreshStats = async () => {
   }
 
   try {
-    const images = await imageService.list('local')
-    stats.images.total = images.length
-    const totalSize = images.reduce((sum, img) => sum + (img.size || 0), 0)
-    stats.images.size = formatSize(totalSize)
-  } catch (e) {
-    console.error('Failed to fetch image stats:', e)
-  }
-
-  try {
     const machines = await remoteMachineService.list()
     remoteMachines.value = machines
+    const machineIds = Array.from(new Set(['local', ...machines.map((m) => m.id)]))
+
+    const imageResults = await Promise.all(machineIds.map(async (machineId) => imageService.list(machineId)))
+    const allImages = imageResults.flat()
+    stats.images.total = allImages.length
+    stats.images.size = formatSize(allImages.reduce((sum, img) => sum + (img.size || 0), 0))
+
+    const networkResults = await Promise.all(machineIds.map(async (machineId) => networkService.listNetworks(machineId)))
+    const allNetworks = networkResults.flat()
+    stats.networks.total = allNetworks.length
+    stats.networks.active = allNetworks.filter((network) => (network.containers?.length ?? 0) > 0).length
+
+    const volumeResults = await Promise.all(machineIds.map(async (machineId) => volumeService.listVolumes(machineId)))
+    const allVolumes = volumeResults.flat()
+    stats.volumes.total = allVolumes.length
+    stats.volumes.size = formatSize(allVolumes.reduce((sum, volume) => sum + (volume.size || 0), 0))
+
     let totalProjs = 0
     let runningProjs = 0
-    await Promise.all(machines.map(async (m) => {
-      const projs = await composeService.listProjects(m.id)
+    await Promise.all(machineIds.map(async (machineId) => {
+      const projs = await composeService.listProjects(machineId)
       totalProjs += projs.length
       runningProjs += projs.filter(p => p.status === 'running').length
     }))
@@ -342,13 +358,7 @@ const refreshStats = async () => {
   }
 }
 
-const recentActivities = ref([
-  { id: 1, type: 'container', title: t('dashboard.containerStarted', { name: 'web-server' }), time: new Date(Date.now() - 5 * 60 * 1000) },
-  { id: 2, type: 'container', title: t('dashboard.imagePulled', { name: 'nginx:latest' }), time: new Date(Date.now() - 15 * 60 * 1000) },
-  { id: 3, type: 'container', title: t('dashboard.containerStopped', { name: 'database' }), time: new Date(Date.now() - 30 * 60 * 1000) },
-  { id: 4, type: 'network', title: t('dashboard.networkCreated', { name: 'frontend-network' }), time: new Date(Date.now() - 45 * 60 * 1000) },
-  { id: 5, type: 'volume', title: t('dashboard.volumeDeleted', { name: 'data-volume' }), time: new Date(Date.now() - 60 * 60 * 1000) }
-])
+const recentActivities = ref<Array<{ id: number; type: 'container' | 'network' | 'volume'; title: string; time: Date }>>([])
 
 const formatTime = (time: Date) => {
   const now = new Date()
@@ -365,12 +375,24 @@ const formatTime = (time: Date) => {
   return t('dashboard.daysAgo', { n: days })
 }
 
-const createContainer = () => console.log('createContainer')
 const router = useRouter()
+const createContainer = () => router.push('/containers')
 const pullImage = () => router.push('/images')
-const createNetwork = () => console.log('createNetwork')
-const createVolume = () => console.log('createVolume')
+const createNetwork = () => router.push('/networks')
+const createVolume = () => router.push('/volumes')
 const goToOrchestration = () => router.push('/orchestration')
+
+const getServiceStatusClass = (status: 'online' | 'offline' | 'unknown') => {
+  if (status === 'online') return 'badge-success'
+  if (status === 'offline') return 'badge-error'
+  return 'badge-warning'
+}
+
+const getServiceStatusLabel = (status: 'online' | 'offline' | 'unknown') => {
+  if (status === 'online') return t('dashboard.online')
+  if (status === 'offline') return t('dashboard.offline')
+  return t('common.unknown')
+}
 
 onMounted(async () => {
   const hasHistory = await chart.loadHistory(api.get.bind(api))
@@ -380,6 +402,8 @@ onMounted(async () => {
   connectWs()
   refreshStats()
 })
+
+useRefreshBus(refreshStats)
 </script>
 
 <style scoped>

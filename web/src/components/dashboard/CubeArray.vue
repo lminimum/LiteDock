@@ -44,6 +44,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { t } from '@/i18n'
 
 export interface CubeData {
   id?: string
@@ -96,7 +97,7 @@ function cellAnimationDelay(index: number): number {
 
 function getCellName(cell: CubeData): string {
   if (cell.status === 'empty') return ''
-  return cell.name || (cell.status === 'local' ? 'Local Host' : 'Unknown Machine')
+  return cell.name || (cell.status === 'local' ? t('common.local') : t('common.unknown'))
 }
 
 function onCellMouseEnter(event: MouseEvent, index: number) {
