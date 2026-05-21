@@ -278,8 +278,13 @@ const refreshContainers = async () => {
       containersByMachine.set(`${container.machineId}:${container.id}`, container)
     }
 
+    const machinesToFetch = [
+      { id: LOCAL_MACHINE_ID, name: LOCAL_MACHINE_NAME },
+      ...allMachines,
+    ]
+
     const results = await Promise.all(
-      allMachines.map(async (m) => {
+      machinesToFetch.map(async (m) => {
         try {
           const conts = await remoteMachineService.listContainers(m.id)
           return conts.map((c) => normalizeContainer(c, m.id, m.name))
