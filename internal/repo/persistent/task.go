@@ -63,7 +63,7 @@ func (r *TaskRepo) Update(ctx context.Context, t *entity.Task) error {
 }
 
 func (r *TaskRepo) AppendLogs(ctx context.Context, id string, logs string) error {
-	query := `UPDATE tasks SET logs = logs || ?, updated_at = ? WHERE id = ?`
+	query := `UPDATE tasks SET logs = COALESCE(logs, '') || ?, updated_at = ? WHERE id = ?`
 	err := r.db.Exec(ctx, query, logs, time.Now(), id)
 	if err != nil {
 		return pkgErrors.Wrap(err, "TaskRepo.AppendLogs.Exec")
@@ -77,7 +77,7 @@ func (r *TaskRepo) List(ctx context.Context, limit, offset int) ([]entity.Task, 
 	if err != nil {
 		return nil, pkgErrors.Wrap(err, "TaskRepo.List.Query")
 	}
-	
+
 	scanner, ok := rowsInterface.(interface {
 		Next() bool
 		Scan(...any) error

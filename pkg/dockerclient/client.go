@@ -39,6 +39,9 @@ type Client interface {
 	ContainerStart(ctx context.Context, containerID string) error
 	ContainerStop(ctx context.Context, containerID string, timeout time.Duration) error
 	ContainerRestart(ctx context.Context, containerID string, timeout time.Duration) error
+	ContainerPause(ctx context.Context, containerID string) error
+	ContainerUnpause(ctx context.Context, containerID string) error
+	ContainerKill(ctx context.Context, containerID string) error
 	ContainerRemove(ctx context.Context, containerID string, force bool) error
 	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, containerName string) (*container.CreateResponse, error)
 	ContainerInspect(ctx context.Context, containerID string) (*container.InspectResponse, error)

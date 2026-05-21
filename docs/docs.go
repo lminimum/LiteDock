@@ -1417,6 +1417,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/machines/{id}/containers/{containerId}/kill": {
+            "post": {
+                "description": "Force stop a Docker container with SIGKILL",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "machines"
+                ],
+                "summary": "Kill a container",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container ID",
+                        "name": "containerId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/machines/{id}/containers/{containerId}/logs": {
             "get": {
                 "description": "Fetch Docker container logs",
@@ -1448,6 +1492,50 @@ const docTemplate = `{
                         "description": "Number of lines to fetch",
                         "name": "tail",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/machines/{id}/containers/{containerId}/pause": {
+            "post": {
+                "description": "Pause a running Docker container",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "machines"
+                ],
+                "summary": "Pause a container",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container ID",
+                        "name": "containerId",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1566,6 +1654,50 @@ const docTemplate = `{
                     "machines"
                 ],
                 "summary": "Stop a container",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container ID",
+                        "name": "containerId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/machines/{id}/containers/{containerId}/unpause": {
+            "post": {
+                "description": "Resume a paused Docker container",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "machines"
+                ],
+                "summary": "Resume a container",
                 "parameters": [
                     {
                         "type": "string",

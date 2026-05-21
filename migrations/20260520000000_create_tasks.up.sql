@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     payload TEXT,
     result TEXT,
     error TEXT,
-    logs TEXT,
+    logs TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );

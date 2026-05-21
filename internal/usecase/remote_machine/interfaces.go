@@ -23,6 +23,9 @@ type UseCaseInterface interface {
 	StartContainer(context.Context, string, string) error
 	StopContainer(context.Context, string, string) error
 	RestartContainer(context.Context, string, string) error
+	PauseContainer(context.Context, string, string) error
+	ResumeContainer(context.Context, string, string) error
+	KillContainer(context.Context, string, string) error
 	RemoveContainer(context.Context, string, string, bool) error
 	InspectContainer(context.Context, string, string) (interface{}, error)
 }
