@@ -159,11 +159,12 @@ import { stripShellChars } from '@/utils/sanitize'
 import { renderMarkdown } from '@/utils/markdown'
 import { useActionConfirmation } from '@/composables/useActionConfirmation'
 import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
+import { useAIChatStore } from '@/composables/useAIChatStore'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
-  status?: 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
+  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
 }
 
 interface QuickAction {
@@ -174,11 +175,17 @@ interface QuickAction {
 }
 
 const { t } = useI18n()
+const {
+  agentMode,
+  currentConversation,
+  bootstrap,
+} = useAIChatStore()
+
+bootstrap(t('assistant.greeting'))
 const isOpen = ref(false)
 const inputText = ref('')
-const messages = ref<ChatMessage[]>([])
+const messages = computed<ChatMessage[]>(() => currentConversation.value?.messages || [])
 const loading = ref(false)
-const agentMode = ref(localStorage.getItem('litdock-ai-agent-mode') === 'true')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
@@ -253,12 +260,12 @@ function computeInitialY(): number {
 
 // Quick action definitions
 const quickActions: QuickAction[] = [
-  { id: 'start-container', icon: markRaw(Play), label: 'Start Container', prompt: '启动一个容器' },
-  { id: 'check-logs', icon: markRaw(FileText), label: 'Check Logs', prompt: '查看最近的容器日志' },
-  { id: 'diagnose', icon: markRaw(Activity), label: 'Diagnose', prompt: '诊断容器状态' },
-  { id: 'deploy-web', icon: markRaw(Globe), label: 'Deploy Web', prompt: '部署一个web服务' },
-  { id: 'check-disk', icon: markRaw(HardDrive), label: 'Check Disk', prompt: '查看磁盘使用情况' },
-  { id: 'network-status', icon: markRaw(Network), label: 'Network Status', prompt: '查看网络状态' },
+  { id: 'start-container', icon: markRaw(Play), label: t('ai.quick.startContainer'), prompt: t('ai.prompts.startContainer') },
+  { id: 'check-logs', icon: markRaw(FileText), label: t('ai.quick.checkLogs'), prompt: t('ai.prompts.checkLogs') },
+  { id: 'diagnose', icon: markRaw(Activity), label: t('ai.quick.diagnose'), prompt: t('ai.prompts.diagnose') },
+  { id: 'deploy-web', icon: markRaw(Globe), label: t('ai.quick.deployWeb'), prompt: t('ai.prompts.deployWeb') },
+  { id: 'check-disk', icon: markRaw(HardDrive), label: t('ai.quick.checkDisk'), prompt: t('ai.prompts.checkDisk') },
+  { id: 'network-status', icon: markRaw(Network), label: t('ai.quick.network'), prompt: t('ai.prompts.network') },
 ]
 
 function runQuickAction(action: QuickAction): void {
@@ -400,19 +407,22 @@ async function sendMessage() {
   text = stripShellChars(text)
   if (!text) return
 
-  messages.value.push({ role: 'user', text })
+  const conv = currentConversation.value
+  if (!conv) return
+
+  conv.messages.push({ role: 'user', text })
   inputText.value = ''
   loading.value = true
   scrollToBottom()
 
   // Add placeholder for streaming assistant response
   const assistantMsg: ChatMessage = { role: 'assistant', text: '', status: 'executing' }
-  messages.value.push(assistantMsg)
-  const assistantMsgIdx = messages.value.length - 1
-  let currentMsg = messages.value[assistantMsgIdx]!
+  conv.messages.push(assistantMsg)
+  const assistantMsgIdx = conv.messages.length - 1
+  let currentMsg = conv.messages[assistantMsgIdx]!
 
   // Build messages payload excluding the placeholder just added
-  const apiMessages = messages.value
+  const apiMessages = conv.messages
     .slice(0, -1)
     .map(m => ({ role: m.role, content: m.text }))
 
@@ -624,7 +634,7 @@ function triggerActionConfirmation(
       }
     },
     () => {
-      if (pendingMessageIndex >= 0 && pendingMessageIndex < messages.value.length) {
+      if (pendingMessageIndex >= 0 && pendingMessageIndex < (messages.value.length || 0)) {
         const msg = messages.value[pendingMessageIndex]!
         msg.status = 'failed'
         msg.text = 'Action cancelled'
@@ -841,12 +851,12 @@ onUnmounted(() => {
 
 .message-assistant {
   align-self: flex-start;
-  background: var(--color-background-weak);
-  border: 1px solid var(--color-border-weak);
+  background: transparent;
+  border: none;
   color: var(--color-text);
-  padding: 6px 12px;
-  border-radius: 12px 12px 12px 2px;
-  max-width: 85%;
+  padding: 0;
+  border-radius: 0;
+  max-width: 100%;
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
@@ -883,6 +893,237 @@ onUnmounted(() => {
 .msg-status-agent {
   color: var(--color-accent);
 }
+
+/* ── Markdown rendering (ChatGPT-style) ──────────────────────── */
+
+.assistant-markdown {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* First/last child — no extra margins in tight containers */
+.assistant-markdown > :first-child { margin-top: 0; }
+.assistant-markdown > :last-child { margin-bottom: 0; }
+
+/* Headings — clear hierarchy with bottom borders */
+.assistant-markdown :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+  line-height: var(--line-height-tight);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.assistant-markdown h1 {
+  font-size: var(--font-size-xl);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-weak);
+}
+
+.assistant-markdown h2 {
+  font-size: var(--font-size-lg);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border-weak);
+}
+
+.assistant-markdown h3 { font-size: var(--font-size-base); }
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 { font-size: var(--font-size-sm); color: var(--color-text-weak); }
+
+/* Paragraphs — ChatGPT-style consistent spacing */
+.assistant-markdown p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.assistant-markdown p + p {
+  margin-top: var(--space-3);
+}
+
+/* Links */
+.assistant-markdown a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.assistant-markdown a:hover { color: var(--color-accent-hover); }
+
+/* Strong & Emphasis */
+.assistant-markdown strong {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+}
+
+.assistant-markdown em { font-style: italic; }
+
+/* Inline code — softer ChatGPT style */
+.assistant-markdown :not(pre) > code {
+  padding: 3px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: #e8e8e8;
+  background: #2d2d2d;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* Code blocks — clean, labeled container */
+.assistant-markdown pre {
+  position: relative;
+  margin: var(--space-3) 0;
+  padding: var(--space-4);
+  padding-top: var(--space-5);
+  background: #212121;
+  border: 1px solid var(--color-border-weak);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.assistant-markdown pre code {
+  display: block;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.7;
+  color: #e0e0e0;
+  background: transparent;
+  border: none;
+  white-space: pre;
+}
+
+/* Syntax highlighting — refined VS Code dark palette */
+.assistant-markdown pre .hljs-keyword   { color: #569cd6; }
+.assistant-markdown pre .hljs-string    { color: #ce9178; }
+.assistant-markdown pre .hljs-number    { color: #b5cea8; }
+.assistant-markdown pre .hljs-comment   { color: #6a9955; font-style: italic; }
+.assistant-markdown pre .hljs-function  { color: #dcdcaa; }
+.assistant-markdown pre .hljs-title     { color: #dcdcaa; }
+.assistant-markdown pre .hljs-params    { color: #9cdcfe; }
+.assistant-markdown pre .hljs-built_in  { color: #4ec9b0; }
+.assistant-markdown pre .hljs-literal   { color: #569cd6; }
+.assistant-markdown pre .hljs-type      { color: #4ec9b0; }
+.assistant-markdown pre .hljs-attr      { color: #9cdcfe; }
+.assistant-markdown pre .hljs-variable   { color: #9cdcfe; }
+.assistant-markdown pre .hljs-selector-tag { color: #569cd6; }
+.assistant-markdown pre .hljs-selector-class { color: #d7ba7d; }
+.assistant-markdown pre .hljs-property   { color: #9cdcfe; }
+.assistant-markdown pre .hljs-doctag     { color: #6a9955; }
+.assistant-markdown pre .hljs-meta       { color: #9b9b9b; }
+.assistant-markdown pre .hljs-name       { color: #569cd6; }
+.assistant-markdown pre .hljs-attribute  { color: #9cdcfe; }
+.assistant-markdown pre .hljs-symbol     { color: #ce9178; }
+.assistant-markdown pre .hljs-regexp     { color: #d16969; }
+.assistant-markdown pre .hljs-class      { color: #4ec9b0; }
+
+/* Lists — tighter, well-indented nesting */
+.assistant-markdown ul,
+.assistant-markdown ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+}
+
+.assistant-markdown li {
+  margin: var(--space-1) 0;
+  line-height: 1.6;
+}
+
+.assistant-markdown li > ul,
+.assistant-markdown li > ol {
+  margin: var(--space-1) 0 0;
+}
+
+.assistant-markdown ul { list-style-type: disc; }
+.assistant-markdown ul ul { list-style-type: circle; }
+.assistant-markdown ul ul ul { list-style-type: square; }
+.assistant-markdown ol { list-style-type: decimal; }
+.assistant-markdown ol ol { list-style-type: lower-alpha; }
+.assistant-markdown ol ol ol { list-style-type: lower-roman; }
+
+/* Task lists (GFM) */
+.assistant-markdown input[type='checkbox'] {
+  margin-right: var(--space-2);
+  accent-color: var(--color-accent);
+  width: 14px;
+  height: 14px;
+}
+
+/* Blockquote — ChatGPT style with italic */
+.assistant-markdown blockquote {
+  margin: var(--space-3) 0;
+  padding: var(--space-2) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-weak);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+}
+
+.assistant-markdown blockquote p {
+  margin: 0;
+  font-style: italic;
+}
+
+.assistant-markdown blockquote p + p {
+  margin-top: var(--space-2);
+}
+
+/* Tables — clean, readable */
+.assistant-markdown table {
+  width: 100%;
+  margin: var(--space-3) 0;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.assistant-markdown th,
+.assistant-markdown td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border: 1px solid var(--color-border-weak);
+}
+
+.assistant-markdown th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-strong);
+  background: var(--color-background-weak);
+}
+
+.assistant-markdown tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.assistant-markdown tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Horizontal rule */
+.assistant-markdown hr {
+  margin: var(--space-5) 0;
+  border: none;
+  border-top: 1px solid var(--color-border-weak);
+}
+
+/* Images */
+.assistant-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: var(--space-2) 0;
+  border: 1px solid var(--color-border-weak);
+}
+
+/* Del / Ins */
+.assistant-markdown del { opacity: 0.6; }
+.assistant-markdown ins { text-decoration: none; border-bottom: 1px solid var(--color-success); }
 
 /* ── Input area ────────────────────────────────────────────── */
 

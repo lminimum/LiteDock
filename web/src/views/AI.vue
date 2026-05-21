@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted, onMounted, markRaw, watch } from 'vue'
+import { ref, computed, nextTick, onUnmounted, onMounted, markRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Bot, Play, FileText, Activity, Globe, HardDrive, Network,
@@ -176,27 +176,13 @@ import {
 import api from '@/utils/api'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useActionConfirmation } from '@/composables/useActionConfirmation'
+import { DEFAULT_TITLE, useAIChatStore } from '@/composables/useAIChatStore'
 import { stripShellChars } from '@/utils/sanitize'
 import { renderMarkdown } from '@/utils/markdown'
 import ActionConfirmationModal from '@/components/ui/ActionConfirmationModal.vue'
 import type { Component } from 'vue'
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  text: string
-  status?: 'sending' | 'executing' | 'completed' | 'failed' | 'requires_confirmation' | 'autonomous_executed'
-  confirmationMessage?: string
-  actionName?: string
-  actionParams?: Record<string, string>
-}
-
-interface Conversation {
-  id: string
-  title: string
-  messages: ChatMessage[]
-  createdAt: number
-  updatedAt: number
-}
+type ChatMessage = import('@/composables/useAIChatStore').AIChatMessage
 
 interface QuickAction {
   id: string
@@ -205,11 +191,19 @@ interface QuickAction {
   prompt: string
 }
 
-const STORAGE_KEY = 'litdock-ai-conversations'
-const AGENT_MODE_KEY = 'litdock-ai-agent-mode'
-const DEFAULT_TITLE = 'New Chat'
-
 const { t } = useI18n()
+const {
+  conversations,
+  activeConversationId,
+  agentMode,
+  currentConversation,
+  bootstrap,
+  createConversation,
+  deleteConversation: removeConversation,
+  setActiveConversation,
+} = useAIChatStore()
+
+bootstrap(t('assistant.greeting'))
 
 /* ── State ────────────────────────────────────────────────── */
 
@@ -232,11 +226,8 @@ let pendingMessageIndex = -1
 
 const inputText = ref('')
 const loading = ref(false)
-const agentMode = ref(localStorage.getItem(AGENT_MODE_KEY) === 'true')
 const messagesRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
-const conversations = ref<Conversation[]>(loadConversations())
-const activeConversationId = ref<string>(getOrCreateActive())
 
 /* ── WebSocket ─────────────────────────────────────────────── */
 
@@ -258,59 +249,10 @@ const { ws, isConnected, connect: connectWS, disconnect: disconnectWS } = useWeb
   }
 })
 
-/* ── Persistence ──────────────────────────────────────────── */
-
-watch(agentMode, (val) => {
-  localStorage.setItem(AGENT_MODE_KEY, String(val))
-})
-
-function loadConversations(): Conversation[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
-
-function saveConversations(): void {
-  if (saveDebounceTimer) clearTimeout(saveDebounceTimer)
-  saveDebounceTimer = setTimeout(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations.value))
-  }, 300)
-}
-
-function getOrCreateActive(): string {
-  if (conversations.value.length === 0) {
-    return createConversation()
-  }
-  return conversations.value[0]!.id
-}
-
-function createConversation(): string {
-  const id = generateId()
-  conversations.value.unshift({
-    id,
-    title: DEFAULT_TITLE,
-    messages: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  })
-  saveConversations()
-  return id
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-}
-
 /* ── Computed ─────────────────────────────────────────────── */
 
 const currentMessages = computed<ChatMessage[]>(() => {
-  const conv = conversations.value.find(c => c.id === activeConversationId.value)
-  return conv ? conv.messages : []
+  return currentConversation.value?.messages || []
 })
 
 const quickActions = computed<QuickAction[]>(() => [
@@ -325,34 +267,20 @@ const quickActions = computed<QuickAction[]>(() => [
 /* ── Conversation actions ─────────────────────────────────── */
 
 function newChat(): void {
-  const id = createConversation()
-  activeConversationId.value = id
+  const id = createConversation(t('assistant.greeting'))
+  setActiveConversation(id)
   inputText.value = ''
   nextTick(() => inputRef.value?.focus())
 }
 
 function switchConversation(id: string): void {
   if (id === activeConversationId.value) return
-  activeConversationId.value = id
+  setActiveConversation(id)
   nextTick(scrollToBottom)
 }
 
 function deleteConversation(id: string): void {
-  const idx = conversations.value.findIndex(c => c.id === id)
-  if (idx === -1) return
-
-  conversations.value.splice(idx, 1)
-
-  if (id === activeConversationId.value) {
-    if (conversations.value.length > 0) {
-      const nextIdx = Math.min(idx, conversations.value.length - 1)
-      activeConversationId.value = conversations.value[nextIdx]!.id
-    } else {
-      activeConversationId.value = createConversation()
-    }
-  }
-
-  saveConversations()
+  removeConversation(id)
 }
 
 function formatTime(timestamp: number): string {
@@ -423,7 +351,7 @@ async function sendMessage(): Promise<void> {
   text = stripShellChars(text)
   if (!text) return
 
-  const conv = conversations.value.find(c => c.id === activeConversationId.value)
+  const conv = currentConversation.value
   if (!conv) return
 
   // Add user message
@@ -443,7 +371,6 @@ async function sendMessage(): Promise<void> {
   let currentMsg = conv.messages[assistantMsgIdx]!
 
   conv.updatedAt = Date.now()
-  saveConversations()
   scrollToBottom()
 
   // Build messages payload excluding the placeholder just added
@@ -531,7 +458,6 @@ async function sendMessage(): Promise<void> {
                 currentMsg.text += `\n**${actionName}** result:\n${formatActionResult(p)}`
                 currentMsg.status = 'autonomous_executed'
                 conv.updatedAt = Date.now()
-                saveConversations()
                 scrollToBottom()
                 break
               }
@@ -615,7 +541,6 @@ async function sendMessage(): Promise<void> {
     }
     loading.value = false
     conv.updatedAt = Date.now()
-    saveConversations()
     scrollToBottom()
   }
 }
@@ -645,7 +570,6 @@ function triggerActionConfirmation(
       const msg = conv.messages[pendingMessageIndex]!
       msg.status = 'executing'
       msg.text = t('assistant.response.thinking')
-      saveConversations()
 
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -665,7 +589,6 @@ function triggerActionConfirmation(
       } finally {
         pendingMessageIndex = -1
         conv.updatedAt = Date.now()
-        saveConversations()
         scrollToBottom()
       }
     },
@@ -676,7 +599,6 @@ function triggerActionConfirmation(
           const msg = conv.messages[pendingMessageIndex]!
           msg.status = 'failed'
           msg.text = 'Action cancelled'
-          saveConversations()
         }
       }
       pendingMessageIndex = -1
@@ -693,10 +615,7 @@ function handleCancel(): void {
 }
 
 onUnmounted(() => {
-  if (saveDebounceTimer) {
-    clearTimeout(saveDebounceTimer)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations.value))
-  }
+  disconnectWS()
 })
 
 onMounted(() => {
@@ -967,9 +886,12 @@ onMounted(() => {
 
 .msg-assistant {
   align-self: flex-start;
-  background: var(--color-background-strong);
+  background: transparent;
   color: var(--color-text);
-  border-bottom-left-radius: 4px;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  max-width: 100%;
 }
 
 /* ── Message status labels ─────────────────────────────────── */
