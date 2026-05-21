@@ -56,3 +56,27 @@ func TestTaskRepoAppendLogsHandlesNullLogColumn(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "first line\n", task.Logs)
 }
+
+func TestTaskRepoGetByIDAndListScanTaskStatus(t *testing.T) {
+	db := setupTaskTestDB(t)
+	defer db.Close()
+
+	repo := NewTaskRepo(db)
+	ctx := context.Background()
+	taskID := uuid.New().String()
+
+	err := db.Exec(ctx, `
+		INSERT INTO tasks (id, type, status, machine_id, payload, result, error, logs, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, taskID, "container.create", entity.TaskStatusPending, "machine-1", "payload", "", "", "")
+	require.NoError(t, err)
+
+	task, err := repo.GetByID(ctx, taskID)
+	require.NoError(t, err)
+	require.Equal(t, entity.TaskStatusPending, task.Status)
+
+	tasks, err := repo.List(ctx, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, tasks, 1)
+	require.Equal(t, entity.TaskStatusPending, tasks[0].Status)
+}
