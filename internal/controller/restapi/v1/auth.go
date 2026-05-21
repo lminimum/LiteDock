@@ -1,9 +1,12 @@
 package v1
 
 import (
+	stderrors "errors"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/config"
 	"github.com/lminimum/LiteDock/internal/usecase"
+	"github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
@@ -142,7 +145,9 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 
 	user, err := h.auth.GetCurrentUser(c.Context(), token)
 	if err != nil {
-		h.l.Error(err, "GetCurrentUser failed")
+		if !stderrors.Is(err, errors.ErrUserNotFound) && !stderrors.Is(err, errors.ErrInvalidToken) && !stderrors.Is(err, errors.ErrInvalidTokenClaims) && !stderrors.Is(err, errors.ErrUnexpectedSignMethod) {
+			h.l.Error(err, "GetCurrentUser failed")
+		}
 		return errorResponse(c, fiber.StatusUnauthorized, "Invalid or expired token")
 	}
 
