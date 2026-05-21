@@ -12,6 +12,7 @@
     "system": "系统",
     "docker": "Docker",
     "infrastructure": "基础设施",
+    "tasks": "任务队列",
     "ai": "AI"
   },
   "dashboard": {
@@ -71,16 +72,24 @@
     "start": "启动",
     "stop": "停止",
     "restart": "重启",
+    "forceStop": "强制停止",
+    "pause": "暂停",
+    "resume": "恢复",
     "delete": "删除",
     "logs": "日志",
     "terminal": "终端",
     "refresh": "刷新",
     "create": "创建容器",
+    "createModal": {
+      "cmdPlaceholder": "输入启动命令，例如：/app/main --port 8080"
+    },
     "image": "镜像:",
     "ports": "端口:",
     "machine": "所属机器:",
     "createdAt": "创建时间:",
     "confirmDelete": "确定要删除这个容器吗？",
+    "confirmForceDelete": "此容器正在运行，是否强制删除？",
+    "confirmKill": "确定要立即强制停止此容器吗？未保存的数据可能会丢失。",
     "noContainers": "未找到容器"
   },
   "networks": {
@@ -160,6 +169,31 @@
     "noContainers": "暂无容器",
     "loadingLogs": "加载日志中...",
     "noLogs": "暂无日志"
+  },
+  "tasks": {
+    "title": "任务队列",
+    "detailTitle": "Task Detail",
+    "searchPlaceholder": "搜索任务...",
+    "allStatuses": "所有状态",
+    "noTasks": "未找到任务",
+    "inProgress": "进行中的任务",
+    "history": "历史任务",
+    "noTasksInProgress": "暂无任务进行中",
+    "info": "任务信息",
+    "type": "类型",
+    "targetMachine": "目标机器",
+    "startTime": "开始时间",
+    "endTime": "完成时间",
+    "message": "提示信息",
+    "logs": "执行日志",
+    "autoScroll": "自动滚动",
+    "waitingLogs": "等待日志产生",
+    "status": {
+      "pending": "等待中",
+      "running": "执行中",
+      "completed": "已完成",
+      "failed": "已失败"
+    }
   },
   "settings": {
     "title": "系统设置",
@@ -400,6 +434,9 @@
     }
   },
   "common": {
+    "loading": "加载中",
+    "retry": "重试",
+    "copy": "复制",
     "menu": "菜单",
     "close": "关闭",
     "refresh": "刷新",
@@ -423,13 +460,18 @@
     "start": "启动",
     "stop": "停止",
     "restart": "重启",
+    "forceStop": "强制停止",
+    "pause": "暂停",
+    "resume": "恢复",
     "allMachines": "所有机器",
     "images": "镜像",
     "volumes": "存储卷",
     "containers": "容器",
     "networks": "网络",
     "machine": "机器",
-    "services": "服务"
+    "services": "服务",
+    "targetMachine": "目标机器",
+    "selectTargetMachine": "请选择目标机器"
   },
   "errors": {
     "loginFailed": "登录失败"

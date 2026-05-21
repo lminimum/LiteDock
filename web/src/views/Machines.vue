@@ -125,7 +125,7 @@
       </div>
     </Transition>
 
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+    <div v-if="showModal" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
           <h2>{{ editingMachine ? t('machines.editMachine') : t('machines.addMachine') }}</h2>

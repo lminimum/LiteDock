@@ -57,6 +57,18 @@ export const remoteMachineService = {
     await api.post(`/machines/${machineId}/containers/${containerId}/restart`)
   },
 
+  async pauseContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/pause`)
+  },
+
+  async resumeContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/unpause`)
+  },
+
+  async killContainer(machineId: string, containerId: string): Promise<void> {
+    await api.post(`/machines/${machineId}/containers/${containerId}/kill`)
+  },
+
   async removeContainer(machineId: string, containerId: string, force = false): Promise<void> {
     await api.delete(`/machines/${machineId}/containers/${containerId}`, { params: { force } })
   },
@@ -65,7 +77,7 @@ export const remoteMachineService = {
     return await api.get(`/machines/${machineId}/containers/${containerId}`)
   },
 
-  async createContainer(machineId: string, data: CreateContainerRequest): Promise<{ id: string; warnings: string[] }> {
+  async createContainer(machineId: string, data: CreateContainerRequest): Promise<{ taskId: string }> {
     return await api.post(`/machines/${machineId}/containers/create`, data)
   }
 }

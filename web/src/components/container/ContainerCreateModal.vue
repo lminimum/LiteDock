@@ -1,9 +1,28 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="visible" class="modal-overlay">
     <div class="card modal-card" @click.stop>
-      <h3 class="modal-title">Create Container</h3>
+      <div class="modal-header">
+        <h3 class="modal-title">Create Container</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          @click="$emit('close')"
+          :disabled="submitting"
+          aria-label="Close"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <form @submit.prevent="handleSubmit">
+        <TargetMachineSelect
+          v-model="selectedMachineId"
+          select-id="container-target-machine"
+          :options="machineOptions"
+          :disabled="submitting"
+          hint="Container will be created on the selected Docker host."
+        />
+
         <div class="form-field">
           <label class="form-label">Name</label>
           <input
@@ -101,12 +120,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { X } from 'lucide-vue-next'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import { t } from '@/i18n'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { RemoteMachine } from '@/types'
 
 const props = defineProps<{
   machineId: string
+  machines: RemoteMachine[]
   visible: boolean
 }>()
 
@@ -115,6 +139,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const router = useRouter()
 const name = ref('')
 const image = ref('')
 const cmdInput = ref('')
@@ -124,6 +149,13 @@ const volumesInput = ref('')
 const network = ref('')
 const error = ref('')
 const submitting = ref(false)
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -136,7 +168,13 @@ watch(() => props.visible, (val) => {
     network.value = ''
     error.value = ''
     submitting.value = false
+    selectedMachineId.value = props.machineId
   }
+})
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.visible) return
+  selectedMachineId.value = machineId
 })
 
 function parseLines(input: string): string[] {
@@ -152,6 +190,11 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
@@ -161,7 +204,7 @@ const handleSubmit = async () => {
     const ports = parseLines(portsInput.value)
     const volumes = parseLines(volumesInput.value)
 
-    const result = await remoteMachineService.createContainer(props.machineId, {
+    const result = await remoteMachineService.createContainer(selectedMachineId.value, {
       name: name.value.trim() || undefined,
       image: image.value.trim(),
       env: env.length > 0 ? env : undefined,
@@ -171,13 +214,8 @@ const handleSubmit = async () => {
       cmd,
     })
 
-    emit('created', {
-      id: result.id,
-      name: name.value.trim() || result.id.substring(0, 12),
-      image: image.value.trim(),
-      machineId: props.machineId,
-    })
     emit('close')
+    router.push(`/tasks/${result.taskId}`)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Failed to create container'
     error.value = msg
@@ -208,6 +246,17 @@ const handleSubmit = async () => {
   max-height: 90vh;
   overflow-y: auto;
   padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
 }
 
 .modal-title {

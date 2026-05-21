@@ -12,6 +12,7 @@
     "system": "System",
     "docker": "Docker",
     "infrastructure": "Infrastructure",
+    "tasks": "Tasks",
     "ai": "AI"
   },
   "dashboard": {
@@ -71,6 +72,9 @@
     "start": "Start",
     "stop": "Stop",
     "restart": "Restart",
+    "forceStop": "Force Stop",
+    "pause": "Pause",
+    "resume": "Resume",
     "delete": "Delete",
     "logs": "Logs",
     "terminal": "Terminal",
@@ -81,6 +85,8 @@
     "machine": "Machine:",
     "createdAt": "Created:",
     "confirmDelete": "Are you sure you want to delete this container?",
+    "confirmForceDelete": "This container is running. Do you want to force delete it?",
+    "confirmKill": "Force stop this container immediately? Unsaved work may be lost.",
     "noContainers": "No containers found",
     "createModal": {
       "title": "Create Container",
@@ -179,6 +185,31 @@
     "noContainers": "No containers",
     "loadingLogs": "Loading logs...",
     "noLogs": "No logs available"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "detailTitle": "Task Detail",
+    "searchPlaceholder": "Search tasks...",
+    "allStatuses": "All Statuses",
+    "noTasks": "No tasks found",
+    "inProgress": "In-Progress Tasks",
+    "history": "History Tasks",
+    "noTasksInProgress": "No tasks in progress",
+    "info": "Task Information",
+    "type": "Type",
+    "targetMachine": "Target Machine",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "message": "Message",
+    "logs": "Execution Logs",
+    "autoScroll": "Auto Scroll",
+    "waitingLogs": "Waiting for logs",
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
   },
   "settings": {
     "title": "System Settings",
@@ -419,6 +450,9 @@
     }
   },
   "common": {
+    "loading": "Loading",
+    "retry": "Retry",
+    "copy": "Copy",
     "menu": "Menu",
     "close": "Close",
     "refresh": "Refresh",
@@ -442,13 +476,18 @@
     "start": "Start",
     "stop": "Stop",
     "restart": "Restart",
+    "forceStop": "Force Stop",
+    "pause": "Pause",
+    "resume": "Resume",
     "allMachines": "All Machines",
     "images": "Images",
     "volumes": "Volumes",
     "containers": "Containers",
     "networks": "Networks",
     "machine": "Machine",
-    "services": "Services"
+    "services": "Services",
+    "targetMachine": "Target Machine",
+    "selectTargetMachine": "Select target machine"
   },
   "errors": {
     "loginFailed": "Login failed"

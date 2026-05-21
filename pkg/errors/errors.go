@@ -81,6 +81,7 @@ var (
 	ErrContainerExec        = errors.New("docker: container exec failed")
 	ErrNetworkNotFound      = errors.New("docker: network not found")
 	ErrNetworkHasContainers = errors.New("docker: network has active containers")
+	ErrImageInUse           = errors.New("docker: image is being used by a running container")
 	ErrVolumeNotFound       = errors.New("docker: volume not found")
 )
 
@@ -113,6 +114,7 @@ var HTTPStatusMap = map[error]int{
 	ErrUsernameExists:      http.StatusConflict,
 	ErrRemoteMachineExists: http.StatusConflict,
 	ErrAlreadyExists:       http.StatusConflict,
+	ErrImageInUse:          http.StatusConflict,
 
 	// Internal server errors -> 500
 	ErrDBURLRequired:      http.StatusInternalServerError,

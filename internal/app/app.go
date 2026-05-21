@@ -26,6 +26,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/usecase/image"
 	"github.com/lminimum/LiteDock/internal/usecase/network"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/internal/usecase/volume"
 	assistant_engine "github.com/lminimum/LiteDock/pkg/assistant/engine"
 	assistant_rules "github.com/lminimum/LiteDock/pkg/assistant/rules"
@@ -55,12 +56,15 @@ func Run(cfg *config.Config) {
 	userRepo := persistent.NewUserRepo(db)
 	containerRepo := persistent.NewContainerRepo(db)
 	remoteMachineRepo := persistent.NewRemoteMachineRepo(db)
+	taskRepo := persistent.NewTaskRepo(db)
 	systemMetricsRepo := persistent.NewSystemMetricsRepo(db)
 
 	// Auto-create local machine if not exists
 	initLocalMachine(l, remoteMachineRepo)
 
-	// Auth UseCase
+	// Task UseCase
+	taskUseCase := task.New(taskRepo, l)
+
 	authUseCase := auth.New(userRepo, l, cfg.Auth.JWTSecret)
 
 	// Container UseCase (placeholder for Docker management)
@@ -89,7 +93,7 @@ func Run(cfg *config.Config) {
 	composeUseCase := composeUseCase.NewComposeUseCase(composeRepo, remoteMachineRepo, cfg.Cache.ContainerTTL, composeDir, l)
 
 	// RemoteMachine UseCase
-	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, cfg.Cache.ContainerTTL, l)
+	remoteMachineUseCase := remote_machine.New(remoteMachineRepo, containerRepo, taskUseCase, cfg.Cache.ContainerTTL, l)
 
 	metricsCollector := collector.NewMetricsCollector(systemMetricsRepo, l, 2*time.Second)
 	go metricsCollector.Start()
@@ -146,7 +150,7 @@ func Run(cfg *config.Config) {
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, nlParserUseCase, faultDiagnosisUseCase, configRecommendUseCase, actionRegistry, settingsStore, assistantRateLimiter, mcpHandler, l)
+	dashboardHandler := restapi.NewRouter(httpServer.App, cfg, containerUseCase, authUseCase, remoteMachineUseCase, taskUseCase, systemMetricsRepo, networkUseCase, volumeUseCase, imageUseCase, composeUseCase, nlParserUseCase, faultDiagnosisUseCase, configRecommendUseCase, actionRegistry, settingsStore, assistantRateLimiter, mcpHandler, l)
 
 	// Start servers
 	httpServer.Start()

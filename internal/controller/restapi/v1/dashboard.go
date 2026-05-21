@@ -36,7 +36,7 @@ func NewDashboardRoutes(apiV1Group fiber.Router, uc remote_machine.UseCaseInterf
 		dashboard.Get("/stats", h.Stats)
 		dashboard.Get("/resources", h.Resources)
 		dashboard.Get("/resources/history", h.ResourcesHistory)
-		dashboard.Get("/resources/stream", websocket.New(h.ResourcesStreamWS))
+		dashboard.Get("/resources/stream", websocket.New(h.ResourcesStreamWS, websocket.Config{Origins: []string{"*"}}))
 	}
 
 	return h
@@ -87,6 +87,14 @@ func (h *DashboardHandler) Stats(c *fiber.Ctx) error {
 	})
 }
 
+// Resources handles GET /v1/dashboard/resources
+// @Summary Get current system resource metrics
+// @Description Get current CPU, memory, and disk usage metrics
+// @Tags dashboard
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /dashboard/resources [get]
 func (h *DashboardHandler) Resources(c *fiber.Ctx) error {
 	sm, err := systemmetrics.GetSystemMetrics()
 	if err != nil {
@@ -136,6 +144,13 @@ func (h *DashboardHandler) ResourcesHistory(c *fiber.Ctx) error {
 	return successResponse(c, data)
 }
 
+// ResourcesStreamWS handles GET /v1/dashboard/resources/stream
+// @Summary Stream system resource metrics
+// @Description WebSocket endpoint that streams current CPU, memory, and disk metrics every 2 seconds
+// @Tags dashboard
+// @Produce json
+// @Success 101 {string} string "Switching Protocols"
+// @Router /dashboard/resources/stream [get]
 func (h *DashboardHandler) ResourcesStreamWS(c *websocket.Conn) {
 	h.register(c)
 	defer h.unregister(c)

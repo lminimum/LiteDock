@@ -207,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Box,
@@ -232,6 +232,7 @@ import { formatSize } from '@/utils/format'
 import type { RemoteMachine } from '@/types'
 import { useChart } from '@/composables/useChart'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useAuthStore } from '@/stores/auth'
 
 const stats = reactive({
   containers: { total: 0, running: 0, stopped: 0 },
@@ -287,8 +288,11 @@ const currentDisk = computed<number>(() => {
 
 const getWsUrl = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  // Append current JWT token if authenticated to pass through websocket auth check
+  const authStore = useAuthStore()
+  const tokenParam = authStore.token ? `?token=${encodeURIComponent(authStore.token)}` : ''
   // Use Vite proxy (same host as page) so we don't hardcode backend port
-  return `${protocol}//${window.location.host}/v1/dashboard/resources/stream`
+  return `${protocol}//${window.location.host}/v1/dashboard/resources/stream${tokenParam}`
 }
 
 const { connect: connectWs } = useWebSocket({

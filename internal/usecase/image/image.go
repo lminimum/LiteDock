@@ -12,6 +12,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
+	pkgErrors "github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/logger"
 	"github.com/lminimum/LiteDock/pkg/sshclient"
 )
@@ -128,12 +129,29 @@ func (uc *ImageUseCase) Delete(ctx context.Context, machineID, imageID string) (
 
 	resp, err := cli.ImageRemove(ctx, imageID, dockerImage.RemoveOptions{})
 	if err != nil {
+		if isImageInUseError(err) {
+			return nil, fmt.Errorf(
+				"ImageUseCase.Delete - cli.ImageRemove: %w",
+				pkgErrors.Wrap(pkgErrors.ErrImageInUse, "stop or remove the running container that uses this image before deleting it"),
+			)
+		}
+
 		return nil, fmt.Errorf("ImageUseCase.Delete - cli.ImageRemove: %w", err)
 	}
 
 	_ = uc.imageRepo.DeleteByMachine(ctx, machineID)
 
 	return resp, nil
+}
+
+func isImageInUseError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "conflict: unable to delete") &&
+		strings.Contains(msg, "image is being used by running container")
 }
 
 // Prune removes unused Docker images on the specified machine.
@@ -162,17 +180,17 @@ func (uc *ImageUseCase) getDockerClient(ctx context.Context, machineID string) (
 		return uc.testDockerClient, nil
 	}
 
-	m, err := uc.remoteMachineRepo.GetByID(ctx, machineID)
-	if err != nil {
-		return nil, fmt.Errorf("ImageUseCase.getDockerClient - remoteMachineRepo.GetByID: %w", err)
-	}
-
-	if m.ID == localMachineID {
+	if machineID == localMachineID {
 		cli, err := dockerclient.NewLocalClient()
 		if err != nil {
 			return nil, fmt.Errorf("ImageUseCase.getDockerClient - dockerclient.NewLocalClient: %w", err)
 		}
 		return cli, nil
+	}
+
+	m, err := uc.remoteMachineRepo.GetByID(ctx, machineID)
+	if err != nil {
+		return nil, fmt.Errorf("ImageUseCase.getDockerClient - remoteMachineRepo.GetByID: %w", err)
 	}
 
 	sshCfg := uc.buildSSHConfig(m)

@@ -132,6 +132,9 @@ func (m *mockDockerClient) ContainerStop(_ context.Context, _ string, _ time.Dur
 func (m *mockDockerClient) ContainerRestart(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
+func (m *mockDockerClient) ContainerPause(_ context.Context, _ string) error          { return nil }
+func (m *mockDockerClient) ContainerUnpause(_ context.Context, _ string) error        { return nil }
+func (m *mockDockerClient) ContainerKill(_ context.Context, _ string) error           { return nil }
 func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ bool) error { return nil }
 func (m *mockDockerClient) ContainerInspect(_ context.Context, _ string) (*container.InspectResponse, error) {
 	return nil, nil

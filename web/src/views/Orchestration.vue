@@ -293,7 +293,8 @@
     <ComposeCreateModal
       v-if="showCreateModal && machines.length > 0"
       :show="showCreateModal"
-      :machine-id="machines[0]?.id ?? ''"
+      :machine-id="defaultCreateMachineId"
+      :machines="machines"
       :templates="templates"
       @close="showCreateModal = false"
       @created="onProjectCreated"
@@ -496,6 +497,11 @@ const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
   (p) => p.machineId,
   (p) => p.machineName,
 )
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return machines.value[0]?.id ?? ''
+})
 
 function statusBadgeClass(status: string): string {
   switch (status) {

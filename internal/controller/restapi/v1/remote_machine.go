@@ -10,13 +10,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 type RemoteMachineHandler struct {
-	uc remote_machine.UseCaseInterface
-	l  logger.Interface
-	v  *validator.Validate
+	uc   remote_machine.UseCaseInterface
+	task *task.UseCase
+	l    logger.Interface
+	v    *validator.Validate
 }
 
 // NewRemoteMachineRoutes
@@ -24,8 +26,8 @@ type RemoteMachineHandler struct {
 // @Tags machines
 // @Accept json
 // @Produce json
-func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseInterface, l logger.Interface) {
-	h := &RemoteMachineHandler{uc: rm, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseInterface, t *task.UseCase, l logger.Interface) {
+	h := &RemoteMachineHandler{uc: rm, task: t, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	machineGroup := apiV1Group.Group("/machines")
 	{
@@ -41,6 +43,9 @@ func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseIn
 		machineGroup.Post("/:id/containers/:containerId/start", h.StartContainer)
 		machineGroup.Post("/:id/containers/:containerId/stop", h.StopContainer)
 		machineGroup.Post("/:id/containers/:containerId/restart", h.RestartContainer)
+		machineGroup.Post("/:id/containers/:containerId/pause", h.PauseContainer)
+		machineGroup.Post("/:id/containers/:containerId/unpause", h.ResumeContainer)
+		machineGroup.Post("/:id/containers/:containerId/kill", h.KillContainer)
 		machineGroup.Delete("/:id/containers/:containerId", h.RemoveContainer)
 		machineGroup.Get("/:id/containers/:containerId", h.InspectContainer)
 		machineGroup.Post("/:id/containers/create", h.CreateContainer)
@@ -423,6 +428,75 @@ func (h *RemoteMachineHandler) RestartContainer(c *fiber.Ctx) error {
 	return successMessage(c, "Container restarted")
 }
 
+// PauseContainer - handles POST /v1/machines/:id/containers/:containerId/pause
+// @Summary Pause a container
+// @Description Pause a running Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/pause [post]
+func (h *RemoteMachineHandler) PauseContainer(c *fiber.Ctx) error {
+	id := c.Params("id")
+	containerID := c.Params("containerId")
+
+	err := h.uc.PauseContainer(c.Context(), id, containerID)
+	if err != nil {
+		h.l.Error(err, "PauseContainer failed")
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return successMessage(c, "Container paused")
+}
+
+// ResumeContainer - handles POST /v1/machines/:id/containers/:containerId/unpause
+// @Summary Resume a container
+// @Description Resume a paused Docker container
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/unpause [post]
+func (h *RemoteMachineHandler) ResumeContainer(c *fiber.Ctx) error {
+	id := c.Params("id")
+	containerID := c.Params("containerId")
+
+	err := h.uc.ResumeContainer(c.Context(), id, containerID)
+	if err != nil {
+		h.l.Error(err, "ResumeContainer failed")
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return successMessage(c, "Container resumed")
+}
+
+// KillContainer - handles POST /v1/machines/:id/containers/:containerId/kill
+// @Summary Kill a container
+// @Description Force stop a Docker container with SIGKILL
+// @Tags machines
+// @Produce json
+// @Param id path string true "Machine ID"
+// @Param containerId path string true "Container ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /machines/{id}/containers/{containerId}/kill [post]
+func (h *RemoteMachineHandler) KillContainer(c *fiber.Ctx) error {
+	id := c.Params("id")
+	containerID := c.Params("containerId")
+
+	err := h.uc.KillContainer(c.Context(), id, containerID)
+	if err != nil {
+		h.l.Error(err, "KillContainer failed")
+		return errorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return successMessage(c, "Container killed")
+}
+
 // RemoveContainer - handles DELETE /v1/machines/:id/containers/:containerId
 // @Summary Remove a container
 // @Description Delete a Docker container
@@ -553,8 +627,7 @@ func (h *RemoteMachineHandler) CreateContainer(c *fiber.Ctx) error {
 	}
 
 	return createdResponse(c, fiber.Map{
-		"id":       result.ID,
-		"warnings": result.Warnings,
+		"taskId": result,
 	})
 }
 

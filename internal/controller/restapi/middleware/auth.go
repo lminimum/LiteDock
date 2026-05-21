@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"net"
-	"net/url"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,64 +14,28 @@ import (
 // and stores user information in the Fiber context locals.
 func AuthRequired(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Skip WebSocket upgrade requests — validate via Origin + query param token
-		if c.Get("Upgrade") == "websocket" {
-			origin := c.Get("Origin")
-			if origin == "" {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-					"code": 403,
-					"msg":  "origin header required",
-				})
-			}
-
-			parsedURL, err := url.Parse(origin)
-			if err != nil {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-					"code": 403,
-					"msg":  "invalid origin",
-				})
-			}
-
-			host := parsedURL.Hostname()
-			serverHost := c.Hostname()
-			if h, _, splitErr := net.SplitHostPort(serverHost); splitErr == nil {
-				serverHost = h
-			}
-
-			allowed := false
-			for _, o := range []string{serverHost, "localhost", "127.0.0.1"} {
-				if host == o {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-					"code": 403,
-					"msg":  "origin not allowed",
-				})
-			}
-
-			// If token is provided, it must be valid (401 if invalid).
-			// If no token, allow access (backward compat with Dashboard WS).
+		// Skip WebSocket upgrade requests — validate the JWT token only.
+		if strings.ToLower(c.Get("Upgrade")) == "websocket" {
 			tokenString := c.Query("token")
-			if tokenString != "" {
-				token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-						return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-					}
-					return []byte(cfg.Auth.JWTSecret), nil
+			if tokenString == "" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"code": 401,
+					"msg":  "missing websocket token",
 				})
-				if err != nil || !token.Valid {
-					return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-						"code": 401,
-						"msg":  "invalid or expired token",
-					})
-				}
-				if claims, ok := token.Claims.(jwt.MapClaims); ok {
-					c.Locals("userID", claims["user_id"])
-					c.Locals("username", claims["username"])
-				}
+			}
+
+			token, err := parseJWT(tokenString, cfg.Auth.JWTSecret)
+			if err != nil || !token.Valid {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"code": 401,
+					"msg":  "invalid or expired token",
+				})
+			}
+			if !storeJWTClaims(c, token) {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"code": 401,
+					"msg":  "invalid token claims",
+				})
 			}
 
 			return c.Next()
@@ -90,13 +52,7 @@ func AuthRequired(cfg *config.Config) fiber.Handler {
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		// Parse and validate JWT (same logic as auth.go GetCurrentUser)
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(cfg.Auth.JWTSecret), nil
-		})
+		token, err := parseJWT(tokenString, cfg.Auth.JWTSecret)
 
 		if err != nil || !token.Valid {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -105,12 +61,39 @@ func AuthRequired(cfg *config.Config) fiber.Handler {
 			})
 		}
 
-		// Store user info in context
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Locals("userID", claims["user_id"])
-			c.Locals("username", claims["username"])
+		if !storeJWTClaims(c, token) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code": 401,
+				"msg":  "invalid token claims",
+			})
 		}
 
 		return c.Next()
 	}
+}
+
+func parseJWT(tokenString, secret string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+}
+
+func storeJWTClaims(c *fiber.Ctx, token *jwt.Token) bool {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return false
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+		return false
+	}
+
+	username, _ := claims["username"].(string)
+	c.Locals("userID", userID)
+	c.Locals("username", username)
+	return true
 }

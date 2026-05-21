@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
         '/v1': {
           target,
           changeOrigin: true,
+          xfwd: true,
           ws: true,
         },
       },

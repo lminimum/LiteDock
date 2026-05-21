@@ -75,6 +75,9 @@
               @start="startContainer"
               @stop="stopContainer"
               @restart="restartContainer"
+              @kill="killContainer"
+              @pause="pauseContainer"
+              @resume="resumeContainer"
               @logs="showLogs"
             />
           </div>
@@ -102,11 +105,23 @@
                 <button @click="handleInspect(container.id)" class="btn btn-sm btn-ghost">
                   <Info :size="14" /> {{ t('common.details') }}
                 </button>
-                <button v-if="container.status === 'stopped'" @click="startContainer(container.id)" class="btn btn-sm btn-ghost">
+                <button v-if="isStartable(container.status)" @click="startContainer(container.id)" class="btn btn-sm btn-ghost">
                   <Play :size="14" /> {{ t('common.start') }}
                 </button>
                 <button v-if="container.status === 'running'" @click="stopContainer(container.id)" class="btn btn-sm btn-ghost">
                   <Square :size="14" /> {{ t('common.stop') }}
+                </button>
+                <button v-if="container.status === 'running'" @click="restartContainer(container.id)" class="btn btn-sm btn-ghost">
+                  <RotateCcw :size="14" /> {{ t('common.restart') }}
+                </button>
+                <button v-if="container.status === 'running'" @click="killContainer(container.id)" class="btn btn-sm btn-ghost btn-danger-text">
+                  <Ban :size="14" /> {{ t('common.forceStop') }}
+                </button>
+                <button v-if="container.status === 'running'" @click="pauseContainer(container.id)" class="btn btn-sm btn-ghost">
+                  <Pause :size="14" /> {{ t('common.pause') }}
+                </button>
+                <button v-if="container.status === 'paused'" @click="resumeContainer(container.id)" class="btn btn-sm btn-ghost">
+                  <Play :size="14" /> {{ t('common.resume') }}
                 </button>
                 <button @click="showLogs(container.id)" class="btn btn-sm btn-ghost">
                   <FileText :size="14" /> {{ t('common.logs') }}
@@ -129,7 +144,8 @@
 
     <ContainerCreateModal
       :visible="showCreateModal"
-      :machine-id="selectedMachineId"
+      :machine-id="defaultCreateMachineId"
+      :machines="createMachineOptions"
       @close="showCreateModal = false"
       @created="onContainerCreated"
     />
@@ -138,7 +154,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { RefreshCw, Plus, Server, Info, Play, Square, FileText, Trash2 } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { RefreshCw, Plus, Server, Info, Play, Square, RotateCcw, Ban, Pause, FileText, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import api from '@/utils/api'
 import { remoteMachineService } from '@/services/remoteMachineService'
@@ -163,6 +180,26 @@ interface Container {
   machineId: string
 }
 
+interface ContainerApiItem {
+  id: string
+  name: string
+  image: string
+  status: Container['status']
+  ports?: string[] | null
+  createdAt?: string
+  created_at?: string
+  cached_at?: string
+  machineId?: string
+  machine_id?: string
+}
+
+interface ContainerListResponse {
+  containers?: ContainerApiItem[]
+}
+
+const LOCAL_MACHINE_ID = 'local'
+const LOCAL_MACHINE_NAME = 'Local'
+
 const loading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
@@ -171,7 +208,7 @@ const viewMode = useViewMode('containers')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 
-const selectedMachineId = ref('local')
+const router = useRouter()
 
 const containers = ref<Container[]>([])
 
@@ -200,43 +237,65 @@ const handleInspect = (id: string) => {
   }
 }
 
+const getMachineName = (machineId: string, machineNames: Map<string, string>) => {
+  const name = machineNames.get(machineId)
+  if (name) return name
+  return machineId === LOCAL_MACHINE_ID ? LOCAL_MACHINE_NAME : machineId
+}
+
+const normalizeContainer = (
+  container: ContainerApiItem,
+  machineId: string,
+  machineName: string,
+): Container => ({
+  id: container.id,
+  name: container.name,
+  image: container.image,
+  status: container.status,
+  ports: Array.isArray(container.ports) ? container.ports : [],
+  createdAt: container.createdAt || container.created_at || container.cached_at || '',
+  machine: machineName,
+  machineId,
+})
+
 const refreshContainers = async () => {
   loading.value = true
   error.value = ''
   try {
-    // Fetch local containers from /v1/containers
-    const localData: any = await api.get('/containers')
-    const localContainers: Container[] = (localData?.containers || []).map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      image: c.image,
-      status: c.status,
-      ports: c.ports || [],
-      createdAt: c.created_at || c.cached_at,
-      machine: 'Local',
-      machineId: 'local'
-    }))
-
-    // Fetch remote machine containers
     const allMachines = await remoteMachineService.list()
     machines.value = allMachines
 
-    const remoteContainers: Container[] = []
-    await Promise.all(
+    const machineNames = new Map(allMachines.map((m) => [m.id, m.name]))
+    machineNames.set(LOCAL_MACHINE_ID, machineNames.get(LOCAL_MACHINE_ID) || LOCAL_MACHINE_NAME)
+
+    const containersByMachine = new Map<string, Container>()
+    const cachedData = await api.get<ContainerListResponse>('/containers')
+
+    for (const c of cachedData?.containers || []) {
+      const machineId = c.machineId || c.machine_id || LOCAL_MACHINE_ID
+      const machineName = getMachineName(machineId, machineNames)
+      const container = normalizeContainer(c, machineId, machineName)
+      containersByMachine.set(`${container.machineId}:${container.id}`, container)
+    }
+
+    const results = await Promise.all(
       allMachines.map(async (m) => {
         try {
-          const containers = await remoteMachineService.listContainers(m.id)
-          for (const c of containers) {
-            remoteContainers.push({ ...c, machine: m.name, machineId: m.id })
-          }
-        } catch (e) {
-          // machine offline or unreachable
+          const conts = await remoteMachineService.listContainers(m.id)
+          return conts.map((c) => normalizeContainer(c, m.id, m.name))
+        } catch {
+          return [] as Container[]
         }
       })
     )
 
-    // Merge and sort
-    const allContainers = [...localContainers, ...remoteContainers]
+    for (const conts of results) {
+      for (const c of conts) {
+        containersByMachine.set(`${c.machineId}:${c.id}`, c)
+      }
+    }
+
+    const allContainers = Array.from(containersByMachine.values())
     allContainers.sort((a, b) => {
       if (a.machine !== b.machine) return a.machine.localeCompare(b.machine)
       return a.name.localeCompare(b.name)
@@ -270,28 +329,169 @@ const filteredContainers = computed(() => {
 
 const { machineFilter, machineOptions, groupedItems } = useMachineFilter(filteredContainers, machines, (c) => c.machineId, (c) => c.machine)
 
+const createMachineOptions = computed<RemoteMachine[]>(() => {
+  const options = [...machines.value]
+  if (!options.some((machine) => machine.id === LOCAL_MACHINE_ID)) {
+    options.unshift({
+      id: LOCAL_MACHINE_ID,
+      name: LOCAL_MACHINE_NAME,
+      host: 'localhost',
+      port: 0,
+      username: '',
+      auth_method: 'password',
+      docker_host: '',
+      status: 'unknown',
+      created_at: '',
+      updated_at: '',
+    })
+  }
+  return options
+})
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return createMachineOptions.value[0]?.id ?? LOCAL_MACHINE_ID
+})
+
+const isStartable = (status: Container['status']) => ['stopped', 'exited', 'created'].includes(status)
 
 const startContainer = async (id: string) => {
   const container = containers.value.find(c => c.id === id)
-  if (container) container.status = 'running'
+  if (!container) return
+  const oldStatus = container.status
+  container.status = 'running'
+  try {
+    await remoteMachineService.startContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to start container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to start container')
+  }
 }
 
 const stopContainer = async (id: string) => {
   const container = containers.value.find(c => c.id === id)
-  if (container) container.status = 'stopped'
+  if (!container) return
+  const oldStatus = container.status
+  container.status = 'stopped'
+  try {
+    await remoteMachineService.stopContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to stop container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to stop container')
+  }
 }
 
 const restartContainer = async (id: string) => {
-  console.log('restart container:', id)
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  const oldStatus = container.status
+  container.status = 'restarting'
+  try {
+    await remoteMachineService.restartContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to restart container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to restart container')
+  }
+}
+
+const killContainer = async (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  if (!confirm(t('containers.confirmKill'))) return
+
+  const oldStatus = container.status
+  container.status = 'stopped'
+  try {
+    await remoteMachineService.killContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to force stop container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to force stop container')
+  }
+}
+
+const pauseContainer = async (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  const oldStatus = container.status
+  container.status = 'paused'
+  try {
+    await remoteMachineService.pauseContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to pause container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to pause container')
+  }
+}
+
+const resumeContainer = async (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  const oldStatus = container.status
+  container.status = 'running'
+  try {
+    await remoteMachineService.resumeContainer(container.machineId, id)
+    await refreshContainers()
+  } catch (e) {
+    container.status = oldStatus
+    console.error('Failed to resume container:', e)
+    alert(e instanceof Error ? e.message : 'Failed to resume container')
+  }
 }
 
 const showLogs = (id: string) => {
-  console.log('show logs:', id)
+  const container = containers.value.find(c => c.id === id)
+  if (container) {
+    router.push({
+      path: `/machines/${container.machineId}`,
+      query: { containerId: id, action: 'logs' }
+    })
+  }
 }
 
 const deleteContainer = async (id: string) => {
-  if (confirm(t('containers.confirmDelete'))) {
-    containers.value = containers.value.filter(c => c.id !== id)
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+
+  let force = false
+  if (container.status === 'running') {
+    if (!confirm(t('containers.confirmForceDelete'))) {
+      return
+    }
+    force = true
+  } else {
+    if (!confirm(t('containers.confirmDelete'))) {
+      return
+    }
+  }
+
+  try {
+    await remoteMachineService.removeContainer(container.machineId, id, force)
+    await refreshContainers()
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e)
+    if (!force && (errorMsg.includes('running') || errorMsg.includes('stop the container') || errorMsg.includes('force remove'))) {
+      if (confirm(t('containers.confirmForceDelete'))) {
+        try {
+          await remoteMachineService.removeContainer(container.machineId, id, true)
+          await refreshContainers()
+          return
+        } catch (retryErr) {
+          alert(retryErr instanceof Error ? retryErr.message : 'Failed to force delete container')
+          return
+        }
+      }
+    }
+    console.error('Failed to delete container:', e)
+    alert(errorMsg)
   }
 }
 

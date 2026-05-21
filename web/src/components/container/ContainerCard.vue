@@ -29,15 +29,15 @@
     <div class="card-actions">
       <button @click="emit('inspect', container.id)" class="btn btn-sm btn-ghost">
         <Info :size="14" />
-        Details
+        {{ t('common.details') }}
       </button>
       <button
-        v-if="container.status === 'stopped'"
+        v-if="isStartable"
         @click="emit('start', container.id)"
         class="btn btn-sm btn-secondary"
       >
         <Play :size="14" />
-        Start
+        {{ t('containers.start') }}
       </button>
       <button
         v-if="container.status === 'running'"
@@ -45,7 +45,7 @@
         class="btn btn-sm btn-secondary"
       >
         <Square :size="14" />
-        Stop
+        {{ t('containers.stop') }}
       </button>
       <button
         v-if="container.status === 'running'"
@@ -53,15 +53,39 @@
         class="btn btn-sm btn-secondary"
       >
         <RotateCcw :size="14" />
-        Restart
+        {{ t('containers.restart') }}
+      </button>
+      <button
+        v-if="container.status === 'running'"
+        @click="emit('kill', container.id)"
+        class="btn btn-sm btn-ghost btn-danger-text"
+      >
+        <Ban :size="14" />
+        {{ t('containers.forceStop') }}
+      </button>
+      <button
+        v-if="container.status === 'running'"
+        @click="emit('pause', container.id)"
+        class="btn btn-sm btn-secondary"
+      >
+        <Pause :size="14" />
+        {{ t('containers.pause') }}
+      </button>
+      <button
+        v-if="container.status === 'paused'"
+        @click="emit('resume', container.id)"
+        class="btn btn-sm btn-secondary"
+      >
+        <Play :size="14" />
+        {{ t('containers.resume') }}
       </button>
       <button @click="emit('logs', container.id)" class="btn btn-sm btn-ghost">
         <FileText :size="14" />
-        Logs
+        {{ t('containers.logs') }}
       </button>
       <button @click="emit('delete', container.id)" class="btn btn-sm btn-ghost btn-danger-text">
         <Trash2 :size="14" />
-        Delete
+        {{ t('containers.delete') }}
       </button>
     </div>
   </div>
@@ -69,7 +93,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Info, Play, Square, RotateCcw, FileText, Trash2 } from 'lucide-vue-next'
+import { Info, Play, Square, RotateCcw, Ban, Pause, FileText, Trash2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 interface ContainerCardProps {
   id: string
@@ -91,9 +116,14 @@ const emit = defineEmits<{
   start: [id: string]
   stop: [id: string]
   restart: [id: string]
+  kill: [id: string]
+  pause: [id: string]
+  resume: [id: string]
   logs: [id: string]
   delete: [id: string]
 }>()
+
+const isStartable = computed(() => ['stopped', 'exited', 'created'].includes(props.container.status))
 
 const statusText = computed(() => {
   const map: Record<string, string> = {

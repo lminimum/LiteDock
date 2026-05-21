@@ -434,13 +434,20 @@ func (uc *ComposeUseCase) getDockerClient(ctx context.Context, machineID string)
 		return uc.testDockerComposeClient, nil
 	}
 
+	if machineID == localMachineID {
+		m := &entity.RemoteMachine{
+			ID:         localMachineID,
+			Name:       "Local",
+			Host:       "localhost",
+			DockerHost: "",
+			Status:     "online",
+		}
+		return dockerclient.ClientForMachine(ctx, *m, nil)
+	}
+
 	m, err := uc.remoteMachineRepo.GetByID(ctx, machineID)
 	if err != nil {
 		return nil, fmt.Errorf("ComposeUseCase.getDockerClient - remoteMachineRepo.GetByID: %w", err)
-	}
-
-	if m.ID == localMachineID {
-		return dockerclient.ClientForMachine(ctx, *m, nil)
 	}
 
 	sshCfg := uc.buildSSHConfig(m)

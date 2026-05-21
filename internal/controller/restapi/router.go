@@ -16,6 +16,7 @@ import (
 	"github.com/lminimum/LiteDock/internal/repo"
 	"github.com/lminimum/LiteDock/internal/usecase"
 	"github.com/lminimum/LiteDock/internal/usecase/assistant"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
@@ -27,7 +28,7 @@ import (
 // @version     1.0
 // @host        localhost:8080
 // @BasePath    /v1
-func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, imageUseCase usecase.Image, composeUseCase usecase.Compose, parser *assistant.NLParserUseCase, diagnosis *assistant.FaultDiagnosisUseCase, recommend *assistant.ConfigRecommendUseCase, actionRegistry *action.ActionRegistry, settingsStore *v1.AISettingsStore, rateLimiter *assistant.RateLimiter, mcpHandler *mcp.Handler, l logger.Interface) *v1.DashboardHandler {
+func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, auth usecase.Auth, remoteMachine *remote_machine.UseCase, taskUseCase *task.UseCase, metricsRepo repo.SystemMetricsRepo, networkUseCase usecase.Network, volumeUseCase usecase.Volume, imageUseCase usecase.Image, composeUseCase usecase.Compose, parser *assistant.NLParserUseCase, diagnosis *assistant.FaultDiagnosisUseCase, recommend *assistant.ConfigRecommendUseCase, actionRegistry *action.ActionRegistry, settingsStore *v1.AISettingsStore, rateLimiter *assistant.RateLimiter, mcpHandler *mcp.Handler, l logger.Interface) *v1.DashboardHandler {
 	// Options
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
@@ -69,7 +70,8 @@ func NewRouter(app *fiber.App, cfg *config.Config, container usecase.Container, 
 		v1.NewVolumeRoutes(protected, volumeUseCase, l)
 		v1.NewImageRoutes(protected, imageUseCase, l)
 		v1.NewComposeRoutes(protected, composeUseCase, l)
-		v1.NewRemoteMachineRoutes(protected, remoteMachine, l)
+		v1.NewRemoteMachineRoutes(protected, remoteMachine, taskUseCase, l)
+		v1.NewTaskRoutes(protected, taskUseCase, l)
 		v1.NewAssistantRoutes(protected, parser, diagnosis, recommend, settingsStore, actionRegistry, rateLimiter, l)
 		v1.NewSettingsRoutes(protected, settingsStore, l)
 		dashboardHandler = v1.NewDashboardRoutes(protected, remoteMachine, container, metricsRepo, l)

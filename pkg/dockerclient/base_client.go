@@ -172,6 +172,30 @@ func (c *baseClient) ContainerRestart(ctx context.Context, containerID string, t
 	return nil
 }
 
+func (c *baseClient) ContainerPause(ctx context.Context, containerID string) error {
+	err := c.docker.ContainerPause(ctx, containerID)
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "ContainerPause."+err.Error())
+	}
+	return nil
+}
+
+func (c *baseClient) ContainerUnpause(ctx context.Context, containerID string) error {
+	err := c.docker.ContainerUnpause(ctx, containerID)
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "ContainerUnpause."+err.Error())
+	}
+	return nil
+}
+
+func (c *baseClient) ContainerKill(ctx context.Context, containerID string) error {
+	err := c.docker.ContainerKill(ctx, containerID, "SIGKILL")
+	if err != nil {
+		return errors.Wrap(errors.ErrDockerOperation, "ContainerKill."+err.Error())
+	}
+	return nil
+}
+
 func (c *baseClient) ContainerRemove(ctx context.Context, containerID string, force bool) error {
 	options := container.RemoveOptions{Force: force}
 	err := c.docker.ContainerRemove(ctx, containerID, options)

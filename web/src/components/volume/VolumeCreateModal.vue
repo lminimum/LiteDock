@@ -1,9 +1,28 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="visible" class="modal-overlay">
     <div class="card modal-card" @click.stop>
-      <h3 class="modal-title">Create Volume</h3>
+      <div class="modal-header">
+        <h3 class="modal-title">Create Volume</h3>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          @click="$emit('close')"
+          :disabled="submitting"
+          aria-label="Close"
+        >
+          <X :size="16" />
+        </button>
+      </div>
 
       <form @submit.prevent="handleSubmit">
+        <TargetMachineSelect
+          v-model="selectedMachineId"
+          select-id="volume-target-machine"
+          :options="machineOptions"
+          :disabled="submitting"
+          hint="Volume will be created on the selected Docker host."
+        />
+
         <div class="form-field">
           <label class="form-label">Name</label>
           <input
@@ -46,12 +65,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { X } from 'lucide-vue-next'
 import { volumeService } from '@/services/volumeService'
-import type { Volume } from '@/types'
+import TargetMachineSelect from '@/components/ui/TargetMachineSelect.vue'
+import type { RemoteMachine, Volume } from '@/types'
 
 const props = defineProps<{
   machineId: string
+  machines: RemoteMachine[]
   visible: boolean
 }>()
 
@@ -66,6 +88,13 @@ const name = ref('')
 const driver = ref('local')
 const error = ref('')
 const submitting = ref(false)
+const selectedMachineId = ref(props.machineId)
+
+const machineOptions = computed(() => props.machines.map((machine) => ({
+  value: machine.id,
+  label: machine.name,
+  status: machine.status,
+})))
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -73,7 +102,13 @@ watch(() => props.visible, (val) => {
     driver.value = 'local'
     error.value = ''
     submitting.value = false
+    selectedMachineId.value = props.machineId
   }
+})
+
+watch(() => props.machineId, (machineId) => {
+  if (!props.visible) return
+  selectedMachineId.value = machineId
 })
 
 const handleSubmit = async () => {
@@ -82,11 +117,16 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!selectedMachineId.value) {
+    error.value = 'Target machine is required'
+    return
+  }
+
   error.value = ''
   submitting.value = true
 
   try {
-    const volume = await volumeService.createVolume(props.machineId, {
+    const volume = await volumeService.createVolume(selectedMachineId.value, {
       name: name.value.trim(),
       driver: driver.value
     })
@@ -120,6 +160,32 @@ const handleSubmit = async () => {
   max-width: 420px;
   width: 100%;
   padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
+}
+
+.modal-title {
+  margin-bottom: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.modal-header .modal-title {
+  margin-bottom: 0;
 }
 
 .modal-title {
