@@ -6,6 +6,10 @@ import type {
   RemoteContainer
 } from '@/types'
 
+interface ListContainersResponse {
+  containers?: RemoteContainer[]
+}
+
 export const remoteMachineService = {
   async list(): Promise<RemoteMachine[]> {
     return await api.get('/machines')
@@ -32,7 +36,8 @@ export const remoteMachineService = {
   },
 
   async listContainers(machineId: string): Promise<RemoteContainer[]> {
-    return await api.get(`/machines/${machineId}/containers`)
+    const res = await api.get<ListContainersResponse>(`/machines/${machineId}/containers`)
+    return res.containers ?? []
   },
 
   async getContainerLogs(machineId: string, containerId: string, tail = '100'): Promise<string> {

@@ -149,6 +149,17 @@
       @close="showCreateModal = false"
       @created="onContainerCreated"
     />
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -166,6 +177,7 @@ import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import ContainerCard from '@/components/container/ContainerCard.vue'
 import ContainerCreateModal from '@/components/container/ContainerCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useViewMode } from '@/composables/useViewMode'
 import { useMachineFilter } from '@/composables/useMachineFilter'
 
@@ -197,6 +209,10 @@ interface ContainerListResponse {
   containers?: ContainerApiItem[]
 }
 
+interface RefreshContainersOptions {
+  preserveOnEmptyMachineIds?: Set<string>
+}
+
 const LOCAL_MACHINE_ID = 'local'
 const LOCAL_MACHINE_NAME = 'Local'
 
@@ -207,6 +223,16 @@ const statusFilter = ref('')
 const viewMode = useViewMode('containers')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'kill' | 'delete'
+  id: string
+  force: boolean
+} | null>(null)
+const confirmBusy = ref(false)
 
 const router = useRouter()
 
@@ -237,6 +263,52 @@ const handleInspect = (id: string) => {
   }
 }
 
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openKillConfirm = (id: string) => {
+  confirmState.value = {
+    title: t('containers.forceStop'),
+    message: t('containers.confirmKill'),
+    confirmText: t('containers.forceStop'),
+    danger: true,
+    action: 'kill',
+    id,
+    force: false,
+  }
+}
+
+const openDeleteConfirm = (id: string, force: boolean) => {
+  confirmState.value = {
+    title: force ? t('containers.delete') : t('containers.delete'),
+    message: force ? t('containers.confirmForceDelete') : t('containers.confirmDelete'),
+    confirmText: force ? t('containers.delete') : t('containers.delete'),
+    danger: true,
+    action: 'delete',
+    id,
+    force,
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'kill') {
+      await performKillContainer(state.id)
+    } else {
+      await performDeleteContainer(state.id, state.force)
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
 const getMachineName = (machineId: string, machineNames: Map<string, string>) => {
   const name = machineNames.get(machineId)
   if (name) return name
@@ -258,7 +330,7 @@ const normalizeContainer = (
   machineId,
 })
 
-const refreshContainers = async () => {
+const refreshContainers = async (options: RefreshContainersOptions = {}) => {
   loading.value = true
   error.value = ''
   try {
@@ -268,7 +340,9 @@ const refreshContainers = async () => {
     const machineNames = new Map(allMachines.map((m) => [m.id, m.name]))
     machineNames.set(LOCAL_MACHINE_ID, machineNames.get(LOCAL_MACHINE_ID) || LOCAL_MACHINE_NAME)
 
-    const containersByMachine = new Map<string, Container>()
+    const containersByMachine = new Map(
+      containers.value.map((container) => [`${container.machineId}:${container.id}`, container] as const)
+    )
     const cachedData = await api.get<ContainerListResponse>('/containers')
 
     for (const c of cachedData?.containers || []) {
@@ -283,20 +357,29 @@ const refreshContainers = async () => {
       ...allMachines,
     ]
 
-    const results = await Promise.all(
-      machinesToFetch.map(async (m) => {
-        try {
-          const conts = await remoteMachineService.listContainers(m.id)
-          return conts.map((c) => normalizeContainer(c, m.id, m.name))
-        } catch {
-          return [] as Container[]
-        }
-      })
+    const results = await Promise.allSettled(
+      machinesToFetch.map(async (m) => ({
+        machineId: m.id,
+        containers: (await remoteMachineService.listContainers(m.id)).map((c) => normalizeContainer(c, m.id, m.name)),
+      }))
     )
 
-    for (const conts of results) {
-      for (const c of conts) {
-        containersByMachine.set(`${c.machineId}:${c.id}`, c)
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+
+      const { machineId, containers: fetchedContainers } = result.value
+      if (fetchedContainers.length === 0 && options.preserveOnEmptyMachineIds?.has(machineId)) {
+        continue
+      }
+
+      for (const key of Array.from(containersByMachine.keys())) {
+        if (key.startsWith(`${machineId}:`)) {
+          containersByMachine.delete(key)
+        }
+      }
+
+      for (const container of fetchedContainers) {
+        containersByMachine.set(`${container.machineId}:${container.id}`, container)
       }
     }
 
@@ -367,7 +450,7 @@ const startContainer = async (id: string) => {
   container.status = 'running'
   try {
     await remoteMachineService.startContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to start container:', e)
@@ -382,7 +465,7 @@ const stopContainer = async (id: string) => {
   container.status = 'stopped'
   try {
     await remoteMachineService.stopContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to stop container:', e)
@@ -397,7 +480,7 @@ const restartContainer = async (id: string) => {
   container.status = 'restarting'
   try {
     await remoteMachineService.restartContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to restart container:', e)
@@ -405,21 +488,24 @@ const restartContainer = async (id: string) => {
   }
 }
 
-const killContainer = async (id: string) => {
+const performKillContainer = async (id: string) => {
   const container = containers.value.find(c => c.id === id)
   if (!container) return
-  if (!confirm(t('containers.confirmKill'))) return
 
   const oldStatus = container.status
   container.status = 'stopped'
   try {
     await remoteMachineService.killContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to force stop container:', e)
     alert(e instanceof Error ? e.message : 'Failed to force stop container')
   }
+}
+
+const killContainer = (id: string) => {
+  openKillConfirm(id)
 }
 
 const pauseContainer = async (id: string) => {
@@ -429,7 +515,7 @@ const pauseContainer = async (id: string) => {
   container.status = 'paused'
   try {
     await remoteMachineService.pauseContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to pause container:', e)
@@ -444,7 +530,7 @@ const resumeContainer = async (id: string) => {
   container.status = 'running'
   try {
     await remoteMachineService.resumeContainer(container.machineId, id)
-    await refreshContainers()
+    await refreshContainers({ preserveOnEmptyMachineIds: new Set([container.machineId]) })
   } catch (e) {
     container.status = oldStatus
     console.error('Failed to resume container:', e)
@@ -462,21 +548,9 @@ const showLogs = (id: string) => {
   }
 }
 
-const deleteContainer = async (id: string) => {
+const performDeleteContainer = async (id: string, force = false) => {
   const container = containers.value.find(c => c.id === id)
   if (!container) return
-
-  let force = false
-  if (container.status === 'running') {
-    if (!confirm(t('containers.confirmForceDelete'))) {
-      return
-    }
-    force = true
-  } else {
-    if (!confirm(t('containers.confirmDelete'))) {
-      return
-    }
-  }
 
   try {
     await remoteMachineService.removeContainer(container.machineId, id, force)
@@ -484,25 +558,23 @@ const deleteContainer = async (id: string) => {
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e)
     if (!force && (errorMsg.includes('running') || errorMsg.includes('stop the container') || errorMsg.includes('force remove'))) {
-      if (confirm(t('containers.confirmForceDelete'))) {
-        try {
-          await remoteMachineService.removeContainer(container.machineId, id, true)
-          await refreshContainers()
-          return
-        } catch (retryErr) {
-          alert(retryErr instanceof Error ? retryErr.message : 'Failed to force delete container')
-          return
-        }
-      }
+      openDeleteConfirm(id, true)
+      return
     }
     console.error('Failed to delete container:', e)
     alert(errorMsg)
   }
 }
 
+const deleteContainer = (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  openDeleteConfirm(id, container.status === 'running')
+}
+
 const onContainerCreated = (_container: { id: string; name: string; image: string; machineId: string }) => {
   showCreateModal.value = false
-  refreshContainers()
+  refreshContainers({ preserveOnEmptyMachineIds: new Set([_container.machineId]) })
 }
 
 onMounted(() => refreshContainers())

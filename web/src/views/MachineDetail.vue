@@ -47,7 +47,7 @@
     <div class="containers-grid">
       <div
         v-for="container in filteredContainers"
-        :key="container.id"
+        :key="container.id || container.name"
         class="container-card"
         :class="{ 'status-running': container.status === 'running' }"
       >
@@ -65,7 +65,7 @@
           </div>
           <div class="info-item">
             <span class="label">ID</span>
-            <span class="value mono">{{ container.id.substring(0, 12) }}</span>
+            <span class="value mono">{{ container.id?.substring(0, 12) || '-' }}</span>
           </div>
           <div v-if="container.ports && container.ports.length" class="info-item">
             <span class="label">{{ t('containers.ports') }}</span>
@@ -201,6 +201,17 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -223,6 +234,7 @@ import {
 import { t } from '@/i18n'
 import { remoteMachineService } from '@/services/remoteMachineService'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import type { RemoteMachine, RemoteContainer } from '@/types'
 
 const router = useRouter()
@@ -245,6 +257,16 @@ const logsTail = ref('100')
 const autoRefreshLogs = ref(false)
 const execCmd = ref('')
 const execOutput = ref('')
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'kill' | 'delete'
+  id: string
+  force: boolean
+} | null>(null)
+const confirmBusy = ref(false)
 
 let logsInterval: ReturnType<typeof setInterval> | null = null
 
@@ -255,7 +277,7 @@ const filteredContainers = computed(() => {
     filtered = filtered.filter(c =>
       c.name.toLowerCase().includes(q) ||
       c.image.toLowerCase().includes(q) ||
-      c.id.toLowerCase().includes(q)
+      c.id?.toLowerCase().includes(q) || false
     )
   }
   if (statusFilter.value) {
@@ -282,7 +304,7 @@ const goBack = () => {
   router.push('/machines')
 }
 
-const refreshAll = async () => {
+const refreshAll = async (options: { preserveOnEmpty?: boolean } = {}) => {
   loading.value = true
   connectionStatus.value = 'testing'
   try {
@@ -291,7 +313,9 @@ const refreshAll = async () => {
       remoteMachineService.listContainers(machineId)
     ])
     machine.value = m
-    containers.value = c
+    if (c.length > 0 || !options.preserveOnEmpty) {
+      containers.value = c
+    }
 
     // Check if redirecting from elsewhere for logs or exec
     const queryContainerId = route.query.containerId as string
@@ -356,6 +380,52 @@ const selectContainerForExec = (container: RemoteContainer) => {
   execOutput.value = ''
 }
 
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openKillConfirm = (id: string) => {
+  confirmState.value = {
+    title: t('containers.forceStop'),
+    message: t('containers.confirmKill'),
+    confirmText: t('containers.forceStop'),
+    danger: true,
+    action: 'kill',
+    id,
+    force: false,
+  }
+}
+
+const openDeleteConfirm = (id: string, force: boolean) => {
+  confirmState.value = {
+    title: t('containers.delete'),
+    message: force ? t('containers.confirmForceDelete') : t('containers.confirmDelete'),
+    confirmText: t('containers.delete'),
+    danger: true,
+    action: 'delete',
+    id,
+    force,
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'kill') {
+      await performKillContainer(state.id)
+    } else {
+      await performDeleteContainer(state.id, state.force)
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
 const loadLogs = async () => {
   if (!selectedContainerId.value) return
   logsLoading.value = true
@@ -371,7 +441,7 @@ const loadLogs = async () => {
 const startContainer = async (id: string) => {
   try {
     await remoteMachineService.startContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to start container:', e)
   }
@@ -380,7 +450,7 @@ const startContainer = async (id: string) => {
 const stopContainer = async (id: string) => {
   try {
     await remoteMachineService.stopContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to stop container:', e)
   }
@@ -389,27 +459,30 @@ const stopContainer = async (id: string) => {
 const restartContainer = async (id: string) => {
   try {
     await remoteMachineService.restartContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to restart container:', e)
   }
 }
 
-const killContainer = async (id: string) => {
-  if (!confirm(t('containers.confirmKill'))) return
+const performKillContainer = async (id: string) => {
   try {
     await remoteMachineService.killContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to force stop container:', e)
     alert(e instanceof Error ? e.message : 'Failed to force stop container')
   }
 }
 
+const killContainer = (id: string) => {
+  openKillConfirm(id)
+}
+
 const pauseContainer = async (id: string) => {
   try {
     await remoteMachineService.pauseContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to pause container:', e)
     alert(e instanceof Error ? e.message : 'Failed to pause container')
@@ -419,28 +492,16 @@ const pauseContainer = async (id: string) => {
 const resumeContainer = async (id: string) => {
   try {
     await remoteMachineService.resumeContainer(machineId, id)
-    await refreshAll()
+    await refreshAll({ preserveOnEmpty: true })
   } catch (e) {
     console.error('Failed to resume container:', e)
     alert(e instanceof Error ? e.message : 'Failed to resume container')
   }
 }
 
-const removeContainer = async (id: string) => {
+const performDeleteContainer = async (id: string, force = false) => {
   const container = containers.value.find(c => c.id === id)
   if (!container) return
-
-  let force = false
-  if (container.status === 'running') {
-    if (!confirm(t('containers.confirmForceDelete'))) {
-      return
-    }
-    force = true
-  } else {
-    if (!confirm(t('containers.confirmDelete'))) {
-      return
-    }
-  }
 
   try {
     await remoteMachineService.removeContainer(machineId, id, force)
@@ -448,20 +509,18 @@ const removeContainer = async (id: string) => {
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e)
     if (!force && (errorMsg.includes('running') || errorMsg.includes('stop the container') || errorMsg.includes('force remove'))) {
-      if (confirm(t('containers.confirmForceDelete'))) {
-        try {
-          await remoteMachineService.removeContainer(machineId, id, true)
-          await refreshAll()
-          return
-        } catch (retryErr) {
-          alert(retryErr instanceof Error ? retryErr.message : 'Failed to force delete container')
-          return
-        }
-      }
+      openDeleteConfirm(id, true)
+      return
     }
     console.error('Failed to remove container:', e)
     alert(errorMsg)
   }
+}
+
+const removeContainer = (id: string) => {
+  const container = containers.value.find(c => c.id === id)
+  if (!container) return
+  openDeleteConfirm(id, container.status === 'running')
 }
 
 const runExec = async () => {
