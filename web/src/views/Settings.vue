@@ -13,16 +13,16 @@
     <div class="settings-content">
       <div class="settings-sidebar">
         <nav class="settings-nav">
-          <a
+          <button
             v-for="section in settingsSections"
             :key="section.id"
-            href="#"
-            @click.prevent="activeSection = section.id"
+            type="button"
+            @click="activeSection = section.id"
             :class="{ active: activeSection === section.id }"
           >
             <component :is="section.icon" :size="16" :stroke-width="1.5" />
             <span>{{ section.title }}</span>
-          </a>
+          </button>
         </nav>
       </div>
 
@@ -63,11 +63,11 @@
           </div>
           <div v-if="settings.docker.type === 'remote'" class="setting-group">
             <label>{{ t('settings.remoteHost') }}</label>
-            <input v-model="settings.docker.host" type="text" placeholder="tcp://remote-host:2375" class="input" />
+            <input v-model="settings.docker.host" type="text" :placeholder="t('settings.remoteHostPlaceholder')" class="input" />
           </div>
           <div class="setting-group">
             <label>{{ t('settings.defaultRegistry') }}</label>
-            <input v-model="settings.docker.defaultRegistry" type="text" placeholder="docker.io" class="input" />
+            <input v-model="settings.docker.defaultRegistry" type="text" :placeholder="t('settings.defaultRegistryPlaceholder')" class="input" />
           </div>
           <div class="setting-group checkbox">
             <input v-model="settings.docker.autoPrune" type="checkbox" id="autoPrune" />
@@ -114,7 +114,7 @@
           <h2>{{ t('settings.ai.title') }}</h2>
           <div class="setting-group">
             <label>{{ t('settings.ai.apiEndpoint') }}</label>
-            <input v-model="settings.ai.apiEndpoint" type="url" placeholder="https://api.openai.com" class="input" />
+            <input v-model="settings.ai.apiEndpoint" type="url" :placeholder="t('settings.ai.apiEndpointPlaceholder')" class="input" />
           </div>
           <div class="setting-group">
             <label>{{ t('settings.ai.apiKey') }}</label>
@@ -123,7 +123,7 @@
                 v-model="settings.ai.apiKey"
                 :type="showApiKey ? 'text' : 'password'"
                 class="input"
-                placeholder="sk-..."
+                :placeholder="t('settings.ai.apiKeyPlaceholder')"
               />
               <button type="button" class="password-toggle" @click="showApiKey = !showApiKey">
                 <Eye v-if="!showApiKey" :size="16" :stroke-width="1.5" />
@@ -133,7 +133,7 @@
           </div>
           <div class="setting-group">
             <label>{{ t('settings.ai.modelName') }}</label>
-            <input v-model="settings.ai.modelName" type="text" placeholder="gpt-4o" class="input" />
+            <input v-model="settings.ai.modelName" type="text" :placeholder="t('settings.ai.modelNamePlaceholder')" class="input" />
           </div>
         </div>
 
@@ -170,6 +170,7 @@ import { Settings, Container, Shield, Activity, Save, RotateCcw, Bot, Eye, EyeOf
 import { t } from '@/i18n'
 import api from '@/utils/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 const activeSection = ref('general')
 const saving = ref(false)
@@ -191,15 +192,17 @@ const settingsSections = computed<{ id: string; title: string; icon: Component }
   { id: 'ai', title: t('settings.ai.title'), icon: markRaw(Bot) }
 ])
 
+const defaultLanguage = navigator.language.toLowerCase().startsWith('en') ? 'en-US' : 'zh-CN'
+
 const defaultSettings = () => ({
-  systemName: 'LiteDock',
+  systemName: t('app.name'),
   systemDescription: '',
-  language: 'zh-CN',
+  language: defaultLanguage,
   enableNotifications: true,
   docker: {
     type: 'local' as 'local' | 'remote',
     host: '',
-    defaultRegistry: 'docker.io',
+    defaultRegistry: '',
     autoPrune: false
   },
   sessionTimeout: 60,
@@ -213,7 +216,7 @@ const defaultSettings = () => ({
   ai: {
     apiEndpoint: '',
     apiKey: '',
-    modelName: 'gpt-4o'
+    modelName: ''
   }
 })
 
@@ -229,6 +232,7 @@ const fetchAISettings = async () => {
 }
 
 onMounted(fetchAISettings)
+useRefreshBus(fetchAISettings)
 
 const saveSettings = async () => {
   saving.value = true
@@ -341,25 +345,29 @@ const resetSettings = () => {
   gap: var(--space-1);
 }
 
-.settings-nav a {
+.settings-nav button {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
+  width: 100%;
+  border: none;
+  background: transparent;
   color: var(--color-text-weak);
-  text-decoration: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   transition: all var(--transition-fast);
+  cursor: pointer;
+  text-align: left;
 }
 
-.settings-nav a:hover {
+.settings-nav button:hover {
   background: var(--color-background-weak);
   color: var(--color-text-strong);
 }
 
-.settings-nav a.active {
+.settings-nav button.active {
   background: var(--color-background-interactive-weaker);
   color: var(--color-text-strong);
   font-weight: var(--font-weight-medium);

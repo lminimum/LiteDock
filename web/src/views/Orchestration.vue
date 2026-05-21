@@ -320,6 +320,7 @@ import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
 import { useMachineFilter } from '@/composables/useMachineFilter'
+import { useRefreshBus } from '@/composables/useRefreshBus'
 
 interface ProjectWithMachine extends ComposeProject {
   machineName: string
@@ -768,6 +769,10 @@ function onProjectCreated() {
 // Lifecycle
 
 onMounted(() => fetchProjects())
+
+useRefreshBus(() => {
+  fetchProjects()
+})
 </script>
 
 <style scoped>
