@@ -125,6 +125,17 @@
       @close="showPullModal = false"
       @pulled="onImagePulled"
     />
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -139,6 +150,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import ImageCard from '@/components/image/ImageCard.vue'
 import ImagePullModal from '@/components/image/ImagePullModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { formatSize, formatDate } from '@/utils/format'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
@@ -157,6 +169,16 @@ const showPullModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
 const images = ref<ImageWithMachine[]>([])
 const viewMode = useViewMode('images')
+
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'delete' | 'prune'
+  id?: string
+} | null>(null)
+const confirmBusy = ref(false)
 
 const filteredImages = computed(() => {
   let filtered = images.value
@@ -251,11 +273,54 @@ const fetchImages = async () => {
   }
 }
 
-const confirmDelete = async (image: Image) => {
-  if (!confirm(t('pages.images.delete.confirm'))) return
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openDeleteConfirm = (image: Image) => {
+  confirmState.value = {
+    title: t('pages.images.delete.title') || t('pages.images.delete.confirm'),
+    message: t('pages.images.delete.confirm'),
+    confirmText: t('pages.images.delete.delete') || t('pages.images.delete.confirm'),
+    danger: true,
+    action: 'delete',
+    id: image.id,
+  }
+}
+
+const openPruneConfirm = () => {
+  confirmState.value = {
+    title: t('pages.images.prune.title') || 'Prune Images',
+    message: t('pages.images.prune.confirm'),
+    confirmText: t('pages.images.prune.confirm'),
+    danger: true,
+    action: 'prune',
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
 
   try {
-    await imageService.delete(image.machineId, image.id)
+    if (state.action === 'delete' && state.id) {
+      await performDeleteImage(state.id)
+    } else if (state.action === 'prune') {
+      await performPruneImages()
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
+const performDeleteImage = async (id: string) => {
+  try {
+    const image = images.value.find(img => img.id === id)
+    if (!image) return
+    await imageService.delete(image.machineId, id)
     await fetchImages()
   } catch (e) {
     const msg = e instanceof Error ? e.message : t('errors.loginFailed')
@@ -263,9 +328,7 @@ const confirmDelete = async (image: Image) => {
   }
 }
 
-const handlePrune = async () => {
-  if (!confirm(t('pages.images.prune.confirm'))) return
-
+const performPruneImages = async () => {
   pruning.value = true
   try {
     let totalReclaimed = 0
@@ -294,6 +357,14 @@ const handlePrune = async () => {
   } finally {
     pruning.value = false
   }
+}
+
+const confirmDelete = async (image: Image) => {
+  openDeleteConfirm(image)
+}
+
+const handlePrune = async () => {
+  openPruneConfirm()
 }
 
 const onImagePulled = () => {

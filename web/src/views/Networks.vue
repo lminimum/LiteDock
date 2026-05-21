@@ -150,6 +150,17 @@
       @created="onNetworkCreated"
       @close="showCreateModal = false"
     />
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -164,6 +175,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import NetworkCard from '@/components/network/NetworkCard.vue'
 import NetworkCreateModal from '@/components/network/NetworkCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
@@ -196,18 +208,73 @@ const inspectFields = computed(() => {
     { label: 'Driver', value: n.driver },
     { label: 'Scope', value: n.scope },
     { label: 'Internal', value: n.internal ? 'Yes' : 'No' },
-    { label: 'Attachable', value: n.attachable !== undefined ? (n.attachable ? 'Yes' : 'No') : '-' },
     { label: 'Containers', value: String(n.containers?.length ?? 0) },
-    { label: 'Machine', value: n.machine },
   ]
 })
 
-const handleInspect = (networkId: string) => {
-  const n = networks.value.find(net => net.id === networkId)
-  if (n) {
-    selectedNetwork.value = n
+const handleInspect = (id: string) => {
+  const network = networks.value.find(n => n.id === id)
+  if (network) {
+    selectedNetwork.value = network
     showInspect.value = true
   }
+}
+
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'delete'
+  id: string
+} | null>(null)
+const confirmBusy = ref(false)
+
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openDeleteConfirm = (networkId: string) => {
+  confirmState.value = {
+    title: t('networks.delete'),
+    message: t('networks.confirmDelete'),
+    confirmText: t('networks.delete'),
+    danger: true,
+    action: 'delete',
+    id: networkId,
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'delete') {
+      await performDeleteNetwork(state.id)
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
+const performDeleteNetwork = async (networkId: string) => {
+  try {
+    const network = networks.value.find(n => n.id === networkId)
+    if (!network) return
+    await networkService.deleteNetwork(network.machineId, networkId)
+    await refreshNetworks()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : t('errors.loginFailed')
+    error.value = msg
+  }
+}
+
+const handleDelete = async (networkId: string) => {
+  openDeleteConfirm(networkId)
 }
 
 const filteredNetworks = computed(() => {
@@ -273,21 +340,6 @@ const refreshNetworks = async () => {
     error.value = msg
   } finally {
     loading.value = false
-  }
-}
-
-const handleDelete = async (networkId: string) => {
-  const network = networks.value.find(n => n.id === networkId)
-  if (!network) return
-
-  if (!confirm(t('networks.confirmDelete'))) return
-
-  try {
-    await networkService.deleteNetwork(network.machineId, networkId)
-    await refreshNetworks()
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : t('errors.loginFailed')
-    error.value = msg
   }
 }
 

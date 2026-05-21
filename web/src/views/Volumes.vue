@@ -132,6 +132,17 @@
       @created="onVolumeCreated"
       @close="showCreateModal = false"
     />
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -146,6 +157,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import VolumeCard from '@/components/volume/VolumeCard.vue'
 import VolumeCreateModal from '@/components/volume/VolumeCreateModal.vue'
 import InspectModal from '@/components/ui/InspectModal.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
 import { useViewMode } from '@/composables/useViewMode'
@@ -168,6 +180,16 @@ const viewMode = useViewMode('volumes')
 const showInspect = ref(false)
 const selectedVolume = ref<VolumeWithMachine | null>(null)
 
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'delete'
+  id: string
+} | null>(null)
+const confirmBusy = ref(false)
+
 const inspectFields = computed(() => {
   const v = selectedVolume.value
   if (!v) return []
@@ -188,6 +210,53 @@ const handleInspect = (volumeName: string) => {
     selectedVolume.value = v
     showInspect.value = true
   }
+}
+
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openDeleteConfirm = (volumeKey: string) => {
+  confirmState.value = {
+    title: t('volumes.delete'),
+    message: t('volumes.confirmDelete'),
+    confirmText: t('volumes.delete'),
+    danger: true,
+    action: 'delete',
+    id: volumeKey,
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'delete') {
+      await performDeleteVolume(state.id)
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
+const performDeleteVolume = async (volumeKey: string) => {
+  try {
+    const volume = volumes.value.find(v => `${v.machineId}:${v.name}` === volumeKey)
+    if (!volume) return
+    await volumeService.deleteVolume(volume.machineId, volume.name)
+    await refreshVolumes()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : t('errors.loginFailed')
+    error.value = msg
+  }
+}
+
+const handleDelete = async (volumeKey: string) => {
+  openDeleteConfirm(volumeKey)
 }
 
 const filteredVolumes = computed(() => {
@@ -244,21 +313,6 @@ const refreshVolumes = async () => {
     error.value = msg
   } finally {
     loading.value = false
-  }
-}
-
-const handleDelete = async (volumeKey: string) => {
-  const volume = volumes.value.find(v => `${v.machineId}:${v.name}` === volumeKey)
-  if (!volume) return
-
-  if (!confirm(t('volumes.confirmDelete'))) return
-
-  try {
-    await volumeService.deleteVolume(volume.machineId, volume.name)
-    await refreshVolumes()
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : t('errors.loginFailed')
-    error.value = msg
   }
 }
 

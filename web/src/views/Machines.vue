@@ -204,6 +204,17 @@
     <div v-if="toast.show" class="toast" :class="toast.type">
       {{ toast.message }}
     </div>
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -226,6 +237,7 @@ import type { RemoteMachine, CreateMachineRequest, UpdateMachineRequest } from '
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ViewToggle from '@/components/ui/ViewToggle.vue'
 import CollapsibleFilters from '@/components/ui/CollapsibleFilters.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useViewMode } from '@/composables/useViewMode'
 
 const router = useRouter()
@@ -240,6 +252,15 @@ const editingMachine = ref<RemoteMachine | null>(null)
 const showPassword = ref(false)
 const formError = ref('')
 const viewMode = useViewMode('machines')
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'delete'
+  id: string
+} | null>(null)
+const confirmBusy = ref(false)
 
 const form = ref({
   name: '',
@@ -390,14 +411,48 @@ const viewContainers = (id: string) => {
   router.push(`/machines/${id}`)
 }
 
-const deleteMachine = async (id: string) => {
-  if (!confirm(t('machines.confirmDelete'))) return
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openDeleteConfirm = (id: string) => {
+  confirmState.value = {
+    title: t('machines.delete'),
+    message: t('machines.confirmDelete'),
+    confirmText: t('machines.delete'),
+    danger: true,
+    action: 'delete',
+    id,
+  }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'delete') {
+      await performDeleteMachine(state.id)
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
+const performDeleteMachine = async (id: string) => {
   try {
     await remoteMachineService.delete(id)
     await refreshMachines()
   } catch (e) {
     console.error('Failed to delete machine:', e)
   }
+}
+
+const deleteMachine = async (id: string) => {
+  openDeleteConfirm(id)
 }
 
 const showToast = (message: string, type: string) => {

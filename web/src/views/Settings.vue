@@ -150,6 +150,17 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :visible="confirmState !== null"
+      :title="confirmState?.title || ''"
+      :message="confirmState?.message || ''"
+      :confirm-text="confirmState?.confirmText"
+      :danger="confirmState?.danger ?? false"
+      :disabled="confirmBusy"
+      @confirm="confirmAction"
+      @cancel="cancelConfirm"
+    />
   </div>
 </template>
 
@@ -158,10 +169,19 @@ import { ref, reactive, computed, markRaw, onMounted, type Component } from 'vue
 import { Settings, Container, Shield, Activity, Save, RotateCcw, Bot, Eye, EyeOff } from 'lucide-vue-next'
 import { t } from '@/i18n'
 import api from '@/utils/api'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const activeSection = ref('general')
 const saving = ref(false)
 const showApiKey = ref(false)
+const confirmState = ref<{
+  title: string
+  message: string
+  confirmText?: string
+  danger?: boolean
+  action: 'reset'
+} | null>(null)
+const confirmBusy = ref(false)
 
 const settingsSections = computed<{ id: string; title: string; icon: Component }[]>(() => [
   { id: 'general', title: t('settings.general'), icon: markRaw(Settings) },
@@ -223,10 +243,42 @@ const saveSettings = async () => {
   }
 }
 
-const resetSettings = () => {
-  if (confirm(t('settings.confirmReset'))) {
-    Object.assign(settings, defaultSettings())
+const cancelConfirm = () => {
+  if (confirmBusy.value) return
+  confirmState.value = null
+}
+
+const openResetConfirm = () => {
+  confirmState.value = {
+    title: t('settings.resetDefaults'),
+    message: t('settings.confirmReset'),
+    confirmText: t('settings.resetDefaults'),
+    danger: true,
+    action: 'reset',
   }
+}
+
+const confirmAction = async () => {
+  const state = confirmState.value
+  if (!state || confirmBusy.value) return
+  confirmBusy.value = true
+  confirmState.value = null
+
+  try {
+    if (state.action === 'reset') {
+      performReset()
+    }
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
+const performReset = () => {
+  Object.assign(settings, defaultSettings())
+}
+
+const resetSettings = () => {
+  openResetConfirm()
 }
 </script>
 
