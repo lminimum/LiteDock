@@ -139,6 +139,18 @@ func Run(cfg *config.Config) {
 	if err := actionRegistry.Register(action.NewImageAction(imageUseCase)); err != nil {
 		l.Error(fmt.Errorf("app - Run - register image action: %w", err))
 	}
+	if err := actionRegistry.Register(action.NewNetworkAction(networkUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register network action: %w", err))
+	}
+	if err := actionRegistry.Register(action.NewVolumeAction(volumeUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register volume action: %w", err))
+	}
+	if err := actionRegistry.Register(action.NewComposeAction(composeUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register compose action: %w", err))
+	}
+	if err := actionRegistry.Register(action.NewMachineAction(remoteMachineUseCase)); err != nil {
+		l.Error(fmt.Errorf("app - Run - register machine action: %w", err))
+	}
 	// Wire the action registry into the NL parser for LLM tool-calling support
 	nlParserUseCase.SetActionRegistry(actionRegistry)
 
