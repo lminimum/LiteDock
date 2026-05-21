@@ -8,14 +8,14 @@
     </button>
 
     <div v-if="menuOpen" class="user-menu-dropdown">
-      <a href="#" @click.prevent="goToSettings">
+      <button type="button" @click="goToSettings">
         <Settings :size="16" />
         {{ t('common.settings') }}
-      </a>
-      <a href="#" @click.prevent="handleLogout">
+      </button>
+      <button type="button" @click="handleLogout">
         <LogOut :size="16" />
         {{ t('common.logout') }}
-      </a>
+      </button>
     </div>
   </div>
 </template>
@@ -100,19 +100,24 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   padding: var(--space-1);
 }
 
-.user-menu-dropdown a {
+.user-menu-dropdown button {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: 100%;
+  border: none;
+  background: transparent;
   padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   text-decoration: none;
   font-size: var(--font-size-sm);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  cursor: pointer;
+  text-align: left;
 }
 
-.user-menu-dropdown a:hover {
+.user-menu-dropdown button:hover {
   background: var(--color-background-weak);
 }
 

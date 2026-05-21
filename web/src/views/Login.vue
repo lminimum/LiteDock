@@ -73,7 +73,7 @@
     <template #footer>
       <p v-if="!setupComplete">
         {{ t('auth.noAccount') }}
-        <a href="#" @click.prevent="goToSetup">{{ t('auth.createAdmin') }}</a>
+        <router-link to="/setup">{{ t('auth.createAdmin') }}</router-link>
       </p>
     </template>
   </AuthCard>
