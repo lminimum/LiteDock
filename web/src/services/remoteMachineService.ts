@@ -65,7 +65,7 @@ export const remoteMachineService = {
     return await api.get(`/machines/${machineId}/containers/${containerId}`)
   },
 
-  async createContainer(machineId: string, data: CreateContainerRequest): Promise<{ id: string; warnings: string[] }> {
+  async createContainer(machineId: string, data: CreateContainerRequest): Promise<{ taskId: string }> {
     return await api.post(`/machines/${machineId}/containers/create`, data)
   }
 }

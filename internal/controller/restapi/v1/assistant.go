@@ -45,7 +45,7 @@ func NewAssistantRoutes(apiV1Group fiber.Router, parser *assistant.NLParserUseCa
 	assistantGroup.Post("/diagnose", h.Diagnose)
 	assistantGroup.Post("/recommend", h.Recommend)
 	assistantGroup.Post("/stream", h.Stream)
-	assistantGroup.Get("/stream/ws", websocket.New(h.StreamWS))
+	assistantGroup.Get("/stream/ws", websocket.New(h.StreamWS, websocket.Config{Origins: []string{"*"}}))
 	assistantGroup.Post("/execute", h.ExecuteAction)
 }
 

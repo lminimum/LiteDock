@@ -2,12 +2,16 @@ package remote_machine
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/google/uuid"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/repo"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/pkg/dockerclient"
 	"github.com/lminimum/LiteDock/pkg/errors"
 	"github.com/lminimum/LiteDock/pkg/logger"
@@ -23,14 +27,20 @@ const LocalMachineID = "local"
 type UseCase struct {
 	repo          repo.RemoteMachineRepo
 	containerRepo repo.ContainerRepo
+	taskUC        *task.UseCase
 	cacheMaxAge   time.Duration
 	l             logger.Interface
+
+	// testDockerClient is a test hook for injecting a mock dockerclient.Client.
+	// It is nil in production and set only in tests.
+	testDockerClient dockerclient.Client
 }
 
-func New(repo repo.RemoteMachineRepo, containerRepo repo.ContainerRepo, cacheMaxAge time.Duration, l logger.Interface) *UseCase {
+func New(repo repo.RemoteMachineRepo, containerRepo repo.ContainerRepo, taskUC *task.UseCase, cacheMaxAge time.Duration, l logger.Interface) *UseCase {
 	return &UseCase{
 		repo:          repo,
 		containerRepo: containerRepo,
+		taskUC:        taskUC,
 		cacheMaxAge:   cacheMaxAge,
 		l:             l,
 	}
@@ -45,18 +55,22 @@ func isLocalMachine(m *entity.RemoteMachine) bool {
 // For local machines, it connects directly to the local Docker socket.
 // For remote machines, it connects via SSH tunnel.
 func (uc *UseCase) getDockerClient(ctx context.Context, machineID string) (dockerclient.Client, error) {
-	m, err := uc.repo.GetByID(ctx, machineID)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
+	if uc.testDockerClient != nil {
+		return uc.testDockerClient, nil
 	}
 
-	if isLocalMachine(m) {
+	if machineID == LocalMachineID {
 		cli, err := dockerclient.NewLocalClient()
 		if err != nil {
 			return nil, errors.Wrap(err, "UseCase.getDockerClient.NewLocalClient")
 		}
 		uc.l.Debug("UseCase.getDockerClient: using local Docker socket for machine %s", machineID)
 		return cli, nil
+	}
+
+	m, err := uc.repo.GetByID(ctx, machineID)
+	if err != nil {
+		return nil, errors.Wrap(err, "UseCase.getDockerClient.GetByID")
 	}
 
 	sshCfg := uc.buildSSHConfig(m)
@@ -308,20 +322,80 @@ func (uc *UseCase) ExecContainer(ctx context.Context, machineID, containerID str
 	return output, nil
 }
 
-func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *container.Config, hostCfg *container.HostConfig, name string) (*container.CreateResponse, error) {
-	cli, err := uc.getDockerClient(ctx, machineID)
+func (uc *UseCase) CreateContainer(ctx context.Context, machineID string, cfg *container.Config, hostCfg *container.HostConfig, name string) (string, error) {
+	payload := fmt.Sprintf("Create container: %s (image: %s)", name, cfg.Image)
+	t, err := uc.taskUC.CreateTask(ctx, "container.create", machineID, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.CreateContainer.getDockerClient")
-	}
-	defer cli.Close()
-
-	resp, err := cli.ContainerCreate(ctx, cfg, hostCfg, name)
-	if err != nil {
-		return nil, errors.Wrap(err, "UseCase.CreateContainer.cli.ContainerCreate")
+		return "", errors.Wrap(err, "UseCase.CreateContainer.CreateTask")
 	}
 
-	_ = uc.containerRepo.DeleteByMachine(ctx, machineID)
-	return resp, nil
+	go func() {
+		bgCtx := context.Background()
+		taskID := t.ID
+		taskLogger := task.NewTaskLogger(uc.taskUC, taskID)
+
+		_ = uc.taskUC.StartTask(bgCtx, taskID)
+		_, _ = taskLogger.Write([]byte(fmt.Sprintf("Starting container creation for %s...\n", name)))
+
+		cli, err := uc.getDockerClient(bgCtx, machineID)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to get docker client: %v\n", err)
+			_, _ = taskLogger.Write([]byte(msg))
+			_ = uc.taskUC.FailTask(bgCtx, taskID, err.Error())
+			return
+		}
+		defer cli.Close()
+
+		_, _ = taskLogger.Write([]byte(fmt.Sprintf("Ensuring image %s is available...\n", cfg.Image)))
+		if err := uc.ensureImageAvailable(bgCtx, cli, cfg, taskLogger); err != nil {
+			msg := fmt.Sprintf("Failed to pull image: %v\n", err)
+			_, _ = taskLogger.Write([]byte(msg))
+			_ = uc.taskUC.FailTask(bgCtx, taskID, err.Error())
+			return
+		}
+
+		_, _ = taskLogger.Write([]byte("Creating container...\n"))
+		resp, err := cli.ContainerCreate(bgCtx, cfg, hostCfg, name)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to create container: %v\n", err)
+			_, _ = taskLogger.Write([]byte(msg))
+			_ = uc.taskUC.FailTask(bgCtx, taskID, err.Error())
+			return
+		}
+
+		_, _ = taskLogger.Write([]byte(fmt.Sprintf("Container created successfully (ID: %s). Starting...\n", resp.ID)))
+
+		if err := cli.ContainerStart(bgCtx, resp.ID); err != nil {
+			msg := fmt.Sprintf("Container created but failed to start: %v\n", err)
+			_, _ = taskLogger.Write([]byte(msg))
+			_ = uc.taskUC.CompleteTask(bgCtx, taskID, resp.ID)
+			return
+		}
+
+		_, _ = taskLogger.Write([]byte("Container started successfully.\n"))
+		_ = uc.taskUC.CompleteTask(bgCtx, taskID, resp.ID)
+		_ = uc.containerRepo.DeleteByMachine(bgCtx, machineID)
+	}()
+
+	return t.ID, nil
+}
+
+func (uc *UseCase) ensureImageAvailable(ctx context.Context, cli dockerclient.Client, cfg *container.Config, logger io.Writer) error {
+	if cfg == nil || cfg.Image == "" {
+		return nil
+	}
+
+	if _, err := cli.ImageInspect(ctx, cfg.Image); err == nil {
+		_, _ = logger.Write([]byte(fmt.Sprintf("Image %s already exists locally.\n", cfg.Image)))
+		return nil
+	}
+
+	_, _ = logger.Write([]byte(fmt.Sprintf("Image %s not found. Pulling...\n", cfg.Image)))
+	if err := cli.ImagePull(ctx, cfg.Image, dockerImage.PullOptions{}); err != nil {
+		return errors.Wrap(err, "UseCase.ensureImageAvailable.ImagePull")
+	}
+
+	return nil
 }
 
 func (uc *UseCase) StartContainer(ctx context.Context, machineID, containerID string) error {

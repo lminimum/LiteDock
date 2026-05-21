@@ -10,13 +10,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/lminimum/LiteDock/internal/entity"
 	"github.com/lminimum/LiteDock/internal/usecase/remote_machine"
+	"github.com/lminimum/LiteDock/internal/usecase/task"
 	"github.com/lminimum/LiteDock/pkg/logger"
 )
 
 type RemoteMachineHandler struct {
-	uc remote_machine.UseCaseInterface
-	l  logger.Interface
-	v  *validator.Validate
+	uc      remote_machine.UseCaseInterface
+	task    *task.UseCase
+	l       logger.Interface
+	v       *validator.Validate
 }
 
 // NewRemoteMachineRoutes
@@ -24,8 +26,8 @@ type RemoteMachineHandler struct {
 // @Tags machines
 // @Accept json
 // @Produce json
-func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseInterface, l logger.Interface) {
-	h := &RemoteMachineHandler{uc: rm, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+func NewRemoteMachineRoutes(apiV1Group fiber.Router, rm remote_machine.UseCaseInterface, t *task.UseCase, l logger.Interface) {
+	h := &RemoteMachineHandler{uc: rm, task: t, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	machineGroup := apiV1Group.Group("/machines")
 	{
@@ -553,8 +555,7 @@ func (h *RemoteMachineHandler) CreateContainer(c *fiber.Ctx) error {
 	}
 
 	return createdResponse(c, fiber.Map{
-		"id":       result.ID,
-		"warnings": result.Warnings,
+		"taskId": result,
 	})
 }
 

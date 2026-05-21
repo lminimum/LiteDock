@@ -36,7 +36,7 @@ func NewDashboardRoutes(apiV1Group fiber.Router, uc remote_machine.UseCaseInterf
 		dashboard.Get("/stats", h.Stats)
 		dashboard.Get("/resources", h.Resources)
 		dashboard.Get("/resources/history", h.ResourcesHistory)
-		dashboard.Get("/resources/stream", websocket.New(h.ResourcesStreamWS))
+		dashboard.Get("/resources/stream", websocket.New(h.ResourcesStreamWS, websocket.Config{Origins: []string{"*"}}))
 	}
 
 	return h

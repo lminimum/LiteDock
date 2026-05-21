@@ -1,6 +1,6 @@
 <template>
-  <div v-if="show" class="modal-overlay" @click="closeModal">
-    <div class="setup-modal" @click.stop :class="{ 'dark-theme': isDarkMode }">
+  <div v-if="show" class="modal-overlay">
+    <div class="setup-modal" :class="{ 'dark-theme': isDarkMode }">
       <div class="setup-modal-header">
         <h2>{{ t('setup.title') }}</h2>
         <p>{{ t('setup.welcome') }}</p>
@@ -256,10 +256,6 @@ const completeSetup = async () => {
   
   // 发出完成事件
   emit('complete')
-}
-
-const closeModal = () => {
-  emit('close')
 }
 
 // 恢复主题设置

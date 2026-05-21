@@ -70,6 +70,16 @@ const router = createRouter({
           name: 'MachineDetail',
           component: () => import('@/views/MachineDetail.vue')
         },
+        {
+          path: 'tasks',
+          name: 'Tasks',
+          component: () => import('@/views/Tasks.vue')
+        },
+        {
+          path: 'tasks/:id',
+          name: 'TaskDetail',
+          component: () => import('@/views/TaskDetail.vue')
+        },
         // 设置页面
         {
           path: 'settings',

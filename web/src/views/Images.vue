@@ -120,7 +120,8 @@
     <ImagePullModal
       v-if="machines.length > 0"
       :show="showPullModal"
-      :machine-id="machines[0]?.id ?? ''"
+      :machine-id="defaultCreateMachineId"
+      :machines="machines"
       @close="showPullModal = false"
       @pulled="onImagePulled"
     />
@@ -178,6 +179,11 @@ const { machineFilter, machineOptions, groupedItems } = useMachineFilter(
   (img) => img.machineId,
   (img) => img.machine,
 )
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return machines.value[0]?.id ?? ''
+})
 
 const showInspect = ref(false)
 const selectedImage = ref<ImageWithMachine | null>(null)

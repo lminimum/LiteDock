@@ -129,7 +129,8 @@
 
     <ContainerCreateModal
       :visible="showCreateModal"
-      :machine-id="selectedMachineId"
+      :machine-id="defaultCreateMachineId"
+      :machines="createMachineOptions"
       @close="showCreateModal = false"
       @created="onContainerCreated"
     />
@@ -190,8 +191,6 @@ const statusFilter = ref('')
 const viewMode = useViewMode('containers')
 const showCreateModal = ref(false)
 const machines = ref<RemoteMachine[]>([])
-
-const selectedMachineId = ref(LOCAL_MACHINE_ID)
 
 const containers = ref<Container[]>([])
 
@@ -311,6 +310,30 @@ const filteredContainers = computed(() => {
 })
 
 const { machineFilter, machineOptions, groupedItems } = useMachineFilter(filteredContainers, machines, (c) => c.machineId, (c) => c.machine)
+
+const createMachineOptions = computed<RemoteMachine[]>(() => {
+  const options = [...machines.value]
+  if (!options.some((machine) => machine.id === LOCAL_MACHINE_ID)) {
+    options.unshift({
+      id: LOCAL_MACHINE_ID,
+      name: LOCAL_MACHINE_NAME,
+      host: 'localhost',
+      port: 0,
+      username: '',
+      auth_method: 'password',
+      docker_host: '',
+      status: 'unknown',
+      created_at: '',
+      updated_at: '',
+    })
+  }
+  return options
+})
+
+const defaultCreateMachineId = computed(() => {
+  if (machineFilter.value) return machineFilter.value
+  return createMachineOptions.value[0]?.id ?? LOCAL_MACHINE_ID
+})
 
 
 const startContainer = async (id: string) => {

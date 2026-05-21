@@ -96,6 +96,7 @@ import {
   Sun,
   Moon,
   X,
+  ClipboardList,
 } from 'lucide-vue-next'
 import { useTheme } from '@/themes'
 
@@ -170,6 +171,7 @@ const mainNavItems = computed<NavItemDef[]>(() => [
     icon: Server,
     children: [
       { name: 'Machines', path: '/machines', label: t('nav.machines'), icon: Server },
+      { name: 'Tasks', path: '/tasks', label: t('nav.tasks'), icon: ClipboardList },
     ],
   },
 ])

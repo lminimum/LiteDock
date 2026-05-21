@@ -443,7 +443,7 @@ func TestList_EmptyCache(t *testing.T) {
 		},
 	}
 
-	uc := newUseCaseForTest(mockCompRepo, mockRMRepo, nil, t.TempDir())
+	uc := newUseCaseForTest(mockCompRepo, mockRMRepo, &mockComposeClient{}, t.TempDir())
 
 	files, err := uc.List(context.Background(), "local")
 	require.NoError(t, err)

@@ -19,7 +19,7 @@ type UseCaseInterface interface {
 	ListContainers(context.Context, string) ([]entity.Container, error)
 	GetContainerLogs(context.Context, string, string, string) (string, error)
 	ExecContainer(context.Context, string, string, []string) (string, error)
-	CreateContainer(context.Context, string, *container.Config, *container.HostConfig, string) (*container.CreateResponse, error)
+	CreateContainer(ctx context.Context, machineID string, cfg *container.Config, hostCfg *container.HostConfig, name string) (string, error)
 	StartContainer(context.Context, string, string) error
 	StopContainer(context.Context, string, string) error
 	RestartContainer(context.Context, string, string) error

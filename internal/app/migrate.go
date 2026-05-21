@@ -1,3 +1,4 @@
+// Package app configures and runs application.
 package app
 
 import (
@@ -8,10 +9,10 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"    // MySQL driver for migrations
-	_ "github.com/golang-migrate/migrate/v4/database/postgres" // Postgres driver for migrations
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite"   // SQLite driver for migrations
-	_ "github.com/golang-migrate/migrate/v4/source/file"       // File source driver for migrations
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/lminimum/LiteDock/config"
 	apperrors "github.com/lminimum/LiteDock/pkg/errors"
 )
