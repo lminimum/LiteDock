@@ -64,6 +64,7 @@ type WSEventType string
 const (
 	WSEventContent        WSEventType = "content"
 	WSEventActionRequired WSEventType = "action_required"
+	WSEventActionResult   WSEventType = "action_result"
 	WSEventError          WSEventType = "error"
 	WSEventDone           WSEventType = "done"
 )
@@ -125,9 +126,61 @@ type streamToolCall struct {
 	args string
 }
 
-// processStreamToolCalls converts accumulated tool calls into action_required or error events.
-// It does NOT execute any tool calls — only surfaces them as structured events for client confirmation.
-func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map[int]*streamToolCall) {
+func (h *AssistantHandler) executeToolCallAction(
+	actionName string,
+	params map[string]string,
+	autonomous bool,
+) (isDestructive bool, result *action.ActionResult, errMsg string, confirmationToken string, act action.Action) {
+	if h.registry == nil {
+		return false, nil, "registry not configured", "", nil
+	}
+
+	act, found := h.registry.Get(actionName)
+	if !found {
+		return false, nil, "unknown tool: " + actionName, "", nil
+	}
+
+	paramsIface := make(map[string]interface{}, len(params))
+	for k, v := range params {
+		paramsIface[k] = v
+	}
+
+	isDestructive = act.Destructive(paramsIface)
+
+	if autonomous && !isDestructive {
+		ctx := context.Background()
+		res, err := act.Execute(ctx, paramsIface)
+		if err != nil {
+			return false, nil, err.Error(), "", act
+		}
+		return false, res, "", "", act
+	}
+
+	riskLevel := entity.RiskLevelRead
+	if isDestructive {
+		riskLevel = entity.RiskLevelDangerous
+	}
+
+	tokenStr := ""
+	if h.tokenService != nil {
+		hash := h.tokenService.ParamsHash(params)
+		tok, err := h.tokenService.Generate(assistant.ActionConfirmationToken{
+			Action:     actionName,
+			ParamsHash: hash,
+			RiskLevel:  string(riskLevel),
+		})
+		if err == nil {
+			tokenStr = tok
+		}
+	}
+
+	return isDestructive, nil, "", tokenStr, act
+}
+
+// processStreamToolCalls converts accumulated tool calls into action_required or action_result events (SSE).
+// If autonomous is true, safe (non-destructive) actions are executed immediately and results are streamed as action_result.
+// Dangerous actions always require confirmation.
+func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map[int]*streamToolCall, autonomous bool) {
 	if len(toolCalls) == 0 {
 		return
 	}
@@ -139,28 +192,33 @@ func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map
 		}
 
 		actionName := tc.name
+		params, parseErr := parseToolCallArgs(tc.args)
 
-		if h.registry == nil {
-			sendWSEvent(w, WSEventError, WSPayloadError{Message: "unknown tool: " + actionName})
+		if parseErr != "" {
+			sendWSEvent(w, WSEventError, WSPayloadError{Message: parseErr})
 			continue
 		}
 
-		act, found := h.registry.Get(actionName)
-		if !found {
-			sendWSEvent(w, WSEventError, WSPayloadError{Message: "unknown tool: " + actionName})
+		isDestructive, result, errMsg, tokenStr, act := h.executeToolCallAction(actionName, params, autonomous)
+
+		if errMsg != "" && result == nil {
+			sendWSEvent(w, WSEventError, WSPayloadError{Message: errMsg})
 			continue
 		}
 
-		params := make(map[string]string)
-		if tc.args != "" {
-			var rawParams map[string]interface{}
-			if err := json.Unmarshal([]byte(tc.args), &rawParams); err != nil {
-				sendWSEvent(w, WSEventError, WSPayloadError{Message: "invalid tool arguments for " + actionName})
-				continue
-			}
-			for k, v := range rawParams {
-				params[k] = fmt.Sprintf("%v", v)
-			}
+		if result != nil {
+			env := WSEventEnvelope{V: 1, Type: WSEventActionResult, Payload: mustMarshal(map[string]interface{}{
+				"action":   actionName,
+				"params":   params,
+				"result":   result,
+				"message":  result.Message,
+				"data":     result.Data,
+				"executed": true,
+			})}
+			envBytes, _ := json.Marshal(env)
+			fmt.Fprintf(w, "data: %s\n\n", envBytes)
+			w.Flush()
+			continue
 		}
 
 		paramsIface := make(map[string]interface{}, len(params))
@@ -169,21 +227,8 @@ func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map
 		}
 
 		riskLevel := entity.RiskLevelRead
-		if act.Destructive(paramsIface) {
+		if isDestructive {
 			riskLevel = entity.RiskLevelDangerous
-		}
-
-		tokenStr := ""
-		if h.tokenService != nil {
-			hash := h.tokenService.ParamsHash(params)
-			tok, err := h.tokenService.Generate(assistant.ActionConfirmationToken{
-				Action:     actionName,
-				ParamsHash: hash,
-				RiskLevel:  string(riskLevel),
-			})
-			if err == nil {
-				tokenStr = tok
-			}
 		}
 
 		intent := entity.ActionIntent{
@@ -191,9 +236,12 @@ func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map
 			Params:               params,
 			RiskLevel:            riskLevel,
 			RequiresConfirmation: true,
-			ConfirmationMessage:  act.ConfirmationMessage(paramsIface),
-			ConfirmationToken:    tokenStr,
+			ConfirmationMessage:  "",
 		}
+		if act != nil {
+			intent.ConfirmationMessage = act.ConfirmationMessage(paramsIface)
+		}
+		intent.ConfirmationToken = tokenStr
 
 		intentBytes, _ := json.Marshal(intent)
 		env := WSEventEnvelope{V: 1, Type: WSEventActionRequired, Payload: intentBytes}
@@ -203,8 +251,27 @@ func (h *AssistantHandler) processStreamToolCalls(w *bufio.Writer, toolCalls map
 	}
 }
 
-// processWSToolCalls sends accumulated tool calls as action_required or error events over WebSocket.
-func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[int]*streamToolCall) {
+// parseToolCallArgs parses JSON arguments from a tool call's arguments string.
+// Returns params map and empty error string on success, or empty params and error message on failure.
+func parseToolCallArgs(args string) (map[string]string, string) {
+	if args == "" {
+		return make(map[string]string), ""
+	}
+	var rawParams map[string]interface{}
+	if err := json.Unmarshal([]byte(args), &rawParams); err != nil {
+		return nil, "invalid tool arguments"
+	}
+	params := make(map[string]string)
+	for k, v := range rawParams {
+		params[k] = fmt.Sprintf("%v", v)
+	}
+	return params, ""
+}
+
+// processWSToolCalls sends accumulated tool calls as action_result or action_required events over WebSocket.
+// If autonomous is true, safe (non-destructive) actions are executed immediately and results are sent as action_result.
+// Dangerous actions always require confirmation.
+func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[int]*streamToolCall, autonomous bool) {
 	if len(toolCalls) == 0 {
 		return
 	}
@@ -216,28 +283,30 @@ func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[i
 		}
 
 		actionName := tc.name
+		params, parseErr := parseToolCallArgs(tc.args)
 
-		if h.registry == nil {
-			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "unknown tool: " + actionName})})
+		if parseErr != "" {
+			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: parseErr})})
 			continue
 		}
 
-		act, found := h.registry.Get(actionName)
-		if !found {
-			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "unknown tool: " + actionName})})
+		isDestructive, result, errMsg, tokenStr, act := h.executeToolCallAction(actionName, params, autonomous)
+
+		if errMsg != "" && result == nil {
+			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: errMsg})})
 			continue
 		}
 
-		params := make(map[string]string)
-		if tc.args != "" {
-			var rawParams map[string]interface{}
-			if err := json.Unmarshal([]byte(tc.args), &rawParams); err != nil {
-				c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventError, Payload: mustMarshal(WSPayloadError{Message: "invalid tool arguments for " + actionName})})
-				continue
-			}
-			for k, v := range rawParams {
-				params[k] = fmt.Sprintf("%v", v)
-			}
+		if result != nil {
+			c.WriteJSON(WSEventEnvelope{V: 1, Type: WSEventActionResult, Payload: mustMarshal(map[string]interface{}{
+				"action":   actionName,
+				"params":   params,
+				"result":   result,
+				"message":  result.Message,
+				"data":     result.Data,
+				"executed": true,
+			})})
+			continue
 		}
 
 		paramsIface := make(map[string]interface{}, len(params))
@@ -246,21 +315,13 @@ func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[i
 		}
 
 		riskLevel := entity.RiskLevelRead
-		if act.Destructive(paramsIface) {
+		if isDestructive {
 			riskLevel = entity.RiskLevelDangerous
 		}
 
-		tokenStr := ""
-		if h.tokenService != nil {
-			hash := h.tokenService.ParamsHash(params)
-			tok, err := h.tokenService.Generate(assistant.ActionConfirmationToken{
-				Action:     actionName,
-				ParamsHash: hash,
-				RiskLevel:  string(riskLevel),
-			})
-			if err == nil {
-				tokenStr = tok
-			}
+		confirmationMsg := ""
+		if act != nil {
+			confirmationMsg = act.ConfirmationMessage(paramsIface)
 		}
 
 		intent := entity.ActionIntent{
@@ -268,7 +329,7 @@ func (h *AssistantHandler) processWSToolCalls(c *websocket.Conn, toolCalls map[i
 			Params:               params,
 			RiskLevel:            riskLevel,
 			RequiresConfirmation: true,
-			ConfirmationMessage:  act.ConfirmationMessage(paramsIface),
+			ConfirmationMessage:  confirmationMsg,
 			ConfirmationToken:    tokenStr,
 		}
 
@@ -293,8 +354,9 @@ func (h *AssistantHandler) emitAudit(userID, sessionID, actionName string, param
 
 // StreamRequest is the request body for POST /v1/assistant/stream.
 type StreamRequest struct {
-	Messages []assistant.ChatMessage `json:"messages"`
-	Tools    []assistant.ToolDef     `json:"tools,omitempty"`
+	Messages   []assistant.ChatMessage `json:"messages"`
+	Tools      []assistant.ToolDef     `json:"tools,omitempty"`
+	Autonomous bool                   `json:"autonomous,omitempty"`
 }
 
 // ExecuteRequest represents a request to execute a confirmed action.
@@ -344,7 +406,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
-				h.processStreamToolCalls(w, toolCalls)
+				h.processStreamToolCalls(w, toolCalls, req.Autonomous)
 				chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 				fmt.Fprintf(w, "data: %s\n\n", chunk)
 				w.Flush()
@@ -386,7 +448,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			}
 
 			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
-				h.processStreamToolCalls(w, toolCalls)
+				h.processStreamToolCalls(w, toolCalls, req.Autonomous)
 				toolCalls = make(map[int]*streamToolCall)
 			}
 
@@ -404,7 +466,7 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 			h.l.Error(scanner.Err(), "AssistantHandler - Stream - scanner")
 		}
 
-		h.processStreamToolCalls(w, toolCalls)
+		h.processStreamToolCalls(w, toolCalls, req.Autonomous)
 
 		chunk, _ := json.Marshal(streamChunk{Content: "", Done: true})
 		fmt.Fprintf(w, "data: %s\n\n", chunk)
@@ -437,8 +499,9 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		}
 
 		var req struct {
-			Messages []assistant.ChatMessage `json:"messages"`
-			Tools    []assistant.ToolDef     `json:"tools,omitempty"`
+			Messages   []assistant.ChatMessage `json:"messages"`
+			Tools      []assistant.ToolDef     `json:"tools,omitempty"`
+			Autonomous bool                   `json:"autonomous,omitempty"`
 		}
 		if err := json.Unmarshal(msgBytes, &req); err != nil || len(req.Messages) == 0 {
 			c.WriteJSON(map[string]interface{}{"error": "invalid request: messages required"})
@@ -486,7 +549,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
-				h.processWSToolCalls(c, toolCalls)
+				h.processWSToolCalls(c, toolCalls, req.Autonomous)
 				c.WriteJSON(map[string]interface{}{"done": true})
 				doneSent = true
 				break
@@ -526,7 +589,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			}
 
 			if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" {
-				h.processWSToolCalls(c, toolCalls)
+				h.processWSToolCalls(c, toolCalls, req.Autonomous)
 				toolCalls = make(map[int]*streamToolCall)
 			}
 
@@ -541,7 +604,7 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 			h.l.Error(scanner.Err(), "AssistantHandler - StreamWS - scanner")
 		}
 
-		h.processWSToolCalls(c, toolCalls)
+		h.processWSToolCalls(c, toolCalls, req.Autonomous)
 
 		if !doneSent {
 			c.WriteJSON(map[string]interface{}{"done": true})
