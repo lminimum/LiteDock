@@ -344,6 +344,23 @@ func mustMarshal(v interface{}) json.RawMessage {
 	return b
 }
 
+func generateAssistantToolDefs(rawTools []map[string]interface{}) []assistant.ToolDef {
+	tools := make([]assistant.ToolDef, 0, len(rawTools))
+	for _, raw := range rawTools {
+		toolBytes, err := json.Marshal(raw)
+		if err != nil {
+			continue
+		}
+
+		var tool assistant.ToolDef
+		if err := json.Unmarshal(toolBytes, &tool); err != nil {
+			continue
+		}
+		tools = append(tools, tool)
+	}
+	return tools
+}
+
 // emitAudit logs a structured audit event for an action execution attempt.
 // It never blocks execution — logging failures are silently swallowed.
 func (h *AssistantHandler) emitAudit(userID, sessionID, actionName string, params map[string]string, riskLevel entity.RiskLevel, result entity.AuditResult, execErr error, tokenValid, tokenExpired bool) {
@@ -386,7 +403,11 @@ func (h *AssistantHandler) Stream(c *fiber.Ctx) error {
 	if req.Autonomous {
 		messages = prependAgentSystemPrompt(messages)
 	}
-	resp, err := client.StreamChatCompletion(c.Context(), messages, req.Tools)
+	tools := req.Tools
+	if len(tools) == 0 && h.registry != nil {
+		tools = generateAssistantToolDefs(h.registry.GenerateToolDefs())
+	}
+	resp, err := client.StreamChatCompletion(c.Context(), messages, tools)
 	if err != nil {
 		h.l.Error(err, "AssistantHandler - Stream - StreamChatCompletion")
 		return errorResponse(c, fiber.StatusBadGateway, "LLM stream request failed: "+err.Error())
@@ -538,7 +559,11 @@ func (h *AssistantHandler) StreamWS(c *websocket.Conn) {
 		if req.Autonomous {
 			messages = prependAgentSystemPrompt(messages)
 		}
-		resp, err := client.StreamChatCompletion(ctx, messages, req.Tools)
+		tools := req.Tools
+		if len(tools) == 0 && h.registry != nil {
+			tools = generateAssistantToolDefs(h.registry.GenerateToolDefs())
+		}
+		resp, err := client.StreamChatCompletion(ctx, messages, tools)
 		if err != nil {
 			c.WriteJSON(map[string]interface{}{"error": "LLM request failed: " + assistant.MapErrorToUserMessage(err)})
 			h.l.Error(err, "AssistantHandler - StreamWS - StreamChatCompletion")

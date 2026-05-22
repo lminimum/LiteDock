@@ -228,6 +228,8 @@ func newMockLLMLogAnalysisServer(t *testing.T) *httptest.Server {
 		case 1:
 			require.Contains(t, body, `"stream":true`)
 			require.Contains(t, body, "autonomous mode")
+			require.Contains(t, body, `"tools"`)
+			require.Contains(t, body, `"name":"container"`)
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
 
