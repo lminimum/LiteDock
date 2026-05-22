@@ -45,7 +45,7 @@ var _chineseSynonyms = map[string]string{
 	"logs":     "get_container_logs",
 	"tail":     "get_container_logs",
 	"输出":       "get_container_logs",
-	"查看":       "view_logs",
+	"查看":       "get_container_logs",
 	"列出":       "list_containers",
 	"列表":       "list_containers",
 	"查看列表":     "list_containers",

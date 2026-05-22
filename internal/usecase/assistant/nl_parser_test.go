@@ -95,10 +95,10 @@ func testNLRules() []engine.Rule {
 			Description: "清理未使用的镜像",
 		},
 		{
-			Name:        "view_logs",
+			Name:        "get_container_logs",
 			Patterns:    []string{"logs of nginx", "tail nginx", "查看 nginx 日志", "查看 nginx 最后 100 行日志"},
 			Intent:      "container_logs",
-			Action:      "view_logs",
+			Action:      "get_container_logs",
 			Description: "查看容器日志",
 		},
 		{
