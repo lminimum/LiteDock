@@ -17,7 +17,7 @@ WORKDIR /app
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -tags migrate -o /bin/app ./cmd/app
 
-FROM nginx:1.31.0-alpine
+FROM nginx:1.31.2-alpine
 
 COPY --from=go-builder /bin/app /app
 COPY --from=go-builder /app/config /config
